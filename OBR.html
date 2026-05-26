@@ -67,7 +67,7 @@ body{background:#ebebeb;color:var(--txt);font-family:var(--fb);font-size:14px;mi
 .eye-btn{background:none;border:none;cursor:pointer;color:var(--gray3);font-size:13px;padding:0;line-height:1;transition:var(--t)}
 .eye-btn:hover{color:var(--gray2)}
 .sval{font-family:var(--fm);font-size:20px;font-weight:500;color:var(--txt);transition:var(--t);letter-spacing:1px}
-.sval.hidden{color:transparent;text-shadow:0 0 8px rgba(0,0,0,.25);user-select:none} #bal-ing-wrap.hidden,#bal-gas-wrap.hidden,#bal-bruta-wrap.hidden,#bal-neta-wrap.hidden{filter:blur(6px);user-select:none;pointer-events:none;}
+.sval.hidden{color:transparent;text-shadow:0 0 8px rgba(0,0,0,.25);user-select:none} #bal-ing-wrap.hidden,#bal-gas-wrap.hidden,#bal-bruta-wrap.hidden,#bal-neta-wrap.hidden,#bal-inv-wrap.hidden{filter:blur(6px);user-select:none;pointer-events:none;}
 .ssub{font-size:11px;color:var(--txt3);margin-top:2px}
 /* SECTION */
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
@@ -318,6 +318,7 @@ body.ready #app{display:block}
       <option value="">Todos los medios</option>
       <option>Efectivo</option><option>Santander</option><option>MP JUA</option>
       <option>MP COCO</option><option>Zelle</option><option>Macro jua</option>
+      <option>Macro Coco arg</option><option>Macro Coco usd</option>
     </select>
   </div>
   <!-- Bulk action bar — shown when rows are selected -->
@@ -1384,39 +1385,44 @@ body.ready #app{display:block}
 
 <!-- GASTOS -->
 <div id="view-gastos" class="view">
-  <div class="sh"><div class="st">GASTOS TALLER</div><div style="display:flex;gap:8px;"><button class="btn btn-s btn-sm" id="btn-sync-gp" onclick="syncGPTaller()">🏠 Sync Gastos Personales</button><button class="btn btn-s btn-sm" id="btn-seed-viajes" onclick="seedViajes()">🌎 Cargar viajes</button><button class="btn btn-p" onclick="openGasto()">+ Gasto</button></div></div>
-  <div class="tw"><div class="ts"><table>
-    <thead><tr><th>Fecha</th><th>Concepto</th><th>Cat.</th><th>Pesos</th><th>USD</th><th>Medio</th><th></th></tr></thead>
-    <tbody id="g-tbody"><tr>
-    <td style="color:var(--txt2);font-size:12px;white-space:nowrap;">01/12/24</td>
-    <td>
-      <strong>Viaje USA — Insumos y plantillas</strong>
-      <br><button class="btn btn-s btn-sm viaje-btn" data-row="2" style="margin-top:4px;font-size:11px;">🧾 Ver detalle</button>
-    </td>
-    <td><span class="bx bx-x">Insumos</span></td>
-    <td style="font-family:var(--fm);">—</td>
-    <td style="font-family:var(--fm);">u$s 3082</td>
-    <td><span class="bx bx-g">Efectivo USD</span></td>
-    <td style="display:flex;gap:4px;">
-      <button class="btn btn-s btn-sm btn-ic" onclick="editGasto(2)" title="Editar">✏️</button>
-      <button class="btn btn-s btn-sm btn-ic" onclick="del(&#39;GASTOS&#39;,2,&#39;gastos&#39;)">✕</button>
-    </td>
-  </tr><tr>
-    <td style="color:var(--txt2);font-size:12px;white-space:nowrap;">01/03/25</td>
-    <td>
-      <strong>Viaje Europa — Medias y plaquitas</strong>
-      <br><button class="btn btn-s btn-sm viaje-btn" data-row="3" style="margin-top:4px;font-size:11px;">🧾 Ver detalle</button>
-    </td>
-    <td><span class="bx bx-x">Insumos</span></td>
-    <td style="font-family:var(--fm);">—</td>
-    <td style="font-family:var(--fm);">u$s 2156</td>
-    <td><span class="bx bx-g">Efectivo USD</span></td>
-    <td style="display:flex;gap:4px;">
-      <button class="btn btn-s btn-sm btn-ic" onclick="editGasto(3)" title="Editar">✏️</button>
-      <button class="btn btn-s btn-sm btn-ic" onclick="del(&#39;GASTOS&#39;,3,&#39;gastos&#39;)">✕</button>
-    </td>
-  </tr></tbody>
-  </table></div></div>
+  <div class="sh">
+    <div class="st">GASTOS TALLER</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-s btn-sm" id="btn-sync-gp" onclick="syncGPTaller()">🏠 Sync Gastos Personales</button>
+      <button class="btn btn-s btn-sm" id="btn-seed-viajes" onclick="seedViajes()">🌎 Cargar viajes</button>
+      <button class="btn btn-p" onclick="openGasto()">+ Gasto</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;">
+
+    <!-- COLUMNA 1: INVERSIÓN -->
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-family:var(--fd);font-size:16px;font-weight:700;letter-spacing:.5px;">INVERSIÓN</div>
+        <div style="font-family:var(--fm);font-size:12px;color:var(--txt3);" id="g-inv-total">—</div>
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin-bottom:10px;">Stock USA/Europa · Obra/Infraestructura · Herramientas</div>
+      <div class="tw"><div class="ts"><table>
+        <thead><tr><th>Fecha</th><th>Concepto</th><th>Cat.</th><th>USD</th><th></th></tr></thead>
+        <tbody id="g-inv-tbody"></tbody>
+      </table></div></div>
+    </div>
+
+    <!-- COLUMNA 2: TEMPORADA 2026 -->
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-family:var(--fd);font-size:16px;font-weight:700;letter-spacing:.5px;">TEMPORADA 2026</div>
+        <div style="font-family:var(--fm);font-size:12px;color:var(--txt3);" id="g-temp-total">—</div>
+      </div>
+      <div style="font-size:11px;color:var(--txt3);margin-bottom:10px;">Alquiler · servicios · gastos corrientes del taller</div>
+      <div class="tw"><div class="ts"><table>
+        <thead><tr><th>Fecha</th><th>Concepto</th><th>Cat.</th><th>ARS / USD</th><th></th></tr></thead>
+        <tbody id="g-temp-tbody"></tbody>
+      </table></div></div>
+    </div>
+
+  </div>
 </div>
 
 <!-- PROVEEDORES -->
@@ -1590,6 +1596,8 @@ x2 gramaje 60</div>
           <option value="MP COCO">MP COCO</option>
           <option value="Santander">Santander</option>
           <option value="Macro jua">Macro jua</option>
+          <option value="Macro Coco arg">Macro Coco arg</option>
+          <option value="Macro Coco usd">Macro Coco usd</option>
           <option value="Zelle">Zelle</option>
           <option value="Regalo">Regalo</option>
           <option value="Otro">Otro</option>
@@ -1605,12 +1613,13 @@ x2 gramaje 60</div>
 
   <!-- Metric cards -->
   <div class="bal-grid" id="bal-cards">
-    <div class="bal-card bal-card-blue"><div class="bal-lbl">Ingresos totales <button class="eye-btn" onclick="toggleEye(&#39;bal-ing-wrap&#39;,this)">👁</button></div><div id="bal-ing-wrap" class="hidden"><div class="bal-val" id="bal-ing">u$s 0</div><div class="bal-sub" id="bal-ing-sub">$0k ARS · 0 ventas</div></div></div>
-    <div class="bal-card bal-card-red"><div class="bal-lbl">Gastos del taller <button class="eye-btn" onclick="toggleEye(&#39;bal-gas-wrap&#39;,this)">👁</button></div><div id="bal-gas-wrap" class="hidden"><div class="bal-val" id="bal-gas">u$s 0</div><div class="bal-sub">Insumos, obra, envíos</div></div></div>
-    <div class="bal-card bal-card-ok"><div class="bal-lbl">Ganancia bruta <button class="eye-btn" onclick="toggleEye(&#39;bal-bruta-wrap&#39;,this)">👁</button></div><div id="bal-bruta-wrap" class="hidden"><div class="bal-val" id="bal-bruta">u$s 0</div><div class="bal-sub">Venta − costo producto</div></div></div>
-    <div class="bal-card"><div class="bal-lbl">Ganancia neta <button class="eye-btn" onclick="toggleEye(&#39;bal-neta-wrap&#39;,this)">👁</button></div><div id="bal-neta-wrap" class="hidden"><div class="bal-val" id="bal-neta" style="color: var(--ok);">u$s 0</div><div class="bal-sub">Ingresos − gastos</div></div></div>
+    <div class="bal-card bal-card-blue"><div class="bal-lbl">Ingresos totales <button class="eye-btn" onclick="toggleEye('bal-ing-wrap',this)">👁</button></div><div id="bal-ing-wrap" class="hidden"><div class="bal-val" id="bal-ing">u$s 0</div><div class="bal-sub" id="bal-ing-sub">$0k ARS · 0 ventas</div></div></div>
+    <div class="bal-card bal-card-red"><div class="bal-lbl">Gastos temporada <button class="eye-btn" onclick="toggleEye('bal-gas-wrap',this)">👁</button></div><div id="bal-gas-wrap" class="hidden"><div class="bal-val" id="bal-gas">u$s 0</div><div class="bal-sub">Alquiler · servicios · corrientes</div></div></div>
+    <div class="bal-card bal-card-ok"><div class="bal-lbl">Ganancia bruta <button class="eye-btn" onclick="toggleEye('bal-bruta-wrap',this)">👁</button></div><div id="bal-bruta-wrap" class="hidden"><div class="bal-val" id="bal-bruta">u$s 0</div><div class="bal-sub">Venta − costo producto</div></div></div>
+    <div class="bal-card"><div class="bal-lbl">Ganancia neta <button class="eye-btn" onclick="toggleEye('bal-neta-wrap',this)">👁</button></div><div id="bal-neta-wrap" class="hidden"><div class="bal-val" id="bal-neta" style="color: var(--ok);">u$s 0</div><div class="bal-sub">Ingresos − gastos temporada</div></div></div>
     <div class="bal-card"><div class="bal-lbl">Ventas</div><div class="bal-val" id="bal-cnt">0</div><div class="bal-sub" id="bal-cnt-sub">total operaciones</div></div>
     <div class="bal-card"><div class="bal-lbl">Regalos</div><div class="bal-val" id="bal-reg" style="color: var(--ok);">0</div><div class="bal-sub" id="bal-reg-sub">0 regalos</div></div>
+    <div class="bal-card" style="border-left:3px solid var(--warn);"><div class="bal-lbl" style="color:var(--warn);">Total inversión <button class="eye-btn" onclick="toggleEye('bal-inv-wrap',this)">👁</button></div><div id="bal-inv-wrap" class="hidden"><div class="bal-val" id="bal-inv" style="color:var(--warn);">u$s 0</div><div class="bal-sub">Stock USA/Europa · Obra · Infraestructura</div></div></div>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px;">
@@ -1634,7 +1643,7 @@ x2 gramaje 60</div>
 
   <div style="margin-top:20px;">
     <div class="st" style="font-size:16px;margin-bottom:4px;">AFIP / MONOTRIBUTO</div>
-    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Santander + MP COCO = declara Coco · Macro jua + MP JUA = declarás vos. Tildá las ventas que ya facturaste.</p>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Santander + MP COCO + Macro Coco arg = declara Coco · Macro jua + MP JUA = declarás vos. Tildá las ventas que ya facturaste.</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
       <div class="bal-card" style="border-left:3px solid var(--profe);">
@@ -1643,7 +1652,7 @@ x2 gramaje 60</div>
         <div class="bal-sub"><span id="afip-jua-fact">0</span> facturadas · <span id="afip-jua-pend">0</span> pendientes</div>
       </div>
       <div class="bal-card" style="border-left:3px solid var(--turista);">
-        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO</div>
+        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco arg</div>
         <div class="bal-val" id="afip-coco-total" style="color:var(--turista);">$0<div style="font-size:13px;font-weight:400;color:var(--txt2);margin-top:2px;">≈ u$s 0</div></div>
         <div class="bal-sub"><span id="afip-coco-fact">0</span> facturadas · <span id="afip-coco-pend">0</span> pendientes</div>
       </div>
@@ -2072,11 +2081,11 @@ x2 gramaje 60</div>
     </div>
     <div id="campo-pesos" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div class="fi" style="margin:0;"><label>Monto en Pesos ARS</label><input type="number" id="v-monto-pesos" placeholder="ej: 182000" oninput="rSel()"></div>
-      <div class="fi" style="margin:0;"><label>Medio de pago</label><select id="v-mp"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Regalo</option><option>Otro</option></select></div>
+      <div class="fi" style="margin:0;"><label>Medio de pago</label><select id="v-mp"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Regalo</option><option>Otro</option></select></div>
     </div>
     <div id="campo-usd" style="display:none;grid-template-columns:1fr 1fr;gap:8px;">
       <div class="fi" style="margin:0;"><label>Monto en USD</label><input type="number" id="v-monto-usd" placeholder="ej: 130" oninput="rSel()"></div>
-      <div class="fi" style="margin:0;"><label>Medio de pago</label><select id="v-mp-usd"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Otro</option></select></div>
+      <div class="fi" style="margin:0;"><label>Medio de pago</label><select id="v-mp-usd"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco usd</option><option>Otro</option></select></div>
     </div>
     <div id="campo-mixto" style="display: block;">
       <!-- Parte 1 -->
@@ -2092,7 +2101,7 @@ x2 gramaje 60</div>
           </div>
           <div class="fi" style="margin:0;"><label>Monto</label><input type="number" id="v-mixto-monto1" placeholder="ej: 90000" oninput="rSel()"></div>
           <div class="fi" style="margin:0;"><label>Medio de pago</label>
-            <select id="v-mixto-mp1"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Otro</option></select>
+            <select id="v-mixto-mp1"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select>
           </div>
         </div>
       </div>
@@ -2109,7 +2118,7 @@ x2 gramaje 60</div>
           </div>
           <div class="fi" style="margin:0;"><label>Monto</label><input type="number" id="v-mixto-monto2" placeholder="ej: 65" oninput="rSel()"></div>
           <div class="fi" style="margin:0;"><label>Medio de pago</label>
-            <select id="v-mixto-mp2"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Otro</option></select>
+            <select id="v-mixto-mp2"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select>
           </div>
         </div>
       </div>
@@ -2198,7 +2207,7 @@ x2 gramaje 60</div>
   <div class="fg">
     <div class="fi"><label>Fecha</label><input type="date" id="g-f"></div>
     <div class="fi"><label>Categoría</label>
-      <select id="g-c"><option>Insumos</option><option>Obra/Infraestructura</option><option>Herramientas</option><option>Envíos</option><option>Compras USA</option><option>Alquiler</option><option>Otros</option></select>
+      <select id="g-c"><option>Insumos</option><option>Obra/Infraestructura</option><option>Herramientas</option><option>Envíos</option><option>Compras USA</option><option>Alquiler</option><option>Temporada</option><option>Otros</option></select>
     </div>
     <div class="fi s2"><label>Concepto</label><input type="text" id="g-n" placeholder="Par-ke-gom folias, Palm hierros..."></div>
     <div class="fi"><label>Pesos ARS</label><input type="number" id="g-p" placeholder="0"></div>
@@ -2329,7 +2338,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (c && sid) {
     D.cr = JSON.parse(c); D.sid = sid;
     document.body.classList.add('ready');
-    loadCfg().then(() => { renderYearBtns(); loadAll(); });
+    loadCfg().then(() => { renderYearBtns(); loadAll().then(() => rg()); });
   }
   const today = new Date().toISOString().split('T')[0];
   ['v-fecha','g-f','pv-f','bt-f','pd-f'].forEach(id => {
@@ -2609,7 +2618,7 @@ async function loadCfg() {
 async function loadAll() {
   spin(true);
   try {
-    await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv()]);
+    await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
   }
   catch(e) { tst('Error cargando: '+e.message, 'err'); console.error(e); }
   spin(false);
@@ -2689,10 +2698,12 @@ async function loadGPTaller() {
     // Gastos variables Taller
     Object.entries(gpData.vars || {}).forEach(([mes, gastos]) => {
       (gastos || []).filter(g => g.c === 'Taller').forEach(g => {
+        // sub field distinguishes Inversión vs Temporada; default to Obra/Infraestructura
+        const cat = g.sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
         all.push({
           f: g.f || '',
           n: g.d || '',
-          c: 'Obra/Infraestructura',
+          c: cat,
           p: g.m || 0,
           u: 0,
           m: 'Gastos Personales',
@@ -3331,46 +3342,99 @@ function rpr() {
 }
 
 // ─────────────────────────────────────────
-// RENDER GASTOS
+// RENDER GASTOS — dos columnas: Inversión / Temporada
 // ─────────────────────────────────────────
+// Categorías que van a INVERSIÓN (Columna 1)
+const CATS_INVERSION = ['Insumos','Obra/Infraestructura','Herramientas','Envíos','Compras USA','Alquiler','Otros'];
+
+function isInversion(g) {
+  // GP fijos (ej. Movistar, Spotify) → siempre Temporada
+  if (g.src === 'gp-fijo') return false;
+  // Todo lo demás (OBR directo + GP variables): categoría Temporada → Temporada, resto → Inversión
+  return g.c !== 'Temporada';
+}
+
 function rg() {
-  const tb = document.getElementById('g-tbody');
+  const tbInv  = document.getElementById('g-inv-tbody');
+  const tbTemp = document.getElementById('g-temp-tbody');
+
   // Merge OBR gastos + GP Taller, sorted by date desc
   const all = [
     ...D.gastos.map(g => ({...g, src:'obr'})),
     ..._gpTaller
   ].sort((a,b) => b.f.localeCompare(a.f));
 
-  if (!all.length) { tb.innerHTML=`<tr><td colspan="7"><div class="empty"><p>Sin gastos</p></div></td></tr>`; return; }
-  tb.innerHTML = all.map(g => {
-    const isGP = g.src === 'gp' || g.src === 'gp-fijo';
-    return `<tr style="${isGP?'background:rgba(139,92,246,.04)':''}">
-    <td style="color:var(--txt2);font-size:12px;white-space:nowrap;">${fd(g.f)}</td>
-    <td>
-      <strong>${e(g.n)}</strong>
-      ${isGP ? '<span style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;background:#f5f3ff;color:#8B5CF6;border:1px solid #8B5CF680;border-radius:10px;padding:1px 6px;font-family:var(--fm)">GP</span>' : ''}
-      ${g.det?`<br><button class="btn btn-s btn-sm viaje-btn" data-row="${g._r}" style="margin-top:4px;font-size:11px;">🧾 Ver detalle</button>`:''}
-    </td>
-    <td><span class="bx bx-x">${e(g.c)}</span></td>
-    <td style="font-family:var(--fm);">${g.p?'$'+g.p.toLocaleString('es-AR'):'—'}</td>
-    <td style="font-family:var(--fm);">${(()=>{
-      const u = g.u || (isGP && g.p ? +(g.p/D.cfg.dol).toFixed(2) : 0);
-      return u ? 'u$s '+u : '—';
-    })()}</td>
-    <td><span class="bx ${mpb(g.m)}">${e(g.m)}</span></td>
-    <td style="display:flex;gap:4px;">
-      ${isGP
-        ? '<span style="font-size:10px;color:var(--txt3);padding:4px 6px;">desde GP</span>'
-        : `<button class="btn btn-s btn-sm btn-ic" onclick="editGasto(${g._r})" title="Editar">✏️</button>
-           <button class="btn btn-s btn-sm btn-ic" onclick="del('GASTOS',${g._r},'gastos')">✕</button>`
-      }
-    </td>
-  </tr>`;
-  }).join('');
-  // Wire viaje buttons safely
-  tb.querySelectorAll('.viaje-btn').forEach(btn => {
-    btn.addEventListener('click', () => showViaje(parseInt(btn.dataset.row)));
-  });
+  const inv  = all.filter(g => isInversion(g));
+  const temp = all.filter(g => !isInversion(g));
+
+  // ── Columna 1: INVERSIÓN ──────────────────────────────────────────
+  const dol = D.cfg.dol || 1400;
+  let totalInvUsd = 0;
+  if (!inv.length) {
+    tbInv.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:16px;">Sin gastos de inversión</td></tr>`;
+  } else {
+    tbInv.innerHTML = inv.map(g => {
+      const isGP = g.src === 'gp';
+      const usd = g.u || (g.p ? +(g.p/dol).toFixed(2) : 0);
+      totalInvUsd += usd;
+      return `<tr style="${isGP?'background:rgba(139,92,246,.04)':''}">
+        <td style="color:var(--txt2);font-size:12px;white-space:nowrap;">${fd(g.f)}</td>
+        <td>
+          <strong>${e(g.n)}</strong>
+          ${isGP ? '<span style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;background:#f5f3ff;color:#8B5CF6;border:1px solid #8B5CF680;border-radius:10px;padding:1px 6px;font-family:var(--fm)">GP</span>' : ''}
+          ${g.det ? `<br><button class="btn btn-s btn-sm viaje-btn" data-row="${g._r}" style="margin-top:4px;font-size:11px;">🧾 Ver detalle</button>` : ''}
+        </td>
+        <td><span class="bx bx-x">${e(g.c)}</span></td>
+        <td style="font-family:var(--fm);color:var(--txt2);">${usd ? 'u$s '+usd : '—'}</td>
+        <td style="display:flex;gap:4px;">
+          ${isGP
+            ? '<span style="font-size:10px;color:var(--txt3);padding:4px 6px;">desde GP</span>'
+            : `<button class="btn btn-s btn-sm btn-ic" onclick="editGasto(${g._r})" title="Editar">✏️</button>
+               <button class="btn btn-s btn-sm btn-ic" onclick="del('GASTOS',${g._r},'gastos')">✕</button>`
+          }
+        </td>
+      </tr>`;
+    }).join('');
+    // wire viaje buttons
+    tbInv.querySelectorAll('.viaje-btn').forEach(btn => {
+      btn.addEventListener('click', () => showViaje(parseInt(btn.dataset.row)));
+    });
+  }
+  const invTotalEl = document.getElementById('g-inv-total');
+  if (invTotalEl) invTotalEl.textContent = 'u$s ' + totalInvUsd.toFixed(0);
+
+  // ── Columna 2: TEMPORADA ──────────────────────────────────────────
+  let totalTempUsd = 0;
+  if (!temp.length) {
+    tbTemp.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:16px;">Sin gastos de temporada</td></tr>`;
+  } else {
+    tbTemp.innerHTML = temp.map(g => {
+      const isGPfijo = g.src === 'gp-fijo';
+      const usd = g.u || (g.p ? +(g.p/dol).toFixed(2) : 0);
+      totalTempUsd += usd;
+      const montoStr = g.u
+        ? 'u$s ' + g.u
+        : (g.p ? '$' + g.p.toLocaleString('es-AR') : '—');
+      return `<tr style="${isGPfijo?'background:rgba(139,92,246,.04)':''}">
+        <td style="color:var(--txt2);font-size:12px;white-space:nowrap;">${fd(g.f)}</td>
+        <td>
+          <strong>${e(g.n)}</strong>
+          ${isGPfijo ? '<span style="display:inline-block;margin-left:6px;font-size:9px;font-weight:700;background:#f5f3ff;color:#8B5CF6;border:1px solid #8B5CF680;border-radius:10px;padding:1px 6px;font-family:var(--fm)">GP</span>' : ''}
+        </td>
+        <td><span class="bx bx-x">${e(g.c)}</span></td>
+        <td style="font-family:var(--fm);color:var(--txt2);">${montoStr}</td>
+        <td style="display:flex;gap:4px;">
+          ${isGPfijo
+            ? '<span style="font-size:10px;color:var(--txt3);padding:4px 6px;">desde GP</span>'
+            : `<button class="btn btn-s btn-sm btn-ic" onclick="editGasto(${g._r})" title="Editar">✏️</button>
+               <button class="btn btn-s btn-sm btn-ic" onclick="del('GASTOS',${g._r},'gastos')">✕</button>`
+          }
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  const tempTotalEl = document.getElementById('g-temp-total');
+  if (tempTotalEl) tempTotalEl.textContent = '≈ u$s ' + totalTempUsd.toFixed(0);
 }
 
 function showViaje(rowNum) {
@@ -3620,14 +3684,26 @@ async function rbal() {
     return a + v.pp + v.pex;
   }, 0);
 
-  // Gastos (no filtrar por fecha para gastos — o sí si hay filtro)
-  let gastos = [...D.gastos];
-  if (de) gastos = gastos.filter(g => g.f >= de);
-  if (ha) gastos = gastos.filter(g => g.f <= ha);
-  // Include GP Taller gastos (convert ARS to USD using dol rate)
-  const gpGastos = _gpTaller.filter(g => (!de||g.f>=de)&&(!ha||g.f<=ha));
-  const gasUsd = gastos.reduce((a,g) => a + g.u + (g.p/dol), 0)
-                + gpGastos.reduce((a,g) => a + (g.p/dol), 0);
+  // Gastos — separar temporada (afecta neta) de inversión (recuadro separado)
+  let gastosAll = [...D.gastos.map(g => ({...g, src:'obr'}))];
+  const gpAll = _gpTaller;
+  if (de) { gastosAll = gastosAll.filter(g => g.f >= de); }
+  if (ha) { gastosAll = gastosAll.filter(g => g.f <= ha); }
+  const gpGastosFilt = gpAll.filter(g => (!de||g.f>=de)&&(!ha||g.f<=ha));
+
+  // Temporada: cat=Temporada (OBR) + gp-fijo
+  const gastosTemp = [
+    ...gastosAll.filter(g => g.c === 'Temporada'),
+    ...gpGastosFilt.filter(g => g.src === 'gp-fijo')
+  ];
+  // Inversión: todo lo demás (OBR no-Temporada + gp variables)
+  const gastosInv = [
+    ...gastosAll.filter(g => g.c !== 'Temporada'),
+    ...gpGastosFilt.filter(g => g.src === 'gp')
+  ];
+
+  const gasUsd     = gastosTemp.reduce((a,g) => a + (g.u || (g.p ? g.p/dol : 0)), 0);
+  const gasInvUsd  = gastosInv.reduce((a,g)  => a + (g.u || (g.p ? g.p/dol : 0)), 0);
 
   // Ganancia bruta — precio cobrado menos costo real
   const brutaUsd = ventasSinRegalo.reduce((a, v) => {
@@ -3706,7 +3782,8 @@ async function rbal() {
   document.getElementById('bal-reg').textContent   = regCount ? `−u$s ${regLoss.toFixed(0)}` : '0';
   document.getElementById('bal-reg').style.color   = regCount ? 'var(--red)' : 'var(--ok)';
   document.getElementById('bal-reg-sub').textContent = `${regCount} regalo${regCount!==1?'s':''}`;
-
+  const invEl = document.getElementById('bal-inv');
+  if (invEl) invEl.textContent = 'u$s ' + gasInvUsd.toFixed(0);
   // Por mes — use proportional amounts when category filter active
   const meses = {};
   base.forEach(v => {
@@ -3794,7 +3871,7 @@ function balResetFiltros() {
 
 function rAfip(allVentas) {
   const mpJua   = ['Macro jua','MP JUA'];
-  const mpCoco  = ['Santander','MP COCO'];
+  const mpCoco  = ['Santander','MP COCO','Macro Coco arg'];
   const dol = D.cfg.dol || 1400;
 
   // Parse a venta into AFIP-relevant "entries" (handles mixto by splitting)
