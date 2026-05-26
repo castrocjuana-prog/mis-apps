@@ -554,7 +554,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
     <div class="fg fg5" style="margin-bottom:8px">
       <input id="var-desc" placeholder="Descripción">
       <input id="var-fecha" type="date">
-      <select id="var-cat">
+      <select id="var-cat" onchange="onVarCatChange(this)">
         <option>Comida</option><option>Salud</option><option>Nafta</option>
         <option>Gasoil</option><option>Mitsu</option><option>Kuga</option>
         <option>Lancha</option><option>ObraCasa</option><option>Mapuches</option><option>Viaje</option>
@@ -562,6 +562,13 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
       </select>
       <input id="var-monto" type="number" placeholder="$ ARS">
       <button class="btn bp" onclick="agregarVar()" style="padding:6px">+</button>
+    </div>
+    <div id="var-sub-row" style="display:none;margin-bottom:10px;">
+      <span style="font-size:11px;font-weight:600;font-family:var(--mono);color:var(--t3);margin-right:10px;text-transform:uppercase;letter-spacing:.05em;">Tipo de gasto taller:</span>
+      <select id="var-sub" style="padding:5px 12px;font-size:12px;font-weight:600;font-family:var(--mono);border:1.5px solid var(--border);border-radius:var(--rs);background:#fff;color:var(--text);cursor:pointer;outline:none">
+        <option value="Obra/Infraestructura">Inversión (obra, herramientas, stock)</option>
+        <option value="Temporada">Temporada (alquiler, servicios, corrientes)</option>
+      </select>
     </div>
   </div>
   <div class="card">
@@ -1324,6 +1331,62 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
       </div>
     </div>
   </div>
+
+  <!-- CREDENCIALES -->
+  <div class="card" style="margin-top:10px">
+    <div class="chd" style="margin-bottom:14px">
+      <div>
+        <div class="clbl" style="margin-bottom:2px">🔐 Accesos & Credenciales</div>
+        <div style="font-size:11px;color:var(--t3)">Cuentas bancarias, apps y servicios</div>
+      </div>
+      <button class="btn bp" onclick="toggleF('form-cred-nueva');credEditId=null;limpiarFormCred()">+ Nueva cuenta</button>
+    </div>
+
+    <!-- Form agregar/editar -->
+    <div id="form-cred-nueva" class="fb" style="display:none;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px" id="form-cred-titulo">Nueva cuenta</div>
+      <div class="fg fg2" style="margin-bottom:8px">
+        <input id="cred-nombre" placeholder="Nombre (ej: WF Jua, Macro Coco)">
+        <input id="cred-usuario" placeholder="Usuario / Email">
+      </div>
+      <div class="fg fg2" style="margin-bottom:8px">
+        <div style="position:relative">
+          <input id="cred-pass" placeholder="Contraseña" style="width:100%;padding-right:36px">
+          <button onclick="toggleVerCred('cred-pass',this)" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t3);font-size:14px;padding:0">👁</button>
+        </div>
+        <input id="cred-nota" placeholder="Notas (opcional)">
+      </div>
+
+      <!-- Toggle débitos automáticos -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500">
+          <input type="checkbox" id="cred-tiene-deb" onchange="toggleFormDebitos()" style="width:15px;height:15px;accent-color:var(--acc)">
+          Tiene débitos automáticos
+        </label>
+      </div>
+
+      <!-- Lista de débitos -->
+      <div id="cred-deb-section" style="display:none;background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Débitos automáticos</div>
+        <div id="cred-deb-lista"></div>
+        <div class="fg" style="grid-template-columns:2fr 60px 1fr 60px 28px;gap:6px;margin-top:6px" id="cred-deb-fila-nueva">
+          <input id="cred-deb-desc" placeholder="Descripción (ej: Netflix)">
+          <input id="cred-deb-dia" type="number" min="1" max="31" placeholder="Día">
+          <input id="cred-deb-monto" type="number" placeholder="Monto aprox">
+          <select id="cred-deb-mon"><option value="ARS">ARS</option><option value="USD">USD</option></select>
+          <button class="btn bp" onclick="agregarDebitoForm()" style="padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:16px">+</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button class="btn bp" onclick="guardarCredencial()">Guardar</button>
+        <button class="btn" onclick="cancelarCred()">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Lista de tarjetas -->
+    <div id="cred-lista"></div>
+  </div>
 </div>
 
 <!-- AFIP -->
@@ -1556,7 +1619,7 @@ const CB={Comida:'#fffbeb',Salud:'#fdf2f8',Nafta:'#f5f3ff',Gasoil:'#eff6ff',Mits
 
 
 
-const DEF={"fijos":{"2026":[{"id":1,"n":"MEDICUS COCO","cat":"Salud","tipo":"debito","nota":"Deb auto Santander","m":{"1":170251,"2":298133,"3":243783,"4":185722,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-05","2":"2026-03-09","3":"2026-04-06","4":"2026-05-05"}},{"id":2,"n":"CEB - Electricidad","cat":"Servicios","tipo":"manual","nota":"Mensual a mes vencido","m":{"1":64975,"2":68516,"3":63493,"4":67120,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-03-23","2":"2026-03-23","3":"2026-05-04","4":"2026-05-04"}},{"id":3,"n":"AGUA - Junta vecinal","cat":"Servicios","tipo":"manual","nota":"Mensual ir a la junta","m":{"1":0,"2":8300,"3":0,"4":57000,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"2":"2026-02-12","4":"2026-04-07"}},{"id":4,"n":"CAMUZI - Gas","cat":"Servicios","tipo":"manual","nota":"Bimestral a mes vencido","m":{"1":39083,"2":45208,"3":45208,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-12","2":"2026-03-23","3":"2026-04-06"}},{"id":5,"n":"ADT - Alarma","cat":"Servicios","tipo":"debito","nota":"Cliente 639293","m":{"1":140000,"2":152000,"3":158000,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0}},{"id":6,"n":"RENTA Municipal casa 2024","cat":"Impuestos","tipo":"manual","nota":"Plan pago 15 c/mes","m":{"1":0,"2":0,"3":11436,"4":11436,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"3":"2026-03-23","4":"2026-04-15"}},{"id":7,"n":"AVC - Internet Cable","cat":"Servicios","tipo":"debito","nota":"Deb auto Santander día 10","m":{"1":53653,"2":53653,"3":56200,"4":56200,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-10","2":"2026-03-10","3":"2026-04-10","4":"2026-05-11"}},{"id":8,"n":"SEGURO CASA ADELANTE","cat":"Servicios","tipo":"debito","nota":"Deb auto Santander día 10","m":{"1":46940,"2":46940,"3":46940,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-11","2":"2026-03-25","3":"2026-04-13"}},{"id":9,"n":"SEGURO CASA ATRAS","cat":"Servicios","tipo":"debito","nota":"Deb auto Santander día 10","m":{"1":30665,"2":30665,"3":30665,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-11","2":"2026-03-11","3":"2026-04-13"}},{"id":10,"n":"NETFLIX","cat":"Servicios","tipo":"debito","nota":"Deb auto Santander día 29","m":{"1":23400,"2":23000,"3":23000,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-03-02","2":"2026-03-31","3":"2026-04-28"}},{"id":11,"n":"RENTA Municipal casa 2026","cat":"Impuestos","tipo":"anual","nota":"Pago adelantado + deuda 2025","notaAnual":"DEUDA 2025 $326.534 — PAGO ADELANTADO ANUAL $461.940","montoAnual":788474},{"id":12,"n":"RENTA ARCA casa anual 2026","cat":"Impuestos","tipo":"anual","nota":"Pago anual enero 2026","notaAnual":"TOTAL ANUAL $111.736 — Pago el 9/02/2026","montoAnual":111736},{"id":13,"n":"MOVISTAR TALLER","cat":"Taller","tipo":"debito","nota":"Deb auto Santander día 12","m":{"1":17900,"2":53835,"3":44500,"4":22250,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-09","2":"2026-03-09","3":"2026-04-07","4":"2026-05-08"}},{"id":14,"n":"SPOTIFY","cat":"Taller","tipo":"debito","nota":"Deb auto Santander","m":{"1":5047,"2":4981,"3":4981,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-18","2":"2026-03-18","3":"2026-04-18"}},{"id":15,"n":"MONOTRIBUTO COCO","cat":"Impuestos","tipo":"manual","nota":"Mensual Alta MAYO","m":{"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0}},{"id":16,"n":"MONOTRIBUTO JUA","cat":"Impuestos","tipo":"debito","nota":"Deb auto Macro Alta MAYO 20","m":{"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0}},{"id":17,"n":"SEGURO KLUGUI","cat":"Kuga","tipo":"debito","nota":"Deb auto Santander día 12","m":{"1":37030,"2":37648,"3":45230,"4":46136,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-06","2":"2026-03-06","3":"2026-04-08","4":"2026-05-08"}}]},"vars":{"1":[{"id":1001,"d":"Precap","f":"2026-01-02","c":"Mitsu","m":38000},{"id":1002,"d":"Pan","f":"2026-01-02","c":"Comida","m":3800},{"id":1003,"d":"Nafta fiambre pan super","f":"2026-01-03","c":"Gasoil","m":70000},{"id":1004,"d":"Comida y helado","f":"2026-01-04","c":"Comida","m":45000},{"id":1005,"d":"Deuda arca","f":"2026-01-05","c":"Impuestos","m":99000},{"id":1006,"d":"Pastas y super","f":"2026-01-06","c":"Comida","m":40000},{"id":1007,"d":"Precaps mano obra","f":"2026-01-06","c":"Mitsu","m":120000},{"id":1008,"d":"Psicóloga","f":"2026-01-07","c":"Salud","m":45000},{"id":1009,"d":"Super super","f":"2026-01-08","c":"Comida","m":135000},{"id":1010,"d":"Regalo lu carro","f":"2026-01-08","c":"Otros","m":17000},{"id":1011,"d":"Nafta","f":"2026-01-09","c":"Gasoil","m":100000},{"id":1012,"d":"Fiambre y pan","f":"2026-01-09","c":"Comida","m":16000},{"id":1013,"d":"Libro","f":"2026-01-12","c":"Otros","m":31000},{"id":1014,"d":"Pan y pollo","f":"2026-01-12","c":"Comida","m":11000},{"id":1015,"d":"Tarta","f":"2026-01-14","c":"Comida","m":7500},{"id":1016,"d":"Cerveza","f":"2026-01-14","c":"Entretenimiento","m":15000},{"id":1017,"d":"Almuerzo jua","f":"2026-01-14","c":"Entretenimiento","m":15000},{"id":1018,"d":"Facturas villa","f":"2026-01-15","c":"Comida","m":8000},{"id":1019,"d":"Consultorio Vilaseco","f":"2026-01-15","c":"Salud","m":10000},{"id":1020,"d":"Andy dentista control","f":"2026-01-15","c":"Salud","m":45000},{"id":1021,"d":"Nafta","f":"2026-01-15","c":"Gasoil","m":40000},{"id":1022,"d":"Kinesio","f":"2026-01-15","c":"Salud","m":44000},{"id":1023,"d":"Kiosco","f":"2026-01-16","c":"Comida","m":5500},{"id":1024,"d":"Comida gati","f":"2026-01-16","c":"Luna","m":12000},{"id":1025,"d":"Médico carnet náutico","f":"2026-01-16","c":"Salud","m":78000},{"id":1026,"d":"Repuesto","f":"2026-01-16","c":"Mitsu","m":20000},{"id":1027,"d":"Pastas","f":"2026-01-16","c":"Comida","m":15000},{"id":1028,"d":"Nafta","f":"2026-01-16","c":"Gasoil","m":45000},{"id":1029,"d":"Verdu","f":"2026-01-17","c":"Comida","m":8000},{"id":1030,"d":"Super","f":"2026-01-17","c":"Comida","m":40000},{"id":1031,"d":"Mamushka","f":"2026-01-16","c":"Comida","m":12600},{"id":1032,"d":"Resultado colonosco","f":"2026-01-16","c":"Salud","m":10000},{"id":1033,"d":"Rapanui","f":"2026-01-16","c":"Comida","m":5200},{"id":1034,"d":"Super","f":"2026-01-18","c":"Comida","m":30000},{"id":1035,"d":"Cejas","f":"2026-01-16","c":"Otros","m":20000},{"id":1036,"d":"Ladrillos","f":"2026-01-19","c":"ObraCasa","m":14000},{"id":1037,"d":"Foto carnet","f":"2026-01-19","c":"Otros","m":24000},{"id":1038,"d":"Gastroenteróloga","f":"2026-01-19","c":"Salud","m":10000},{"id":1039,"d":"Gasoil","f":"2026-01-19","c":"Gasoil","m":50000},{"id":1040,"d":"Fiambreria","f":"2026-01-19","c":"Comida","m":17000},{"id":1041,"d":"Farmacia Santa Lucía","f":"2026-01-19","c":"Salud","m":70500},{"id":1042,"d":"Cena pati","f":"2026-01-19","c":"Comida","m":38000},{"id":1043,"d":"Uber","f":"2026-01-20","c":"Otros","m":44000},{"id":1044,"d":"Ale mecánico","f":"2026-01-20","c":"Mitsu","m":240000},{"id":1045,"d":"Matafuego casa adelante","f":"2026-01-20","c":"ObraCasa","m":25000},{"id":1046,"d":"Alineación","f":"2026-01-20","c":"Mitsu","m":55000},{"id":1047,"d":"Gomeria","f":"2026-01-20","c":"Mitsu","m":8000},{"id":1048,"d":"Hamburguesa","f":"2026-01-20","c":"Comida","m":39000},{"id":1049,"d":"Gasoil","f":"2026-01-20","c":"Gasoil","m":65500},{"id":1050,"d":"Pan","f":"2026-01-21","c":"Comida","m":2000},{"id":1051,"d":"Super","f":"2026-01-21","c":"Comida","m":84000},{"id":1052,"d":"Almuerzo jua","f":"2026-01-22","c":"Entretenimiento","m":26000},{"id":1053,"d":"Super campa","f":"2026-01-23","c":"Comida","m":56000},{"id":1054,"d":"Panadería campa","f":"2026-01-23","c":"Comida","m":10000},{"id":1055,"d":"Fiambre campa","f":"2026-01-23","c":"Comida","m":26000},{"id":1056,"d":"Nafta lancha","f":"2026-01-23","c":"Lancha","m":75000},{"id":1057,"d":"Asado","f":"2026-01-23","c":"Comida","m":125000},{"id":1058,"d":"Super","f":"2026-01-27","c":"Comida","m":73000},{"id":1059,"d":"Nafta","f":"2026-01-26","c":"Nafta","m":107000},{"id":1060,"d":"Gasoil","f":"2026-01-26","c":"Gasoil","m":79000},{"id":1061,"d":"Crema","f":"2026-01-26","c":"Comida","m":5000},{"id":1062,"d":"Hambur pibas","f":"2026-01-26","c":"Entretenimiento","m":12000},{"id":1063,"d":"Pan y verdu","f":"2026-01-26","c":"Comida","m":13000}],"2":[{"id":2001,"d":"Super","f":"2026-02-01","c":"Comida","m":60000},{"id":2002,"d":"Regalo oli","f":"2026-02-02","c":"Otros","m":20000},{"id":2003,"d":"Super","f":"2026-02-02","c":"Comida","m":28000},{"id":2004,"d":"Psicólogo","f":"2026-02-02","c":"Salud","m":180000},{"id":2005,"d":"Arreglo tren delantero","f":"2026-02-04","c":"Mitsu","m":91000},{"id":2006,"d":"Tarta","f":"2026-02-06","c":"Comida","m":14000},{"id":2007,"d":"Comida fonda","f":"2026-02-06","c":"Comida","m":32000},{"id":2008,"d":"Fruta y panadería","f":"2026-02-07","c":"Comida","m":39000},{"id":2009,"d":"Super","f":"2026-02-07","c":"Comida","m":30000},{"id":2010,"d":"Asado","f":"2026-02-07","c":"Comida","m":30000},{"id":2011,"d":"Super","f":"2026-02-08","c":"Comida","m":88600},{"id":2012,"d":"Renovación carnet náutico","f":"2026-02-09","c":"Otros","m":30000},{"id":2013,"d":"Impuestos anuales","f":"2026-02-09","c":"Impuestos","m":900210},{"id":2014,"d":"Diesel","f":"2026-02-09","c":"Gasoil","m":58500},{"id":2015,"d":"Pastas","f":"2026-02-10","c":"Comida","m":24000},{"id":2016,"d":"Super y cafe","f":"2026-02-11","c":"Comida","m":11000},{"id":2017,"d":"Ferretería Taller","f":"2026-02-11","c":"Taller","m":13000},{"id":2018,"d":"Super","f":"2026-02-11","c":"Comida","m":35000},{"id":2019,"d":"Nafta BMW","f":"2026-02-11","c":"Nafta","m":20000},{"id":2020,"d":"Palm","f":"2026-02-12","c":"Taller","m":64000},{"id":2021,"d":"Cena cata","f":"2026-02-12","c":"Entretenimiento","m":18000},{"id":2022,"d":"Super asado","f":"2026-02-13","c":"Comida","m":57000},{"id":2023,"d":"Nafta BMW","f":"2026-02-14","c":"Nafta","m":40000},{"id":2024,"d":"Gasoil Mitsu","f":"2026-02-14","c":"Gasoil","m":62000},{"id":2025,"d":"Cena amigas","f":"2026-02-14","c":"Entretenimiento","m":12000},{"id":2026,"d":"Super","f":"2026-02-15","c":"Comida","m":87000},{"id":2027,"d":"Líquido de freno","f":"2026-02-17","c":"Mitsu","m":5000},{"id":2028,"d":"Pan","f":"2026-02-17","c":"Comida","m":2500},{"id":2029,"d":"Perita lancha","f":"2026-02-18","c":"Lancha","m":12000},{"id":2030,"d":"Super","f":"2026-02-18","c":"Comida","m":18000},{"id":2031,"d":"Depi cepillo pelo","f":"2026-02-19","c":"Otros","m":80000},{"id":2032,"d":"Pan fiambre carne","f":"2026-02-20","c":"Comida","m":60000},{"id":2033,"d":"Super","f":"2026-02-24","c":"Comida","m":76700},{"id":2034,"d":"Fiambre","f":"2026-02-24","c":"Comida","m":50000},{"id":2035,"d":"Korte y Korte","f":"2026-02-25","c":"Taller","m":95000},{"id":2036,"d":"ML y rapipago","f":"2026-02-24","c":"Otros","m":450000},{"id":2037,"d":"Shell Gasoil","f":"2026-02-26","c":"Gasoil","m":60000},{"id":2038,"d":"Pan","f":"2026-02-26","c":"Comida","m":2400},{"id":2039,"d":"Correderas","f":"2026-02-27","c":"Taller","m":45000},{"id":2040,"d":"Electricista chata","f":"2026-02-27","c":"Mitsu","m":50000},{"id":2041,"d":"Nafta Kugui","f":"2026-02-28","c":"Nafta","m":45000},{"id":2042,"d":"Almuerzo faro","f":"2026-02-28","c":"Entretenimiento","m":25000},{"id":1777935178302,"d":"cambio aceite","f":"2026-02-06","c":"Mitsu","m":200000}],"3":[{"id":3001,"d":"Viaje Chile USD","f":"2026-03-01","c":"Viaje","m":1960000},{"id":3002,"d":"Super","f":"2026-03-07","c":"Comida","m":29000},{"id":3003,"d":"Jugo","f":"2026-03-07","c":"Entretenimiento","m":9000},{"id":3004,"d":"Pan","f":"2026-03-07","c":"Comida","m":2500},{"id":3005,"d":"Nafta Kugui","f":"2026-03-08","c":"Nafta","m":92000},{"id":3006,"d":"Tarta","f":"2026-03-11","c":"Comida","m":15000},{"id":3007,"d":"Cena Cala","f":"2026-03-11","c":"Entretenimiento","m":15000},{"id":3008,"d":"Regalo gorda Agus","f":"2026-03-11","c":"Otros","m":30000},{"id":3009,"d":"Super","f":"2026-03-12","c":"Comida","m":60000},{"id":3010,"d":"Rotula","f":"2026-03-13","c":"Mitsu","m":156000},{"id":3011,"d":"Creatina","f":"2026-03-13","c":"Salud","m":54000},{"id":3012,"d":"Gasoil Mitsu","f":"2026-03-13","c":"Gasoil","m":50000},{"id":3013,"d":"Super","f":"2026-03-13","c":"Comida","m":80000},{"id":3014,"d":"Carne y chori cumple","f":"2026-03-13","c":"Entretenimiento","m":133000},{"id":3015,"d":"Pan cumple","f":"2026-03-13","c":"Entretenimiento","m":12000},{"id":3016,"d":"Gotas ojos","f":"2026-03-16","c":"Salud","m":1600},{"id":3017,"d":"Super","f":"2026-03-16","c":"Comida","m":9500},{"id":3018,"d":"Gasoil","f":"2026-03-16","c":"Gasoil","m":85000},{"id":3019,"d":"Super","f":"2026-03-20","c":"Comida","m":69000},{"id":3020,"d":"Los patos","f":"2026-03-22","c":"Comida","m":37500},{"id":3021,"d":"Comida con las chicas","f":"2026-03-23","c":"Entretenimiento","m":12000},{"id":3022,"d":"Rotula cambio","f":"2026-03-27","c":"Mitsu","m":120000},{"id":3023,"d":"Fiambre","f":"2026-03-28","c":"Comida","m":73000},{"id":3024,"d":"Super","f":"2026-03-31","c":"Comida","m":16000}],"4":[{"id":4001,"d":"Fiambreria","f":"2026-04-01","c":"Comida","m":28000},{"id":4002,"d":"Super","f":"2026-04-01","c":"Comida","m":65000},{"id":4003,"d":"Gasoil Mitsu","f":"2026-04-01","c":"Gasoil","m":112000},{"id":4004,"d":"Chapa pre-pintada zócalos","f":"2026-04-08","c":"Taller","m":56000},{"id":4005,"d":"Super panadería Bari","f":"2026-04-08","c":"Comida","m":40000},{"id":4006,"d":"Gasoil Mitsu","f":"2026-04-08","c":"Gasoil","m":103000},{"id":4007,"d":"Super","f":"2026-04-09","c":"Comida","m":71000},{"id":4008,"d":"Los patos","f":"2026-04-09","c":"Comida","m":62000},{"id":1777655891626,"d":"carne asadito rivadavia","f":"2026-04-11","c":"Comida","m":35000},{"id":1777655963337,"d":"super","f":"2026-04-12","c":"Comida","m":19000},{"id":1777655987736,"d":"depi","f":"2026-04-12","c":"Otros","m":60000},{"id":1777656015984,"d":"Mercado libre","f":"2026-04-13","c":"Comida","m":65000},{"id":1777656042916,"d":"Fiambre","f":"2026-04-14","c":"Comida","m":35000},{"id":1777656080359,"d":"Formulario 13D venta Kiks","f":"2026-04-15","c":"Otros","m":18000},{"id":1777841275040,"d":"cervezas","f":"2026-04-16","c":"Entretenimiento","m":15000},{"id":1777841305753,"d":"Titulo Kiks","f":"2026-04-17","c":"Otros","m":10000},{"id":1777841515355,"d":"Helado","f":"2026-04-16","c":"Comida","m":27000},{"id":1777841546746,"d":"Cena","f":"2026-04-16","c":"Comida","m":40000},{"id":1777841577439,"d":"Nylon Lancha","f":"2026-04-17","c":"Lancha","m":21000},{"id":1777841609421,"d":"Escribana kiks","f":"2026-04-18","c":"Otros","m":120000},{"id":1777841634073,"d":"Evatest","f":"2026-04-20","c":"Salud","m":9000},{"id":1777841649126,"d":"Super","f":"2026-04-20","c":"Comida","m":30500},{"id":1777841662533,"d":"Carne y pan","f":"2026-04-20","c":"Comida","m":40000},{"id":1777841678451,"d":"Super","f":"2026-04-19","c":"Comida","m":28000},{"id":1777841710696,"d":"Chapas plegadas","f":"2026-04-21","c":"Taller","m":50000},{"id":1777841719257,"d":"Agua","f":"2026-04-21","c":"Taller","m":6500},{"id":1777841736826,"d":"Hierros estantería","f":"2026-04-21","c":"Taller","m":143000},{"id":1777841832863,"d":"Diarco super","f":"2026-04-21","c":"Comida","m":82000},{"id":1777841851111,"d":"Arcano estanteria","f":"2026-04-21","c":"Taller","m":314000},{"id":1777841869640,"d":"Hamburguesas","f":"2026-04-21","c":"Comida","m":38000},{"id":1777841886291,"d":"Evatest 2","f":"2026-04-21","c":"Salud","m":7000},{"id":1777841902907,"d":"Gym","f":"2026-04-22","c":"Salud","m":60000},{"id":1777841934854,"d":"Felemax","f":"2026-04-23","c":"Taller","m":42500},{"id":1777841950151,"d":"Gasoil","f":"2026-04-23","c":"Gasoil","m":55000},{"id":1777841964288,"d":"Comida","f":"2026-04-23","c":"Comida","m":5000},{"id":1777841992611,"d":"Farmacia progesterona","f":"2026-04-23","c":"Salud","m":87000},{"id":1777842026337,"d":"Frilop","f":"2026-04-24","c":"Comida","m":59000},{"id":1777842044172,"d":"Milanesa y entraña","f":"2026-04-24","c":"Comida","m":60000},{"id":1777842055117,"d":"Pan","f":"2026-04-24","c":"Comida","m":3000},{"id":1777842068999,"d":"Nafta","f":"2026-04-24","c":"Nafta","m":54000},{"id":1777842099142,"d":"Felemax microcemento","f":"2026-04-27","c":"ObraCasa","m":105000},{"id":1777842115215,"d":"Gasoil","f":"2026-04-27","c":"Gasoil","m":59000},{"id":1777842127642,"d":"tortafritas","f":"2026-04-27","c":"Comida","m":3000},{"id":1777842312165,"d":"agua caliente","f":"2026-04-28","c":"Comida","m":2000},{"id":1777842324983,"d":"cena mcdonalds","f":"2026-04-28","c":"Comida","m":17000},{"id":1777842334671,"d":"alfajor","f":"2026-04-28","c":"Comida","m":2000},{"id":1777842350002,"d":"café y medialunas viaje","f":"2026-04-27","c":"Comida","m":7000},{"id":1777842368179,"d":"farmacia","f":"2026-04-28","c":"Salud","m":14000},{"id":1777842390380,"d":"super todo","f":"2026-04-27","c":"Comida","m":64000},{"id":1777842409336,"d":"pago OSDE enero","f":"2026-04-27","c":"Salud","m":220000},{"id":1777842437843,"d":"cemento y tacuru","f":"2026-04-29","c":"ObraCasa","m":41000},{"id":1777842445735,"d":"Pan","f":"2026-04-29","c":"Comida","m":2000},{"id":1777842456568,"d":"Helado","f":"2026-04-29","c":"Comida","m":30000},{"id":1777842471226,"d":"Burga","f":"2026-04-29","c":"Comida","m":17000},{"id":1777842490547,"d":"gasoil","f":"2026-04-30","c":"Gasoil","m":60000},{"id":1777842504980,"d":"cemento y arena","f":"2026-04-30","c":"ObraCasa","m":18000},{"id":1777842554102,"d":"Herramientas gas","f":"2026-04-30","c":"ObraCasa","m":9000},{"id":1777842566919,"d":"Pollo","f":"2026-04-30","c":"Comida","m":12000},{"id":1777842582388,"d":"super","f":"2026-04-30","c":"Comida","m":12000},{"id":1777842597996,"d":"Milas","f":"2026-04-30","c":"Comida","m":48000}],"5":[{"id":1777842685074,"d":"Felemax taller","f":"2026-05-02","c":"Taller","m":6000},{"id":1777842696454,"d":"Pan","f":"2026-05-02","c":"Comida","m":4000},{"id":1777842725656,"d":"Carne asado","f":"2026-05-02","c":"Entretenimiento","m":51000},{"id":1777933641740,"d":"Choco Vilaseco","f":"2026-05-04","c":"Otros","m":15000},{"id":1777933657321,"d":"super la anonima","f":"2026-05-04","c":"Comida","m":80000},{"id":1777933672911,"d":"Nafta","f":"2026-05-04","c":"Nafta","m":54000},{"id":1777933690790,"d":"Disco corte","f":"2026-05-04","c":"Taller","m":21000},{"id":1778158703117,"d":"Creatina ML","f":"2026-05-05","c":"Salud","m":35000},{"id":1778158721403,"d":"Laca piso cuarto","f":"2026-05-05","c":"ObraCasa","m":64000},{"id":1778158739398,"d":"Poliuretano pared casa","f":"2026-05-05","c":"ObraCasa","m":330000},{"id":1778158752608,"d":"fiambre","f":"2026-05-05","c":"Comida","m":12000},{"id":1778158767502,"d":"Cartel chapa","f":"2026-05-05","c":"Taller","m":75000},{"id":1778158785129,"d":"Comida gati ML","f":"2026-05-05","c":"Luna","m":115000},{"id":1778158799612,"d":"Pincel","f":"2026-05-06","c":"Taller","m":4000},{"id":1778158816648,"d":"Asado mari Juani","f":"2026-05-06","c":"Entretenimiento","m":40000},{"id":1778158824725,"d":"super","f":"2026-05-06","c":"Comida","m":20000},{"id":1778193006857,"d":"Huevos y pizza","f":"2026-05-06","c":"Comida","m":19000},{"id":1778273859957,"d":"asado mama y papa","f":"2026-05-07","c":"Comida","m":103000},{"id":1778273917832,"d":"Pago tarjeta santander","f":"2026-05-04","c":"Impuestos","m":73000},{"id":1778521543881,"d":"Antecedentes penales Coco y jua","f":"2026-05-07","c":"Impuestos","m":9200},{"id":1778521628844,"d":"AADIDESS cuota anual","f":"2026-05-07","c":"Impuestos","m":255000},{"id":1778521717600,"d":"Parking","f":"2026-05-11","c":"Otros","m":8000},{"id":1778521731156,"d":"Gasoil","f":"2026-05-11","c":"Gasoil","m":30000},{"id":1778521740071,"d":"Pan","f":"2026-05-11","c":"Comida","m":4000},{"id":1778521758824,"d":"Aditivo Motosierra","f":"2026-05-11","c":"Otros","m":4000},{"id":1778521769666,"d":"Huevos","f":"2026-05-11","c":"Comida","m":4000}]},"aceites":{"kuga":[{"id":1777935100309,"f":"2026-04-16","km":124792,"costo":0,"nota":"Agregamos aceite pote castrol (rivadavia)"},{"id":9001,"f":"2025-12-18","km":121931,"nota":"Cambio aceite"}],"mitsu":[{"id":1777935017769,"f":"2026-02-06","km":251600,"costo":0,"nota":"cambio en sma"},{"id":9002,"f":"2025-02-10","km":237000,"nota":"Cambio aceite"}],"lancha":[]},"repuestos":{"kuga":[],"mitsu":[],"lancha":[]},"clasesJua":[],"clasesCoco":[],"changas":[],"ottos":[],"pat":[{"id":1,"nombre":"WF Jua","tipo":"cuenta","monto":3000},{"id":2,"nombre":"WF Coco","tipo":"cuenta","monto":2300},{"id":3,"nombre":"Cash","tipo":"cash","monto":22060,"desglose":{"ok":21000,"rot":0,"cam":1060}},{"id":4,"nombre":"Cocos Capital","tipo":"cuenta","monto":3500},{"id":5,"nombre":"Santander España","tipo":"cuenta","monto":7200},{"id":1777933980241,"nombre":"Transferencia Europa","tipo":"cuenta","monto":34000},{"id":1778271226029,"nombre":"botas","tipo":"cash","monto":9000,"desglose":{"ok":9000,"rot":0,"cam":0}}],"deudas":[{"id":1777212865226,"n":"roser españa","m":6300},{"id":1778271111023,"n":"manu","m":800}],"ingresos":[],"tc":{"1":1400,"2":1400,"3":1400,"4":1400,"5":1400,"6":1400,"7":1400,"8":1400,"9":1400,"10":1400,"11":1400,"12":1400},"mes":5,"luna":[],"lunaNotes":{"v4001":""},"fijosYears":[2026],"serviceLancha":[],"airbnb":[{"id":1778332110101,"huesped":"María José","entrada":"2026-01-01","salida":"2026-01-15","monto":925,"mon":"USD","tc":1400,"arsEquiv":1295000,"fpago":"efectivo","nota":""},{"id":1778332204974,"huesped":"Luciano","entrada":"2026-01-21","salida":"2026-01-31","monto":800,"mon":"USD","tc":1400,"arsEquiv":1120000,"fpago":"efectivo","nota":""},{"id":1778332271165,"huesped":"Michelle Airbnb","entrada":"2026-02-12","salida":"2026-02-23","monto":414,"mon":"USD","tc":1400,"arsEquiv":579600,"fpago":"airbnb","nota":""},{"id":1778332316031,"huesped":"Agustina Airbnb","entrada":"2026-02-23","salida":"2026-03-02","monto":424,"mon":"USD","tc":1400,"arsEquiv":593600,"fpago":"airbnb","nota":""},{"id":1778332419817,"huesped":"María José","entrada":"2026-03-02","salida":"2026-05-13","monto":2550,"mon":"USD","tc":1400,"arsEquiv":3570000,"fpago":"efectivo","nota":""}],"mapuches":[{"id":1778521117858,"d":"Seña","monto":3000,"mon":"USD","f":"2026-05-07","cuentaId":"3","cuentaNombre":"Cash"}]};
+const DEF={"fijos":{"2026":[{"id":1,"n":"MEDICUS COCO","cat":"Salud","tipo":"debito","nota":"Deb auto Santander","m":{"1":170251,"2":298133,"3":243783,"4":185722,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-05","2":"2026-03-09","3":"2026-04-06","4":"2026-05-05"}},{"id":2,"n":"CEB - Electricidad","cat":"Servicios","tipo":"manual","nota":"Mensual a mes vencido","m":{"1":64975,"2":68516,"3":63493,"4":67120,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-03-23","2":"2026-03-23","3":"2026-05-04","4":"2026-05-04"}},{"id":3,"n":"AGUA - Junta vecinal","cat":"Servicios","tipo":"manual","nota":"Mensual ir a la junta","m":{"1":0,"2":8300,"3":0,"4":57000,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"2":"2026-02-12","4":"2026-04-07"}},{"id":4,"n":"CAMUZI - Gas","cat":"Servicios","tipo":"manual","nota":"Bimestral a mes vencido","m":{"1":39083,"2":45208,"3":45208,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-12","2":"2026-03-23","3":"2026-04-06"}},{"id":5,"n":"ADT - Alarma","cat":"Servicios","tipo":"debito","nota":"Cliente 639293","m":{"1":140000,"2":152000,"3":158000,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0}},{"id":6,"n":"RENTA Municipal casa 2024","cat":"Impuestos","tipo":"manual","nota":"Plan pago 15 c/mes","m":{"1":0,"2":0,"3":11436,"4":11436,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"3":"2026-03-23","4":"2026-04-15"}},{"id":7,"n":"AVC - Internet Cable","cat":"Servicios","tipo":"debito","nota":"Deb auto Santander día 10","m":{"1":53653,"2":53653,"3":56200,"4":56200,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-10","2":"2026-03-10","3":"2026-04-10","4":"2026-05-11"}},{"id":8,"n":"SEGURO CASA ADELANTE","cat":"Servicios","tipo":"debito","nota":"Deb auto Santander día 10","m":{"1":46940,"2":46940,"3":46940,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-11","2":"2026-03-25","3":"2026-04-13"}},{"id":9,"n":"SEGURO CASA ATRAS","cat":"Servicios","tipo":"debito","nota":"Deb auto Santander día 10","m":{"1":30665,"2":30665,"3":30665,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-11","2":"2026-03-11","3":"2026-04-13"}},{"id":10,"n":"NETFLIX","cat":"Servicios","tipo":"debito","nota":"Deb auto Santander día 29","m":{"1":23400,"2":23000,"3":23000,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-03-02","2":"2026-03-31","3":"2026-04-28"}},{"id":11,"n":"RENTA Municipal casa 2026","cat":"Impuestos","tipo":"anual","nota":"Pago adelantado + deuda 2025","notaAnual":"DEUDA 2025 $326.534 — PAGO ADELANTADO ANUAL $461.940","montoAnual":788474},{"id":12,"n":"RENTA ARCA casa anual 2026","cat":"Impuestos","tipo":"anual","nota":"Pago anual enero 2026","notaAnual":"TOTAL ANUAL $111.736 — Pago el 9/02/2026","montoAnual":111736},{"id":13,"n":"MOVISTAR TALLER","cat":"Taller","tipo":"debito","nota":"Deb auto Santander día 12","m":{"1":17900,"2":53835,"3":44500,"4":22250,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-09","2":"2026-03-09","3":"2026-04-07","4":"2026-05-08"}},{"id":14,"n":"SPOTIFY","cat":"Taller","tipo":"debito","nota":"Deb auto Santander","m":{"1":5047,"2":4981,"3":4981,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-18","2":"2026-03-18","3":"2026-04-18"}},{"id":15,"n":"MONOTRIBUTO COCO","cat":"Impuestos","tipo":"manual","nota":"Mensual Alta MAYO","m":{"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0}},{"id":16,"n":"MONOTRIBUTO JUA","cat":"Impuestos","tipo":"debito","nota":"Deb auto Macro Alta MAYO 20","m":{"1":0,"2":0,"3":0,"4":0,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0}},{"id":17,"n":"SEGURO KLUGUI","cat":"Kuga","tipo":"debito","nota":"Deb auto Santander día 12","m":{"1":37030,"2":37648,"3":45230,"4":46136,"5":0,"6":0,"7":0,"8":0,"9":0,"10":0,"11":0,"12":0},"fechas":{"1":"2026-02-06","2":"2026-03-06","3":"2026-04-08","4":"2026-05-08"}}]},"vars":{"1":[{"id":1001,"d":"Precap","f":"2026-01-02","c":"Mitsu","m":38000},{"id":1002,"d":"Pan","f":"2026-01-02","c":"Comida","m":3800},{"id":1003,"d":"Nafta fiambre pan super","f":"2026-01-03","c":"Gasoil","m":70000},{"id":1004,"d":"Comida y helado","f":"2026-01-04","c":"Comida","m":45000},{"id":1005,"d":"Deuda arca","f":"2026-01-05","c":"Impuestos","m":99000},{"id":1006,"d":"Pastas y super","f":"2026-01-06","c":"Comida","m":40000},{"id":1007,"d":"Precaps mano obra","f":"2026-01-06","c":"Mitsu","m":120000},{"id":1008,"d":"Psicóloga","f":"2026-01-07","c":"Salud","m":45000},{"id":1009,"d":"Super super","f":"2026-01-08","c":"Comida","m":135000},{"id":1010,"d":"Regalo lu carro","f":"2026-01-08","c":"Otros","m":17000},{"id":1011,"d":"Nafta","f":"2026-01-09","c":"Gasoil","m":100000},{"id":1012,"d":"Fiambre y pan","f":"2026-01-09","c":"Comida","m":16000},{"id":1013,"d":"Libro","f":"2026-01-12","c":"Otros","m":31000},{"id":1014,"d":"Pan y pollo","f":"2026-01-12","c":"Comida","m":11000},{"id":1015,"d":"Tarta","f":"2026-01-14","c":"Comida","m":7500},{"id":1016,"d":"Cerveza","f":"2026-01-14","c":"Entretenimiento","m":15000},{"id":1017,"d":"Almuerzo jua","f":"2026-01-14","c":"Entretenimiento","m":15000},{"id":1018,"d":"Facturas villa","f":"2026-01-15","c":"Comida","m":8000},{"id":1019,"d":"Consultorio Vilaseco","f":"2026-01-15","c":"Salud","m":10000},{"id":1020,"d":"Andy dentista control","f":"2026-01-15","c":"Salud","m":45000},{"id":1021,"d":"Nafta","f":"2026-01-15","c":"Gasoil","m":40000},{"id":1022,"d":"Kinesio","f":"2026-01-15","c":"Salud","m":44000},{"id":1023,"d":"Kiosco","f":"2026-01-16","c":"Comida","m":5500},{"id":1024,"d":"Comida gati","f":"2026-01-16","c":"Luna","m":12000},{"id":1025,"d":"Médico carnet náutico","f":"2026-01-16","c":"Salud","m":78000},{"id":1026,"d":"Repuesto","f":"2026-01-16","c":"Mitsu","m":20000},{"id":1027,"d":"Pastas","f":"2026-01-16","c":"Comida","m":15000},{"id":1028,"d":"Nafta","f":"2026-01-16","c":"Gasoil","m":45000},{"id":1029,"d":"Verdu","f":"2026-01-17","c":"Comida","m":8000},{"id":1030,"d":"Super","f":"2026-01-17","c":"Comida","m":40000},{"id":1031,"d":"Mamushka","f":"2026-01-16","c":"Comida","m":12600},{"id":1032,"d":"Resultado colonosco","f":"2026-01-16","c":"Salud","m":10000},{"id":1033,"d":"Rapanui","f":"2026-01-16","c":"Comida","m":5200},{"id":1034,"d":"Super","f":"2026-01-18","c":"Comida","m":30000},{"id":1035,"d":"Cejas","f":"2026-01-16","c":"Otros","m":20000},{"id":1036,"d":"Ladrillos","f":"2026-01-19","c":"ObraCasa","m":14000},{"id":1037,"d":"Foto carnet","f":"2026-01-19","c":"Otros","m":24000},{"id":1038,"d":"Gastroenteróloga","f":"2026-01-19","c":"Salud","m":10000},{"id":1039,"d":"Gasoil","f":"2026-01-19","c":"Gasoil","m":50000},{"id":1040,"d":"Fiambreria","f":"2026-01-19","c":"Comida","m":17000},{"id":1041,"d":"Farmacia Santa Lucía","f":"2026-01-19","c":"Salud","m":70500},{"id":1042,"d":"Cena pati","f":"2026-01-19","c":"Comida","m":38000},{"id":1043,"d":"Uber","f":"2026-01-20","c":"Otros","m":44000},{"id":1044,"d":"Ale mecánico","f":"2026-01-20","c":"Mitsu","m":240000},{"id":1045,"d":"Matafuego casa adelante","f":"2026-01-20","c":"ObraCasa","m":25000},{"id":1046,"d":"Alineación","f":"2026-01-20","c":"Mitsu","m":55000},{"id":1047,"d":"Gomeria","f":"2026-01-20","c":"Mitsu","m":8000},{"id":1048,"d":"Hamburguesa","f":"2026-01-20","c":"Comida","m":39000},{"id":1049,"d":"Gasoil","f":"2026-01-20","c":"Gasoil","m":65500},{"id":1050,"d":"Pan","f":"2026-01-21","c":"Comida","m":2000},{"id":1051,"d":"Super","f":"2026-01-21","c":"Comida","m":84000},{"id":1052,"d":"Almuerzo jua","f":"2026-01-22","c":"Entretenimiento","m":26000},{"id":1053,"d":"Super campa","f":"2026-01-23","c":"Comida","m":56000},{"id":1054,"d":"Panadería campa","f":"2026-01-23","c":"Comida","m":10000},{"id":1055,"d":"Fiambre campa","f":"2026-01-23","c":"Comida","m":26000},{"id":1056,"d":"Nafta lancha","f":"2026-01-23","c":"Lancha","m":75000},{"id":1057,"d":"Asado","f":"2026-01-23","c":"Comida","m":125000},{"id":1058,"d":"Super","f":"2026-01-27","c":"Comida","m":73000},{"id":1059,"d":"Nafta","f":"2026-01-26","c":"Nafta","m":107000},{"id":1060,"d":"Gasoil","f":"2026-01-26","c":"Gasoil","m":79000},{"id":1061,"d":"Crema","f":"2026-01-26","c":"Comida","m":5000},{"id":1062,"d":"Hambur pibas","f":"2026-01-26","c":"Entretenimiento","m":12000},{"id":1063,"d":"Pan y verdu","f":"2026-01-26","c":"Comida","m":13000}],"2":[{"id":2001,"d":"Super","f":"2026-02-01","c":"Comida","m":60000},{"id":2002,"d":"Regalo oli","f":"2026-02-02","c":"Otros","m":20000},{"id":2003,"d":"Super","f":"2026-02-02","c":"Comida","m":28000},{"id":2004,"d":"Psicólogo","f":"2026-02-02","c":"Salud","m":180000},{"id":2005,"d":"Arreglo tren delantero","f":"2026-02-04","c":"Mitsu","m":91000},{"id":2006,"d":"Tarta","f":"2026-02-06","c":"Comida","m":14000},{"id":2007,"d":"Comida fonda","f":"2026-02-06","c":"Comida","m":32000},{"id":2008,"d":"Fruta y panadería","f":"2026-02-07","c":"Comida","m":39000},{"id":2009,"d":"Super","f":"2026-02-07","c":"Comida","m":30000},{"id":2010,"d":"Asado","f":"2026-02-07","c":"Comida","m":30000},{"id":2011,"d":"Super","f":"2026-02-08","c":"Comida","m":88600},{"id":2012,"d":"Renovación carnet náutico","f":"2026-02-09","c":"Otros","m":30000},{"id":2013,"d":"Impuestos anuales","f":"2026-02-09","c":"Impuestos","m":900210},{"id":2014,"d":"Diesel","f":"2026-02-09","c":"Gasoil","m":58500},{"id":2015,"d":"Pastas","f":"2026-02-10","c":"Comida","m":24000},{"id":2016,"d":"Super y cafe","f":"2026-02-11","c":"Comida","m":11000},{"id":2017,"d":"Ferretería Taller","f":"2026-02-11","c":"Taller","m":13000},{"id":2018,"d":"Super","f":"2026-02-11","c":"Comida","m":35000},{"id":2019,"d":"Nafta BMW","f":"2026-02-11","c":"Nafta","m":20000},{"id":2020,"d":"Palm","f":"2026-02-12","c":"Taller","m":64000},{"id":2021,"d":"Cena cata","f":"2026-02-12","c":"Entretenimiento","m":18000},{"id":2022,"d":"Super asado","f":"2026-02-13","c":"Comida","m":57000},{"id":2023,"d":"Nafta BMW","f":"2026-02-14","c":"Nafta","m":40000},{"id":2024,"d":"Gasoil Mitsu","f":"2026-02-14","c":"Gasoil","m":62000},{"id":2025,"d":"Cena amigas","f":"2026-02-14","c":"Entretenimiento","m":12000},{"id":2026,"d":"Super","f":"2026-02-15","c":"Comida","m":87000},{"id":2027,"d":"Líquido de freno","f":"2026-02-17","c":"Mitsu","m":5000},{"id":2028,"d":"Pan","f":"2026-02-17","c":"Comida","m":2500},{"id":2029,"d":"Perita lancha","f":"2026-02-18","c":"Lancha","m":12000},{"id":2030,"d":"Super","f":"2026-02-18","c":"Comida","m":18000},{"id":2031,"d":"Depi cepillo pelo","f":"2026-02-19","c":"Otros","m":80000},{"id":2032,"d":"Pan fiambre carne","f":"2026-02-20","c":"Comida","m":60000},{"id":2033,"d":"Super","f":"2026-02-24","c":"Comida","m":76700},{"id":2034,"d":"Fiambre","f":"2026-02-24","c":"Comida","m":50000},{"id":2035,"d":"Korte y Korte","f":"2026-02-25","c":"Taller","m":95000},{"id":2036,"d":"ML y rapipago","f":"2026-02-24","c":"Otros","m":450000},{"id":2037,"d":"Shell Gasoil","f":"2026-02-26","c":"Gasoil","m":60000},{"id":2038,"d":"Pan","f":"2026-02-26","c":"Comida","m":2400},{"id":2039,"d":"Correderas","f":"2026-02-27","c":"Taller","m":45000},{"id":2040,"d":"Electricista chata","f":"2026-02-27","c":"Mitsu","m":50000},{"id":2041,"d":"Nafta Kugui","f":"2026-02-28","c":"Nafta","m":45000},{"id":2042,"d":"Almuerzo faro","f":"2026-02-28","c":"Entretenimiento","m":25000},{"id":1777935178302,"d":"cambio aceite","f":"2026-02-06","c":"Mitsu","m":200000}],"3":[{"id":3001,"d":"Viaje Chile USD","f":"2026-03-01","c":"Viaje","m":1960000},{"id":3002,"d":"Super","f":"2026-03-07","c":"Comida","m":29000},{"id":3003,"d":"Jugo","f":"2026-03-07","c":"Entretenimiento","m":9000},{"id":3004,"d":"Pan","f":"2026-03-07","c":"Comida","m":2500},{"id":3005,"d":"Nafta Kugui","f":"2026-03-08","c":"Nafta","m":92000},{"id":3006,"d":"Tarta","f":"2026-03-11","c":"Comida","m":15000},{"id":3007,"d":"Cena Cala","f":"2026-03-11","c":"Entretenimiento","m":15000},{"id":3008,"d":"Regalo gorda Agus","f":"2026-03-11","c":"Otros","m":30000},{"id":3009,"d":"Super","f":"2026-03-12","c":"Comida","m":60000},{"id":3010,"d":"Rotula","f":"2026-03-13","c":"Mitsu","m":156000},{"id":3011,"d":"Creatina","f":"2026-03-13","c":"Salud","m":54000},{"id":3012,"d":"Gasoil Mitsu","f":"2026-03-13","c":"Gasoil","m":50000},{"id":3013,"d":"Super","f":"2026-03-13","c":"Comida","m":80000},{"id":3014,"d":"Carne y chori cumple","f":"2026-03-13","c":"Entretenimiento","m":133000},{"id":3015,"d":"Pan cumple","f":"2026-03-13","c":"Entretenimiento","m":12000},{"id":3016,"d":"Gotas ojos","f":"2026-03-16","c":"Salud","m":1600},{"id":3017,"d":"Super","f":"2026-03-16","c":"Comida","m":9500},{"id":3018,"d":"Gasoil","f":"2026-03-16","c":"Gasoil","m":85000},{"id":3019,"d":"Super","f":"2026-03-20","c":"Comida","m":69000},{"id":3020,"d":"Los patos","f":"2026-03-22","c":"Comida","m":37500},{"id":3021,"d":"Comida con las chicas","f":"2026-03-23","c":"Entretenimiento","m":12000},{"id":3022,"d":"Rotula cambio","f":"2026-03-27","c":"Mitsu","m":120000},{"id":3023,"d":"Fiambre","f":"2026-03-28","c":"Comida","m":73000},{"id":3024,"d":"Super","f":"2026-03-31","c":"Comida","m":16000}],"4":[{"id":4001,"d":"Fiambreria","f":"2026-04-01","c":"Comida","m":28000},{"id":4002,"d":"Super","f":"2026-04-01","c":"Comida","m":65000},{"id":4003,"d":"Gasoil Mitsu","f":"2026-04-01","c":"Gasoil","m":112000},{"id":4004,"d":"Chapa pre-pintada zócalos","f":"2026-04-08","c":"Taller","m":56000},{"id":4005,"d":"Super panadería Bari","f":"2026-04-08","c":"Comida","m":40000},{"id":4006,"d":"Gasoil Mitsu","f":"2026-04-08","c":"Gasoil","m":103000},{"id":4007,"d":"Super","f":"2026-04-09","c":"Comida","m":71000},{"id":4008,"d":"Los patos","f":"2026-04-09","c":"Comida","m":62000},{"id":1777655891626,"d":"carne asadito rivadavia","f":"2026-04-11","c":"Comida","m":35000},{"id":1777655963337,"d":"super","f":"2026-04-12","c":"Comida","m":19000},{"id":1777655987736,"d":"depi","f":"2026-04-12","c":"Otros","m":60000},{"id":1777656015984,"d":"Mercado libre","f":"2026-04-13","c":"Comida","m":65000},{"id":1777656042916,"d":"Fiambre","f":"2026-04-14","c":"Comida","m":35000},{"id":1777656080359,"d":"Formulario 13D venta Kiks","f":"2026-04-15","c":"Otros","m":18000},{"id":1777841275040,"d":"cervezas","f":"2026-04-16","c":"Entretenimiento","m":15000},{"id":1777841305753,"d":"Titulo Kiks","f":"2026-04-17","c":"Otros","m":10000},{"id":1777841515355,"d":"Helado","f":"2026-04-16","c":"Comida","m":27000},{"id":1777841546746,"d":"Cena","f":"2026-04-16","c":"Comida","m":40000},{"id":1777841577439,"d":"Nylon Lancha","f":"2026-04-17","c":"Lancha","m":21000},{"id":1777841609421,"d":"Escribana kiks","f":"2026-04-18","c":"Otros","m":120000},{"id":1777841634073,"d":"Evatest","f":"2026-04-20","c":"Salud","m":9000},{"id":1777841649126,"d":"Super","f":"2026-04-20","c":"Comida","m":30500},{"id":1777841662533,"d":"Carne y pan","f":"2026-04-20","c":"Comida","m":40000},{"id":1777841678451,"d":"Super","f":"2026-04-19","c":"Comida","m":28000},{"id":1777841710696,"d":"Chapas plegadas","f":"2026-04-21","c":"Taller","m":50000},{"id":1777841719257,"d":"Agua","f":"2026-04-21","c":"Taller","m":6500},{"id":1777841736826,"d":"Hierros estantería","f":"2026-04-21","c":"Taller","m":143000},{"id":1777841832863,"d":"Diarco super","f":"2026-04-21","c":"Comida","m":82000},{"id":1777841851111,"d":"Arcano estanteria","f":"2026-04-21","c":"Taller","m":314000},{"id":1777841869640,"d":"Hamburguesas","f":"2026-04-21","c":"Comida","m":38000},{"id":1777841886291,"d":"Evatest 2","f":"2026-04-21","c":"Salud","m":7000},{"id":1777841902907,"d":"Gym","f":"2026-04-22","c":"Salud","m":60000},{"id":1777841934854,"d":"Felemax","f":"2026-04-23","c":"Taller","m":42500},{"id":1777841950151,"d":"Gasoil","f":"2026-04-23","c":"Gasoil","m":55000},{"id":1777841964288,"d":"Comida","f":"2026-04-23","c":"Comida","m":5000},{"id":1777841992611,"d":"Farmacia progesterona","f":"2026-04-23","c":"Salud","m":87000},{"id":1777842026337,"d":"Frilop","f":"2026-04-24","c":"Comida","m":59000},{"id":1777842044172,"d":"Milanesa y entraña","f":"2026-04-24","c":"Comida","m":60000},{"id":1777842055117,"d":"Pan","f":"2026-04-24","c":"Comida","m":3000},{"id":1777842068999,"d":"Nafta","f":"2026-04-24","c":"Nafta","m":54000},{"id":1777842099142,"d":"Felemax microcemento","f":"2026-04-27","c":"ObraCasa","m":105000},{"id":1777842115215,"d":"Gasoil","f":"2026-04-27","c":"Gasoil","m":59000},{"id":1777842127642,"d":"tortafritas","f":"2026-04-27","c":"Comida","m":3000},{"id":1777842312165,"d":"agua caliente","f":"2026-04-28","c":"Comida","m":2000},{"id":1777842324983,"d":"cena mcdonalds","f":"2026-04-28","c":"Comida","m":17000},{"id":1777842334671,"d":"alfajor","f":"2026-04-28","c":"Comida","m":2000},{"id":1777842350002,"d":"café y medialunas viaje","f":"2026-04-27","c":"Comida","m":7000},{"id":1777842368179,"d":"farmacia","f":"2026-04-28","c":"Salud","m":14000},{"id":1777842390380,"d":"super todo","f":"2026-04-27","c":"Comida","m":64000},{"id":1777842409336,"d":"pago OSDE enero","f":"2026-04-27","c":"Salud","m":220000},{"id":1777842437843,"d":"cemento y tacuru","f":"2026-04-29","c":"ObraCasa","m":41000},{"id":1777842445735,"d":"Pan","f":"2026-04-29","c":"Comida","m":2000},{"id":1777842456568,"d":"Helado","f":"2026-04-29","c":"Comida","m":30000},{"id":1777842471226,"d":"Burga","f":"2026-04-29","c":"Comida","m":17000},{"id":1777842490547,"d":"gasoil","f":"2026-04-30","c":"Gasoil","m":60000},{"id":1777842504980,"d":"cemento y arena","f":"2026-04-30","c":"ObraCasa","m":18000},{"id":1777842554102,"d":"Herramientas gas","f":"2026-04-30","c":"ObraCasa","m":9000},{"id":1777842566919,"d":"Pollo","f":"2026-04-30","c":"Comida","m":12000},{"id":1777842582388,"d":"super","f":"2026-04-30","c":"Comida","m":12000},{"id":1777842597996,"d":"Milas","f":"2026-04-30","c":"Comida","m":48000}],"5":[{"id":1777842685074,"d":"Felemax taller","f":"2026-05-02","c":"Taller","m":6000},{"id":1777842696454,"d":"Pan","f":"2026-05-02","c":"Comida","m":4000},{"id":1777842725656,"d":"Carne asado","f":"2026-05-02","c":"Entretenimiento","m":51000},{"id":1777933641740,"d":"Choco Vilaseco","f":"2026-05-04","c":"Otros","m":15000},{"id":1777933657321,"d":"super la anonima","f":"2026-05-04","c":"Comida","m":80000},{"id":1777933672911,"d":"Nafta","f":"2026-05-04","c":"Nafta","m":54000},{"id":1777933690790,"d":"Disco corte","f":"2026-05-04","c":"Taller","m":21000},{"id":1778158703117,"d":"Creatina ML","f":"2026-05-05","c":"Salud","m":35000},{"id":1778158721403,"d":"Laca piso cuarto","f":"2026-05-05","c":"ObraCasa","m":64000},{"id":1778158739398,"d":"Poliuretano pared casa","f":"2026-05-05","c":"ObraCasa","m":330000},{"id":1778158752608,"d":"fiambre","f":"2026-05-05","c":"Comida","m":12000},{"id":1778158767502,"d":"Cartel chapa","f":"2026-05-05","c":"Taller","m":75000},{"id":1778158785129,"d":"Comida gati ML","f":"2026-05-05","c":"Luna","m":115000},{"id":1778158799612,"d":"Pincel","f":"2026-05-06","c":"Taller","m":4000},{"id":1778158816648,"d":"Asado mari Juani","f":"2026-05-06","c":"Entretenimiento","m":40000},{"id":1778158824725,"d":"super","f":"2026-05-06","c":"Comida","m":20000},{"id":1778193006857,"d":"Huevos y pizza","f":"2026-05-06","c":"Comida","m":19000},{"id":1778273859957,"d":"asado mama y papa","f":"2026-05-07","c":"Comida","m":103000},{"id":1778273917832,"d":"Pago tarjeta santander","f":"2026-05-04","c":"Impuestos","m":73000},{"id":1778521543881,"d":"Antecedentes penales Coco y jua","f":"2026-05-07","c":"Impuestos","m":9200},{"id":1778521628844,"d":"AADIDESS cuota anual","f":"2026-05-07","c":"Impuestos","m":255000},{"id":1778521717600,"d":"Parking","f":"2026-05-11","c":"Otros","m":8000},{"id":1778521731156,"d":"Gasoil","f":"2026-05-11","c":"Gasoil","m":30000},{"id":1778521740071,"d":"Pan","f":"2026-05-11","c":"Comida","m":4000},{"id":1778521758824,"d":"Aditivo Motosierra","f":"2026-05-11","c":"Otros","m":4000},{"id":1778521769666,"d":"Huevos","f":"2026-05-11","c":"Comida","m":4000}]},"aceites":{"kuga":[{"id":1777935100309,"f":"2026-04-16","km":124792,"costo":0,"nota":"Agregamos aceite pote castrol (rivadavia)"},{"id":9001,"f":"2025-12-18","km":121931,"nota":"Cambio aceite"}],"mitsu":[{"id":1777935017769,"f":"2026-02-06","km":251600,"costo":0,"nota":"cambio en sma"},{"id":9002,"f":"2025-02-10","km":237000,"nota":"Cambio aceite"}],"lancha":[]},"repuestos":{"kuga":[],"mitsu":[],"lancha":[]},"clasesJua":[],"clasesCoco":[],"changas":[],"ottos":[],"pat":[{"id":1,"nombre":"WF Jua","tipo":"cuenta","monto":3000},{"id":2,"nombre":"WF Coco","tipo":"cuenta","monto":2300},{"id":3,"nombre":"Cash","tipo":"cash","monto":22060,"desglose":{"ok":21000,"rot":0,"cam":1060}},{"id":4,"nombre":"Cocos Capital","tipo":"cuenta","monto":3500},{"id":5,"nombre":"Santander España","tipo":"cuenta","monto":7200},{"id":1777933980241,"nombre":"Transferencia Europa","tipo":"cuenta","monto":34000},{"id":1778271226029,"nombre":"botas","tipo":"cash","monto":9000,"desglose":{"ok":9000,"rot":0,"cam":0}}],"deudas":[{"id":1777212865226,"n":"roser españa","m":6300},{"id":1778271111023,"n":"manu","m":800}],"ingresos":[],"tc":{"1":1400,"2":1400,"3":1400,"4":1400,"5":1400,"6":1400,"7":1400,"8":1400,"9":1400,"10":1400,"11":1400,"12":1400},"mes":5,"luna":[],"lunaNotes":{"v4001":""},"fijosYears":[2026],"serviceLancha":[],"airbnb":[{"id":1778332110101,"huesped":"María José","entrada":"2026-01-01","salida":"2026-01-15","monto":925,"mon":"USD","tc":1400,"arsEquiv":1295000,"fpago":"efectivo","nota":""},{"id":1778332204974,"huesped":"Luciano","entrada":"2026-01-21","salida":"2026-01-31","monto":800,"mon":"USD","tc":1400,"arsEquiv":1120000,"fpago":"efectivo","nota":""},{"id":1778332271165,"huesped":"Michelle Airbnb","entrada":"2026-02-12","salida":"2026-02-23","monto":414,"mon":"USD","tc":1400,"arsEquiv":579600,"fpago":"airbnb","nota":""},{"id":1778332316031,"huesped":"Agustina Airbnb","entrada":"2026-02-23","salida":"2026-03-02","monto":424,"mon":"USD","tc":1400,"arsEquiv":593600,"fpago":"airbnb","nota":""},{"id":1778332419817,"huesped":"María José","entrada":"2026-03-02","salida":"2026-05-13","monto":2550,"mon":"USD","tc":1400,"arsEquiv":3570000,"fpago":"efectivo","nota":""}],"mapuches":[{"id":1778521117858,"d":"Seña","monto":3000,"mon":"USD","f":"2026-05-07","cuentaId":"3","cuentaNombre":"Cash"}],"credenciales":[]};
 
 // ── SHEET CONFIG ──
 const SID='12WQ0ZzknWmk099tme4-E5uSPEggOqdKBk5eDW5tjK-4';
@@ -1719,6 +1782,7 @@ if(Array.isArray(D.fijos)){
 }
 if(!D.fijos)D.fijos={};
 if(!D.fijosYears)D.fijosYears=[new Date().getFullYear()];
+if(!D.credenciales)D.credenciales=[];
 
 if(!D.luna)D.luna=[];
 if(!D.lunaNotes)D.lunaNotes={};
@@ -1980,13 +2044,20 @@ function rVar(){
 
   gs.forEach(g=>{
     const col=CC[g.c]||'#888',bg=CB[g.c]||'#eee';
+    const isTaller = g.c === 'Taller';
+    const sub = g.sub || 'Obra/Infraestructura';
+    const subBadge = isTaller ? `
+      <select onchange="cambiarSub(${g.id},this.value)" style="margin-left:6px;padding:2px 7px;font-size:10px;font-weight:600;font-family:var(--mono);background:${sub==='Temporada'?'#fff3e0':'#f0f9ff'};border:1px solid ${sub==='Temporada'?'#e6510040':'#1565c040'};border-radius:20px;color:${sub==='Temporada'?'#e65100':'#1565c0'};cursor:pointer;outline:none">
+        <option value="Obra/Infraestructura" ${sub==='Obra/Infraestructura'?'selected':''}>Inversión</option>
+        <option value="Temporada" ${sub==='Temporada'?'selected':''}>Temporada</option>
+      </select>` : '';
     h+=`<tr style="background:${bg}18">
       <td style="font-weight:500">${g.d}</td>
       <td style="color:var(--t2);font-size:12px;white-space:nowrap">${g.f.split('-').reverse().join('/')}</td>
-      <td>
+      <td style="white-space:nowrap">
         <select onchange="cambiarCat(${g.id},this.value)" style="width:auto;padding:3px 8px;font-size:11px;font-weight:500;font-family:var(--mono);background:${bg};border:1px solid ${col}40;border-radius:20px;color:${col};cursor:pointer">
           ${CATS.map(c=>`<option value="${c}" ${c===g.c?'selected':''}>${c}</option>`).join('')}
-        </select>
+        </select>${subBadge}
       </td>
       <td class="r" style="font-weight:500">${fmt(g.m)}</td>
       <td class="r" style="color:var(--t3);font-size:11px">${fU(toUSD(g.m,mes))}</td>
@@ -1994,19 +2065,19 @@ function rVar(){
     </tr>`;
   });
 
-  // Filas de OBR Taller
+  // Filas de OBR Taller — solo referencia, NO se suman al total personal
   if(obrTaller.length){
     const tallerCol=CC['Taller'],tallerBg=CB['Taller'];
     obrTaller.forEach(g=>{
       const usdVal=g.usd>0?g.usd:(g.pesos>0?toUSD(g.pesos,mes):0);
-      h+=`<tr style="background:${tallerBg}28">
-        <td style="font-weight:500">${g.desc}${g.detalle?' <span style="font-size:10px;color:var(--t3)">'+g.detalle+'</span>':''}</td>
+      h+=`<tr style="opacity:0.55">
+        <td style="font-weight:400;color:var(--t2)">${g.desc}${g.detalle?' <span style="font-size:10px;color:var(--t3)">'+g.detalle+'</span>':''}</td>
         <td style="color:var(--t2);font-size:12px;white-space:nowrap">${g.fecha.split('-').reverse().join('/')}</td>
         <td>
           <span style="display:inline-block;padding:3px 8px;font-size:11px;font-weight:600;font-family:var(--mono);background:${tallerBg};border:1px solid ${tallerCol}40;border-radius:20px;color:${tallerCol}">Taller</span>
           <span style="font-size:9px;color:var(--t3);font-family:var(--mono);margin-left:4px">OBR</span>
         </td>
-        <td class="r" style="font-weight:500">${g.pesos>0?fmt(g.pesos):'—'}</td>
+        <td class="r" style="color:var(--t3);font-style:italic">${g.pesos>0?fmt(g.pesos):'—'}</td>
         <td class="r" style="color:var(--t3);font-size:11px">${usdVal>0?fU(usdVal):'—'}</td>
         <td></td>
       </tr>`;
@@ -2014,23 +2085,33 @@ function rVar(){
   }
 
   const totLocal=tvM(mes);
-  const totObr=obrTaller.reduce((s,g)=>s+g.pesos,0);
-  const totUsdObr=obrTaller.reduce((s,g)=>s+(g.usd>0?g.usd:toUSD(g.pesos,mes)),0);
-  h+=`<tr class="totr"><td colspan="3">Total ${ML[mes]}</td><td class="r">${fmt(totLocal+totObr)}</td><td class="r" style="font-family:var(--mono);font-size:11px;color:var(--t2)">${fU(toUSD(totLocal,mes)+totUsdObr)}</td><td></td></tr>`;
+  // OBR gastos NO se suman al total personal — son gastos del taller, no personales
+  h+=`<tr class="totr"><td colspan="3">Total ${ML[mes]}</td><td class="r">${fmt(totLocal)}</td><td class="r" style="font-family:var(--mono);font-size:11px;color:var(--t2)">${fU(toUSD(totLocal,mes))}</td><td></td></tr>`;
   h+=`</tbody></table>`;
   document.getElementById('lista-var').innerHTML=h;
 }
 function cambiarCat(id,cat){const g=gV(mes).find(x=>x.id===id);if(g)g.c=cat;save();rVar();}
+function cambiarSub(id,sub){const g=gV(mes).find(x=>x.id===id);if(g)g.sub=sub;save();rVar();}
+function onVarCatChange(sel){
+  const row=document.getElementById('var-sub-row');
+  if(row) row.style.display=sel.value==='Taller'?'':'none';
+}
 
 async function agregarVar(){
   const d=document.getElementById('var-desc').value.trim(),m=parseFloat(document.getElementById('var-monto').value)||0;
   if(!d||!m)return;
   const cat=document.getElementById('var-cat').value;
   const fecha=document.getElementById('var-fecha').value||hoy();
+  const sub=cat==='Taller'?(document.getElementById('var-sub')?.value||'Obra/Infraestructura'):undefined;
   if(!D.vars[mes])D.vars[mes]=[];
-  D.vars[mes].push({id:Date.now(),d,f:fecha,c:cat,m});
+  const entry={id:Date.now(),d,f:fecha,c:cat,m};
+  if(sub)entry.sub=sub;
+  D.vars[mes].push(entry);
   save();rVar();
   document.getElementById('var-desc').value='';document.getElementById('var-monto').value='';
+  // Ocultar sub selector
+  const subRow=document.getElementById('var-sub-row');
+  if(subRow)subRow.style.display='none';
 
   // Si es Taller, sync a OBR
   if(cat==='Taller') await syncTallerOBR(fecha, d, m);
@@ -2067,8 +2148,7 @@ function rResCat(){
     document.getElementById('rescat-lbl').textContent='Mensual — '+ML[mes]+' 2026';
     const ct={};CATS.forEach(c=>ct[c]=0);
     gV(mes).forEach(g=>{if(ct[g.c]!==undefined)ct[g.c]+=g.m;});
-    // OBR Taller gastos del mes
-    getObrTallerMes(mes).forEach(g=>{if(g.pesos>0)ct['Taller']=(ct['Taller']||0)+g.pesos;});
+    // OBR Taller gastos NO se suman — son del taller, no personales
     getFijos().forEach(f=>{
       if(f.tipo==='anual')return;
       const v=f.m[mes]||0;if(!v)return;
@@ -2111,8 +2191,7 @@ function rResCat(){
     const cd={};CATS.forEach(c=>{cd[c]={};for(let m=1;m<=12;m++)cd[c][m]=0;});
     for(let m=1;m<=12;m++){
       gV(m).forEach(g=>{if(cd[g.c])cd[g.c][m]=(cd[g.c][m]||0)+g.m;});
-      // OBR Taller
-      getObrTallerMes(m).forEach(g=>{if(g.pesos>0)cd['Taller'][m]=(cd['Taller'][m]||0)+g.pesos;});
+      // OBR Taller NO se suma al resumen por categoría personal
       // Fijos
       getFijos().forEach(f=>{
         if(f.tipo==='anual')return;
@@ -3147,8 +3226,167 @@ function rPat(){
   if(nv)nv.textContent=fU(tp);
   if(nd)nd.textContent=fU(td);
   if(nt)nt.textContent=fU(tp+td);
+  rCred();
 };
 
+// ── CREDENCIALES ──
+let credEditId=null;
+let _credDebTmp=[]; // débitos temporales mientras se edita el form
+
+function toggleVerCred(inputId,btn){
+  const el=document.getElementById(inputId);
+  if(!el)return;
+  if(el.type==='password'||el.type===undefined){el.type='text';btn.textContent='🙈';}
+  else{el.type='password';btn.textContent='👁';}
+}
+function toggleFormDebitos(){
+  const tiene=document.getElementById('cred-tiene-deb').checked;
+  document.getElementById('cred-deb-section').style.display=tiene?'block':'none';
+}
+function renderDebTmp(){
+  const lista=document.getElementById('cred-deb-lista');
+  if(!lista)return;
+  if(!_credDebTmp.length){lista.innerHTML='';return;}
+  lista.innerHTML=_credDebTmp.map((d,i)=>`
+    <div style="display:grid;grid-template-columns:2fr 60px 1fr 60px 28px;gap:6px;margin-bottom:6px;align-items:center">
+      <div style="font-size:13px">${d.desc}</div>
+      <div style="font-size:12px;color:var(--t2);text-align:center">día ${d.dia}</div>
+      <div style="font-size:12px;font-family:var(--mono);text-align:right">${d.mon==='USD'?'u$s':'$'}${Number(d.monto).toLocaleString('es-AR')}</div>
+      <div style="font-size:11px;color:var(--t3)">${d.mon}</div>
+      <button onclick="_credDebTmp.splice(${i},1);renderDebTmp()" class="btn bd" style="width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center">×</button>
+    </div>`).join('');
+}
+function agregarDebitoForm(){
+  const desc=document.getElementById('cred-deb-desc').value.trim();
+  const dia=parseInt(document.getElementById('cred-deb-dia').value)||0;
+  const monto=parseFloat(document.getElementById('cred-deb-monto').value)||0;
+  const mon=document.getElementById('cred-deb-mon').value;
+  if(!desc||!monto)return;
+  _credDebTmp.push({id:Date.now(),desc,dia,monto,mon});
+  document.getElementById('cred-deb-desc').value='';
+  document.getElementById('cred-deb-dia').value='';
+  document.getElementById('cred-deb-monto').value='';
+  renderDebTmp();
+}
+function limpiarFormCred(){
+  credEditId=null;
+  _credDebTmp=[];
+  document.getElementById('cred-nombre').value='';
+  document.getElementById('cred-usuario').value='';
+  const pEl=document.getElementById('cred-pass');
+  pEl.value='';pEl.type='password';
+  document.getElementById('cred-nota').value='';
+  const cbDeb=document.getElementById('cred-tiene-deb');
+  cbDeb.checked=false;
+  document.getElementById('cred-deb-section').style.display='none';
+  document.getElementById('cred-deb-lista').innerHTML='';
+  document.getElementById('cred-deb-desc').value='';
+  document.getElementById('cred-deb-dia').value='';
+  document.getElementById('cred-deb-monto').value='';
+  document.getElementById('form-cred-titulo').textContent='Nueva cuenta';
+}
+function cancelarCred(){
+  limpiarFormCred();
+  document.getElementById('form-cred-nueva').style.display='none';
+}
+function guardarCredencial(){
+  const nombre=document.getElementById('cred-nombre').value.trim();
+  if(!nombre)return;
+  const usuario=document.getElementById('cred-usuario').value.trim();
+  const pass=document.getElementById('cred-pass').value;
+  const nota=document.getElementById('cred-nota').value.trim();
+  const tieneDeb=document.getElementById('cred-tiene-deb').checked;
+  const debitos=tieneDeb?[..._credDebTmp]:[];
+  if(!D.credenciales)D.credenciales=[];
+  if(credEditId){
+    const c=D.credenciales.find(x=>x.id===credEditId);
+    if(c){c.nombre=nombre;c.usuario=usuario;c.pass=pass;c.nota=nota;c.debitos=debitos;}
+  } else {
+    D.credenciales.push({id:Date.now(),nombre,usuario,pass,nota,debitos});
+  }
+  save();
+  cancelarCred();
+  rCred();
+}
+function editarCredencial(id){
+  const c=(D.credenciales||[]).find(x=>x.id===id);
+  if(!c)return;
+  credEditId=id;
+  _credDebTmp=[...(c.debitos||[])];
+  document.getElementById('cred-nombre').value=c.nombre||'';
+  document.getElementById('cred-usuario').value=c.usuario||'';
+  const pEl=document.getElementById('cred-pass');
+  pEl.value=c.pass||'';pEl.type='password';
+  document.getElementById('cred-nota').value=c.nota||'';
+  const tieneDeb=!!(c.debitos&&c.debitos.length);
+  document.getElementById('cred-tiene-deb').checked=tieneDeb;
+  document.getElementById('cred-deb-section').style.display=tieneDeb?'block':'none';
+  renderDebTmp();
+  document.getElementById('form-cred-titulo').textContent='Editar cuenta';
+  const form=document.getElementById('form-cred-nueva');
+  form.style.display='block';
+  form.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function eliminarCredencial(id){
+  if(!confirm('¿Eliminar esta cuenta?'))return;
+  D.credenciales=(D.credenciales||[]).filter(x=>x.id!==id);
+  save();rCred();
+}
+function rCred(){
+  const el=document.getElementById('cred-lista');
+  if(!el)return;
+  const creds=D.credenciales||[];
+  if(!creds.length){el.innerHTML='<div style="font-size:12px;color:var(--t3);padding:8px 0">Sin cuentas registradas. Tocá "+ Nueva cuenta" para agregar.</div>';return;}
+  el.innerHTML=creds.map(c=>{
+    const tieneDebs=c.debitos&&c.debitos.length;
+    const debsHtml=tieneDebs?`
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);margin-bottom:6px">Débitos automáticos</div>
+        ${c.debitos.map(d=>`
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0">
+            <span style="color:var(--t2)">${d.desc}</span>
+            <span style="display:flex;gap:10px;align-items:center">
+              ${d.dia?`<span style="color:var(--t3)">día ${d.dia}</span>`:''}
+              <span style="font-family:var(--mono);font-weight:500">${d.mon==='USD'?'u$s':'$'}${Number(d.monto).toLocaleString('es-AR')} <span style="font-size:10px;color:var(--t3)">${d.mon}</span></span>
+            </span>
+          </div>`).join('')}
+      </div>`:''  ;
+    const notaHtml=c.nota?`<div style="font-size:11px;color:var(--t3);margin-top:4px;font-style:italic">${c.nota}</div>`:'';
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:600;margin-bottom:6px">${c.nombre}</div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center">
+            <span style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3)">Usuario</span>
+            <span style="font-size:12px;font-family:var(--mono)">${c.usuario||'—'}</span>
+            <span style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3)">Contraseña</span>
+            <span style="display:flex;align-items:center;gap:6px">
+              <span id="pass-val-${c.id}" style="font-size:12px;font-family:var(--mono);letter-spacing:.1em">••••••••</span>
+              <span id="pass-txt-${c.id}" style="display:none;font-size:12px;font-family:var(--mono)">${c.pass||'—'}</span>
+              <button onclick="togglePassCard(${c.id})" style="background:none;border:none;cursor:pointer;color:var(--t3);font-size:13px;padding:0;line-height:1" id="pass-btn-${c.id}">👁</button>
+            </span>
+          </div>
+          ${notaHtml}
+          ${debsHtml}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+          <button class="btn" style="font-size:11px;padding:3px 9px" onclick="editarCredencial(${c.id})">✏️</button>
+          <button class="btn bd" style="font-size:11px;padding:3px 9px" onclick="eliminarCredencial(${c.id})">×</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function togglePassCard(id){
+  const v=document.getElementById(`pass-val-${id}`);
+  const t=document.getElementById(`pass-txt-${id}`);
+  const b=document.getElementById(`pass-btn-${id}`);
+  if(!v||!t)return;
+  const showing=t.style.display!=='none';
+  v.style.display=showing?'':'none';
+  t.style.display=showing?'none':'';
+  if(b)b.textContent=showing?'👁':'🙈';
+}
 
 // ── TC TOGGLE HELPERS ──
 function toggleTcJua(part){
@@ -3634,6 +3872,14 @@ document.getElementById('ac-mitsu-fecha').value=hoy();
 document.getElementById('cj-fecha').value=hoy();
 document.getElementById('cc-fecha').value=hoy();
 document.getElementById('ch-fecha').value=hoy();
+
+// Limpiar HTML bakeado y renderizar desde datos actuales
+const _ft=document.querySelector('#tabla-fijos tbody');
+if(_ft)_ft.innerHTML='';
+const _lv=document.getElementById('lista-var');
+if(_lv)_lv.innerHTML='';
+rFijos();
+rVar();
 
 </script>
 
