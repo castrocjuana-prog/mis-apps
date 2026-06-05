@@ -17,6 +17,19 @@
 --fd:'Barlow Condensed',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;--r:8px;--rl:12px;--sh:0 1px 3px rgba(0,0,0,.08);--shm:0 2px 8px rgba(0,0,0,.12);--t:.15s ease}
 .c-profe{color:var(--profe)!important}
 .c-turista{color:var(--turista)!important}
+.nb-mostrador{margin-left:auto;background:var(--s2);border:1px solid var(--bd);border-radius:20px!important;font-size:12px;padding:4px 12px!important;}
+.nb-mostrador:hover{background:var(--s3);}
+body.mostrador .nb-mostrador{background:var(--red)!important;color:#fff!important;border-color:var(--red)!important;}
+body.mostrador .nb-private{display:none!important;}
+body.mostrador .precio-privado{visibility:hidden;}
+body.mostrador .bloque-privado{display:none!important;}
+body.mostrador .btn-ic{display:none!important;}
+body.mostrador .del-talle-btn{display:none!important;}
+body.mostrador .talle-disp{cursor:default!important;text-decoration:none!important;pointer-events:none;}
+body.mostrador #btn-nueva-venta{display:none!important;}
+body.mostrador #btn-sel-mode{display:none!important;}
+body.mostrador #btn-migrar-botas{display:none!important;}
+body.mostrador #btn-migrar-prods{display:none!important;}
 .bg-profe{background:var(--profe-bg);color:var(--profe);border-radius:4px;padding:1px 7px;font-weight:600;font-size:11px}
 .bg-turista{background:var(--turista-bg);color:var(--turista);border-radius:4px;padding:1px 7px;font-weight:600;font-size:11px}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -258,20 +271,21 @@ body.ready #app{display:block}
     <div class="logo-t"><div class="logo-m">OTTO'S BOOT ROOM</div><div class="logo-s">Bariloche · Argentina</div></div>
   </div>
   <div class="hdr-r">
-    <div class="usd-b" onclick="openM(&#39;m-dolar&#39;)" title="Cambiar dólar del día">
+    <div class="usd-b" onclick="openDolar()" title="Cambiar dólar del día">
       <div class="usd-dot"></div>$<span id="hdr-dolar">1.400</span>
     </div>
     <button class="sync" id="sync-btn" onclick="syncAll()" title="Sincronizar">⟳</button>
   </div>
 </header>
 <nav class="nav">
-  <button class="nb on" onclick="sv(&#39;ventas&#39;,this)">Ventas</button>
-  <button class="nb" onclick="sv(&#39;productos&#39;,this)">Productos</button>
-  <button class="nb" onclick="sv(&#39;servicios&#39;,this)">Servicios</button>
-  <button class="nb" onclick="sv(&#39;precios&#39;,this)">Precios</button>
-  <button class="nb" onclick="sv(&#39;gastos&#39;,this)">Gastos</button>
-  <button class="nb" onclick="sv(&#39;provs&#39;,this)">Proveedores</button>
-  <button class="nb" onclick="sv(&#39;balance&#39;,this)">Balance</button>
+  <button class="nb nb-private on" onclick="sv('ventas',this)">Ventas</button>
+  <button class="nb" onclick="sv('productos',this)">Productos</button>
+  <button class="nb" onclick="sv('servicios',this)">Servicios</button>
+  <button class="nb nb-private" onclick="sv('precios',this)">Precios</button>
+  <button class="nb nb-private" onclick="sv('gastos',this)">Gastos</button>
+  <button class="nb nb-private" onclick="sv('provs',this)">Proveedores</button>
+  <button class="nb nb-private" onclick="sv('balance',this)">Balance</button>
+  <button class="nb nb-mostrador" id="btn-mostrador" onclick="toggleMostrador()" title="Modo mostrador — oculta precios y pestañas internas">🔓 Mostrador</button>
 </nav>
 
 <!-- VENTAS -->
@@ -351,14 +365,18 @@ body.ready #app{display:block}
       <button class="btn btn-s btn-sm" onclick="resetStock()" id="btn-reset-stock">🔄 Resetear stock</button>
       <button class="btn btn-s btn-sm" onclick="seedLange()" id="btn-lange" style="display:none;">📦 Cargar stock Lange</button>
       <button class="btn btn-s btn-sm" onclick="openBotaInline()">+ Bota con talles</button>
-      <button class="btn btn-p" onclick="openM(&#39;m-prod&#39;)">+ Producto</button>
+      <button class="btn btn-p" onclick="
+        const cf=document.getElementById('f-cat')?.value;
+        const sel=document.getElementById('pd-c');
+        if(sel&&cf&&cf!=='Botas'){for(let i=0;i<sel.options.length;i++){if(sel.options[i].value===cf){sel.selectedIndex=i;break;}}}
+        openM('m-prod');onProdCatChange()">+ Producto</button>
     </div>
   </div>
   <div class="fil">
     <select class="fin2" id="f-pcat" onchange="rprod()">
       <option value="">Todas las categorías</option>
       <option selected="">Plantillas</option><option>Botas</option>
-      <option>Boosters</option><option>Plaquitas</option>
+      <option>Boosters</option><option>Lifters</option>
       <option>Medias</option><option>Otros</option>
     </select>
     <input class="fin2" type="number" id="f-btalle" placeholder="🔍 Talle bota..." step="0.5" style="width: 150px; display: none;" oninput="rprod()">
@@ -413,7 +431,7 @@ body.ready #app{display:block}
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Marca</label>
         <input type="text" id="epf-m" value="Sidas" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Categoría</label>
-        <select id="epf-c" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;"><option value="Plantillas" selected="">Plantillas</option><option value="Boosters">Boosters</option><option value="Plaquitas">Plaquitas</option><option value="Medias">Medias</option><option value="Otros">Otros</option></select></div>
+        <select id="epf-c" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;"><option value="Plantillas" selected="">Plantillas</option><option value="Boosters">Boosters</option><option value="Lifters">Lifters</option><option value="Medias">Medias</option><option value="Otros">Otros</option></select></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Fecha compra</label>
         <input type="date" id="epf-f" value="" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Stock inicial</label>
@@ -893,12 +911,14 @@ body.ready #app{display:block}
         <span style="font-size:12px;color:var(--gray2);">$</span>
         <input type="number" id="pr-dolar" style="width:90px;border:none;background:none;font-family:var(--fm);font-size:14px;font-weight:500;color:var(--red);outline:none;text-align:right;" oninput="rpr()" placeholder="1400">
       </div>
+      <button class="btn btn-s" onclick="guardarListaHoy()" style="display:flex;align-items:center;gap:6px;font-size:13px;">&#128190; Guardar lista de hoy</button>
+      <button class="btn btn-s" onclick="togglePrHist()" style="display:flex;align-items:center;gap:6px;font-size:13px;">&#128336; Historial</button>
       <button class="btn btn-s" onclick="imprimirPrecios()" style="display:flex;align-items:center;gap:6px;font-size:13px;">&#128424; Imprimir A4</button>
     </div>
   </div>
   <p style="font-size:12px;color:var(--txt2);margin-bottom:12px;">Referencia rápida. Cambiá el dólar arriba para ver precios actualizados. Hacé click en ✏️ para editar un precio.</p>
   <div class="tw"><div class="ts"><table>
-    <thead><tr><th>Tipo</th><th>Cat.</th><th>Nombre</th><th>Costo USD</th><th>Profe USD</th><th>Turista USD</th><th>Profe $ARS</th><th>Turista $ARS</th><th></th></tr></thead>
+    <thead><tr><th>Tipo</th><th>Cat.</th><th>Nombre</th><th>Costo USD</th><th>Baja USD</th><th>Alta USD</th><th>Baja $ARS</th><th>Alta $ARS</th><th></th></tr></thead>
     <tbody id="pr-tbody"><tr style="border-left:3px solid var(--cat-plantillas);">
     <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
     <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plantillas-bg);color:var(--cat-plantillas);padding:2px 8px;border-radius:20px;">Plantillas</span></td>
@@ -1071,7 +1091,7 @@ body.ready #app{display:block}
     <td><button class="btn btn-s btn-sm btn-ic" onclick="editProd(18)" title="Editar">✏️</button></td>
   </tr><tr style="border-left:3px solid var(--cat-plaquitas);">
     <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
-    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Plaquitas</span></td>
+    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Lifters</span></td>
     <td><strong>3mm Head amarillas</strong></td>
     <td style="font-family:var(--fm);color:var(--txt3);">u$s 6</td>
     <td style="font-family:var(--fm);color:var(--profe);">u$s 15</td>
@@ -1081,7 +1101,7 @@ body.ready #app{display:block}
     <td><button class="btn btn-s btn-sm btn-ic" onclick="editProd(19)" title="Editar">✏️</button></td>
   </tr><tr style="border-left:3px solid var(--cat-plaquitas);">
     <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
-    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Plaquitas</span></td>
+    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Lifters</span></td>
     <td><strong>5mm Atomic amarillas</strong></td>
     <td style="font-family:var(--fm);color:var(--txt3);">—</td>
     <td style="font-family:var(--fm);color:var(--profe);">u$s 35</td>
@@ -1091,7 +1111,7 @@ body.ready #app{display:block}
     <td><button class="btn btn-s btn-sm btn-ic" onclick="editProd(20)" title="Editar">✏️</button></td>
   </tr><tr style="border-left:3px solid var(--cat-plaquitas);">
     <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
-    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Plaquitas</span></td>
+    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Lifters</span></td>
     <td><strong>7mm</strong></td>
     <td style="font-family:var(--fm);color:var(--txt3);">—</td>
     <td style="font-family:var(--fm);color:var(--profe);">u$s 50</td>
@@ -1101,7 +1121,7 @@ body.ready #app{display:block}
     <td><button class="btn btn-s btn-sm btn-ic" onclick="editProd(21)" title="Editar">✏️</button></td>
   </tr><tr style="border-left:3px solid var(--cat-plaquitas);">
     <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
-    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Plaquitas</span></td>
+    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Lifters</span></td>
     <td><strong>5mm Rojas</strong></td>
     <td style="font-family:var(--fm);color:var(--txt3);">u$s 23</td>
     <td style="font-family:var(--fm);color:var(--profe);">u$s 50</td>
@@ -1111,7 +1131,7 @@ body.ready #app{display:block}
     <td><button class="btn btn-s btn-sm btn-ic" onclick="editProd(26)" title="Editar">✏️</button></td>
   </tr><tr style="border-left:3px solid var(--cat-plaquitas);">
     <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
-    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Plaquitas</span></td>
+    <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plaquitas-bg);color:var(--cat-plaquitas);padding:2px 8px;border-radius:20px;">Lifters</span></td>
     <td><strong>4mm Rojas</strong></td>
     <td style="font-family:var(--fm);color:var(--txt3);">u$s 23</td>
     <td style="font-family:var(--fm);color:var(--profe);">u$s 50</td>
@@ -1381,6 +1401,60 @@ body.ready #app{display:block}
     <td><button class="btn btn-s btn-sm btn-ic" onclick="editServ(11)" title="Editar">✏️</button></td>
   </tr></tbody>
   </table></div></div>
+  <div id="pr-hist" style="display:none;margin-top:18px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;">
+    <div style="font-family:var(--fd);font-size:14px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray2);margin-bottom:4px;">Historial de listas</div>
+    <p style="font-size:11px;color:var(--txt3);margin-bottom:12px;">Cada lista guardada queda con su fecha y su dólar. Tocá «Reimprimir» para volver a generar ese PDF tal como estaba ese día.</p>
+    <div id="pr-hist-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+
+  <!-- FORMAS DE PAGO / ALIAS -->
+  <div style="margin-top:18px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:14px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px;">
+      <div style="font-family:var(--fd);font-size:14px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray2);">Formas de pago · Alias</div>
+      <button class="btn btn-s" onclick="savePagos()" style="font-size:13px;">&#128190; Guardar alias</button>
+    </div>
+    <p style="font-size:11px;color:var(--txt3);margin-bottom:14px;">Estos alias aparecen también al final de la lista impresa. Editá y tocá «Guardar alias».</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Jua</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);">
+            <span style="width:110px;flex:none;font-weight:600;color:var(--gray2);">MP Jua</span>
+            <input id="pg-jua-mp" type="text" style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:13px;outline:none;" placeholder="alias">
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);">
+            <span style="width:110px;flex:none;font-weight:600;color:var(--gray2);">MP Jua USD</span>
+            <input id="pg-jua-mpusd" type="text" style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:13px;outline:none;" placeholder="alias">
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);">
+            <span style="width:110px;flex:none;font-weight:600;color:var(--gray2);">Macro Jua</span>
+            <input id="pg-jua-macro" type="text" style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:13px;outline:none;" placeholder="alias">
+          </label>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Coco</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);">
+            <span style="width:110px;flex:none;font-weight:600;color:var(--gray2);">MP Coco</span>
+            <input id="pg-coco-mp" type="text" style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:13px;outline:none;" placeholder="alias">
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);">
+            <span style="width:110px;flex:none;font-weight:600;color:var(--gray2);">Macro Coco</span>
+            <input id="pg-coco-macro" type="text" style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:13px;outline:none;" placeholder="alias">
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);">
+            <span style="width:110px;flex:none;font-weight:600;color:var(--gray2);">Macro Coco USD</span>
+            <input id="pg-coco-macrousd" type="text" style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:13px;outline:none;" placeholder="alias">
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);">
+            <span style="width:110px;flex:none;font-weight:600;color:var(--gray2);">Santander Coco</span>
+            <input id="pg-coco-sant" type="text" style="flex:1;border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-family:var(--fm);font-size:13px;outline:none;" placeholder="alias">
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- GASTOS -->
@@ -1560,8 +1634,8 @@ x2 gramaje 60</div>
         <label style="font-size:11px;color:var(--txt3);">Tipo de cliente</label>
         <select id="bal-tipo" class="fin2" style="padding:6px 10px;" onchange="rbal()">
           <option value="">Todos</option>
-          <option value="profe">Solo profes</option>
-          <option value="turista">Solo turistas</option>
+          <option value="profe">Solo precio Baja</option>
+          <option value="turista">Solo precio Alta</option>
         </select>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
@@ -1688,8 +1762,8 @@ x2 gramaje 60</div>
 
   <!-- Toggle profe/turista -->
   <div class="pt-toggle">
-    <button class="pt-btn" id="pt-turista" onclick="setPT(&#39;turista&#39;)" style="color:var(--turista)">Turista / público</button>
-    <button class="pt-btn on" id="pt-profe" onclick="setPT(&#39;profe&#39;)" style="color:var(--profe)">Profe / conocido</button>
+    <button class="pt-btn" id="pt-turista" onclick="setPT('turista')" style="color:var(--turista)">Precio Alta</button>
+    <button class="pt-btn on" id="pt-profe" onclick="setPT('profe')" style="color:var(--profe)">Precio Baja</button>
   </div>
 
   <!-- Item picker -->
@@ -1705,7 +1779,7 @@ x2 gramaje 60</div>
       <span class="cp" data-cat="Servicios">Servicios</span>
       <span class="cp" data-cat="Botas">Botas</span>
       <span class="cp" data-cat="Boosters">Boosters</span>
-      <span class="cp" data-cat="Plaquitas">Plaquitas</span>
+      <span class="cp" data-cat="Lifters">Lifters</span>
       <span class="cp" data-cat="Medias">Medias</span>
     </div>
     <div class="ip-list" id="ip-list"><div class="iop" data-id="p2">
@@ -2134,24 +2208,39 @@ x2 gramaje 60</div>
 
 <!-- PRODUCTO -->
 <div class="mo" id="m-prod"><div class="md">
-  <div class="mh"><div class="mt">PRODUCTO</div><button class="mc" onclick="closeM(&#39;m-prod&#39;)">✕</button></div>
+  <div class="mh"><div class="mt">PRODUCTO</div><button class="mc" onclick="closeM('m-prod')">✕</button></div>
   <div class="fg">
     <div class="fi s2"><label>Nombre</label><input type="text" id="pd-n" placeholder="Race M, Booster World Cup..."></div>
     <div class="fi"><label>Marca / Proveedor</label><input type="text" id="pd-m" placeholder="Podetti, Head, Lorpen..."></div>
     <div class="fi"><label>Categoría</label>
-      <select id="pd-c"><option>Plantillas</option><option>Boosters</option><option>Plaquitas</option><option>Medias</option><option>Otros</option></select>
+      <select id="pd-c" onchange="onProdCatChange()"><option>Plantillas</option><option>Boosters</option><option>Lifters</option><option>Medias</option><option>Otros</option></select>
     </div>
     <div class="fi"><label>Fecha compra</label><input type="date" id="pd-f"></div>
     <div class="fi"><label>Stock inicial (temporada)</label><input type="number" id="pd-i" placeholder="0"></div>
     <div class="fi"><label>Costo USD (c/u)</label><input type="number" id="pd-cu" placeholder="0" oninput="calcGain()"></div>
-    <div class="fi"><label>Precio profe USD</label><input type="number" id="pd-pu" placeholder="0" oninput="calcGain()"></div>
-    <div class="fi"><label>Precio turista USD</label><input type="number" id="pd-tu" placeholder="0" oninput="calcGain()"></div>
-    <div class="fi"><label>Ganancia profe</label><input type="number" id="pd-gp" readonly="" style="background:var(--ok-bg);color:var(--ok);"></div>
-    <div class="fi"><label>Ganancia turista</label><input type="number" id="pd-gt" readonly="" style="background:var(--ok-bg);color:var(--ok);"></div>
+    <!-- Campos normales (Baja/Alta) -->
+    <div class="fi pd-normal"><label>Precio Baja USD</label><input type="number" id="pd-pu" placeholder="0" oninput="calcGain()"></div>
+    <div class="fi pd-normal"><label>Precio Alta USD</label><input type="number" id="pd-tu" placeholder="0" oninput="calcGain()"></div>
+    <div class="fi pd-normal"><label>Ganancia Baja</label><input type="number" id="pd-gp" readonly="" style="background:var(--ok-bg);color:var(--ok);"></div>
+    <div class="fi pd-normal"><label>Ganancia Alta</label><input type="number" id="pd-gt" readonly="" style="background:var(--ok-bg);color:var(--ok);"></div>
+    <!-- Subtipo plaquita (solo visible si cat=Plaquitas) -->
+    <div class="fi pd-plaq" style="display:none;grid-column:1/-1;"><label>Tipo de plaquita</label>
+      <select id="pd-subplaq" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:13px;">
+        <option value="Lifter">Lifter</option>
+        <option value="Soles5355">Soles 5355</option>
+        <option value="Gripwalk">Gripwalk</option>
+      </select>
+    </div>
+    <!-- Campos plaquitas (ocultos por defecto) -->
+    <div class="fi pd-plaq" style="display:none;"><label>Precio Suelta USD</label><input type="number" id="pd-ps" placeholder="0"></div>
+    <div class="fi pd-plaq" style="display:none;"><label style="color:var(--profe);">Precio Recambio USD</label><input type="number" id="pd-pr" placeholder="0" style="border-color:var(--profe);"></div>
+    <div class="fi pd-plaq" style="display:none;"><label style="color:var(--turista);">Precio Freza USD</label><input type="number" id="pd-pf" placeholder="0" style="border-color:var(--turista);"></div>
+    <!-- Notas (siempre visible) -->
+    <div class="fi s2"><label>Notas</label><textarea id="pd-notas" rows="2" placeholder="Comentarios..." style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:13px;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea></div>
   </div>
   <div style="margin-top:16px;display:flex;gap:10px;">
     <button class="btn btn-p" style="flex:1;justify-content:center;" onclick="saveProd()">Guardar</button>
-    <button class="btn btn-s" onclick="closeM(&#39;m-prod&#39;)">Cancelar</button>
+    <button class="btn btn-s" onclick="closeM('m-prod')">Cancelar</button>
   </div>
 </div></div>
 
@@ -2210,8 +2299,9 @@ x2 gramaje 60</div>
       <select id="g-c"><option>Insumos</option><option>Obra/Infraestructura</option><option>Herramientas</option><option>Envíos</option><option>Compras USA</option><option>Alquiler</option><option>Temporada</option><option>Otros</option></select>
     </div>
     <div class="fi s2"><label>Concepto</label><input type="text" id="g-n" placeholder="Par-ke-gom folias, Palm hierros..."></div>
-    <div class="fi"><label>Pesos ARS</label><input type="number" id="g-p" placeholder="0"></div>
-    <div class="fi"><label>USD</label><input type="number" id="g-u" placeholder="0"></div>
+    <div class="fi"><label>Pesos ARS</label><input type="number" id="g-p" placeholder="0" oninput="calcGastoUsd()"></div>
+    <div class="fi"><label>Dólar del día</label><input type="number" id="g-dol" placeholder="1400" oninput="calcGastoUsd()" title="Dólar de la fecha del gasto. El USD se calcula con este valor."></div>
+    <div class="fi"><label>USD <span style="font-size:10px;color:var(--txt3);font-weight:400;">(se calcula solo)</span></label><input type="number" id="g-u" placeholder="0"></div>
     <div class="fi s2"><label>Medio de pago</label>
       <select id="g-m"><option>Efectivo</option><option>Santander</option><option>Mercado Libre</option><option>Transferencia</option><option>Efectivo USD</option><option>Otro</option></select>
     </div>
@@ -2326,6 +2416,10 @@ const D = {
   sel:[], ptMode:'profe',
   iq:'', ic:'',
   btTalles:[],
+  pagos:{
+    jua:{ mp:'tallerdebotas', mpusd:'monaguillo.dedo.inca', macro:'taller.botas' },
+    coco:{ mp:'', macro:'', macrousd:'', santander:'' }
+  },
   editVenta:null, editProd:null, editServ:null, editGasto:null
 };
 
@@ -2333,6 +2427,7 @@ const D = {
 // BOOT
 // ─────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  console.log('%cOBR build: gastos-temporada-fix-v3 ✓','color:#D32F2F;font-weight:bold;font-size:14px;');
   const c = localStorage.getItem('ottos_cr');
   const sid = localStorage.getItem('ottos_sid');
   if (c && sid) {
@@ -2345,6 +2440,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) el.value = today;
   });
+  // Asegurar que el badge del dólar abra el cuadro aunque el onclick inline falle
+  const _usdB = document.querySelector('.usd-b');
+  if (_usdB) _usdB.addEventListener('click', openDolar);
   // wire up category pills
   document.getElementById('ip-cats').addEventListener('click', e => {
     const pill = e.target.closest('.cp');
@@ -2591,6 +2689,15 @@ async function loadCfg() {
     (d.values||[]).forEach(r => {
       if (r[0]==='dolar') D.cfg.dol = parseFloat(r[1])||1400;
       if (r[0]==='temporada') D.cfg.tmp = parseInt(r[1])||2026;
+      if (r[0]==='pagos') {
+        try {
+          const p = JSON.parse(r[1]);
+          if (p && typeof p === 'object') {
+            D.pagos.jua = Object.assign({}, D.pagos.jua, p.jua||{});
+            D.pagos.coco = Object.assign({}, D.pagos.coco, p.coco||{});
+          }
+        } catch(e) {}
+      }
       if (r[0]==='years') {
         try {
           const yrs = JSON.parse(r[1]);
@@ -2633,7 +2740,7 @@ async function lV() {
       try { if (r[13]) itemsDetail = JSON.parse(r[13]); } catch(e) {}
       return {
         _r: i+2,
-        fecha:r[0]||'', cli:r[1]||'', tipo:r[2]||'', items:r[3]||'', obs:r[4]||'',
+        fecha:toISO(r[0]||''), cli:r[1]||'', tipo:r[2]||'', items:r[3]||'', obs:r[4]||'',
         pp:parseFloat(r[5])||0, up:parseFloat(r[6])||0,
         pex:parseFloat(r[7])||0, uex:parseFloat(r[8])||0,
         tusd:parseFloat(r[9])||0, mp:r[10]||'', dol:parseFloat(r[11])||D.cfg.dol,
@@ -2646,7 +2753,7 @@ async function lV() {
   rv();
 }
 async function lProd() {
-  const d = await sG('PRODUCTOS!A2:K500');
+  const d = await sG('PRODUCTOS!A2:P500');
   const fN = v => parseFloat((v||'').toString().replace(',','.'))||0;
   D.productos = (d.values||[]).map((r,i) => {
     const cu = fN(r[6]);
@@ -2657,18 +2764,20 @@ async function lProd() {
       ini:parseInt(r[4])||0, act:parseInt(r[5])||0,
       cu, pu, tu,
       gp: pu ? +(pu-cu).toFixed(1) : 0,
-      gt: tu ? +(tu-cu).toFixed(1) : 0
+      gt: tu ? +(tu-cu).toFixed(1) : 0,
+      ps:fN(r[11]), pr:fN(r[12]), pf:fN(r[13]), notas:r[14]||'', subplaq:r[15]||''
     };
   }).filter(p => p.n);
   rprod();
 }
 async function lBotas() {
-  const d = await sG('BOTAS!A2:K500');
+  const d = await sG('BOTAS!A2:P500');
   D.botas = (d.values||[]).map((r,i) => ({
     _r:i+2, marca:r[0]||'', mod:r[1]||'', talle:r[2]||'',
     ini:parseInt(r[3])||0, act:parseInt(r[4])||0, fc:r[5]||'',
     cu:parseFloat((r[6]||'').toString().replace(',','.'))||0, vu:parseFloat((r[7]||'').toString().replace(',','.'))||0, gu:parseFloat((r[8]||'').toString().replace(',','.'))||0,
-    ancho:r[9]||'', notas:r[10]||''
+    ancho:r[9]||'', notas:r[10]||'',
+    codigo:r[11]||'', anioBota:r[12]||'', canting:r[13]||'', fechaImp:r[14]||'', pagoPodetti:r[15]||''
   })).filter(b => b.marca||b.mod);
   rprod();
 }
@@ -2701,7 +2810,7 @@ async function loadGPTaller() {
         // sub field distinguishes Inversión vs Temporada; default to Obra/Infraestructura
         const cat = g.sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
         all.push({
-          f: g.f || '',
+          f: toISO(g.f || ''),
           n: g.d || '',
           c: cat,
           p: g.m || 0,
@@ -2765,7 +2874,7 @@ async function lG() {
     // Pad row to at least 7 cols — API drops trailing empty cells
     while (r.length < 7) r.push('');
     return {
-      _r:i+2, f:r[0]||'', n:r[1]||'', c:r[2]||'',
+      _r:i+2, f:toISO(r[0]||''), n:r[1]||'', c:r[2]||'',
       p:parseFloat(r[3])||0, u:parseFloat(r[4])||0, m:r[5]||'', det:r[6]||''
     };
   }).filter(g => g.n);
@@ -2808,7 +2917,7 @@ function rv() {
       ${chk}
       <td style="color:var(--txt2);font-size:12px;white-space:nowrap;">${fd(x.fecha)}</td>
       <td><strong>${e(x.cli)}</strong></td>
-      <td><span class="${x.tipo==='profe'?'bg-profe':'bg-turista'}">${x.tipo||'—'}</span></td>
+      <td><span class="${x.tipo==='profe'?'bg-profe':'bg-turista'}">${x.tipo==='profe'?'Baja':x.tipo==='turista'?'Alta':(x.tipo||'—')}</span></td>
       <td style="max-width:200px;white-space:normal;font-size:12px;line-height:1.5;">${e(x.items)}</td>
       <td style="font-family:var(--fm);">${tp?'$'+tp.toLocaleString('es-AR'):'—'}</td>
       <td style="font-family:var(--fm);">${(x.up+x.uex)?'u$s '+(x.up+x.uex):'—'}</td>
@@ -2853,7 +2962,7 @@ function catColor(cat) {
   const map = {
     'Plantillas': {c:'var(--cat-plantillas)', bg:'var(--cat-plantillas-bg)'},
     'Boosters':   {c:'var(--cat-boosters)',   bg:'var(--cat-boosters-bg)'},
-    'Plaquitas':  {c:'var(--cat-plaquitas)',  bg:'var(--cat-plaquitas-bg)'},
+    'Lifters':  {c:'var(--cat-plaquitas)',  bg:'var(--cat-plaquitas-bg)'},
     'Medias':     {c:'var(--cat-medias)',     bg:'var(--cat-medias-bg)'},
     'Botas':      {c:'var(--cat-botas)',      bg:'var(--cat-botas-bg)'},
     'Servicios':  {c:'var(--cat-servicios)',  bg:'var(--cat-servicios-bg)'},
@@ -2941,11 +3050,13 @@ function rprod() {
           <div><div class="sk-v" style="color:var(--warn);">${vendido}</div><div class="sk-l">Vendido</div></div>
           <div><div class="sk-v" style="color:var(--red);">${p.act}</div><div class="sk-l">Actual</div></div>
         </div>
+        <div class="bloque-privado">
         <div class="pkc-row"><span class="pkc-lbl">Costo</span><span class="pkc-val">${p.cu?'u$s '+(+p.cu.toFixed(2)):'—'}</span></div>
-        <div class="pkc-row"><span class="pkc-lbl">Profe</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
-        <div class="pkc-row"><span class="pkc-lbl">Turista</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
-        ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Ganancia profe</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
-        ${p.gt?`<div class="pkc-row"><span class="pkc-lbl">Ganancia turista</span><span class="gain-tag c-turista">+u$s ${p.gt}</span></div>`:''}
+        <div class="pkc-row"><span class="pkc-lbl">Baja</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
+        <div class="pkc-row"><span class="pkc-lbl">Alta</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
+        ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Gan. Baja</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
+        ${p.gt?`<div class="pkc-row"><span class="pkc-lbl">Gan. Alta</span><span class="gain-tag c-turista">+u$s ${p.gt}</span></div>`:''}
+        </div>
       </div>
     </div>`;
   }
@@ -2961,11 +3072,17 @@ function rprod() {
     const podetti = order.map(t => pl.find(p => p.n.toLowerCase().includes('podetti') && (p.n.toUpperCase().endsWith(' '+t) || p.n.toUpperCase() === 'PODETTI '+t))).filter(Boolean);
     const others  = pl.filter(p => !p.n.toLowerCase().includes('custom') && !p.n.toLowerCase().includes('race') && !p.n.toLowerCase().includes('podetti'));
 
-    function plantillaCard(p) {
+    // Colores por familia: Custom=naranja, Race=rojo, Podetti=azul (todas plantillas)
+    const famColors = {
+      custom:  {c:'#e65100', bg:'#fff5ec'},
+      race:    {c:'#c62828', bg:'#fff5f5'},
+      podetti: {c:'#1565c0', bg:'#eef4ff'},
+    };
+    function plantillaCard(p, fam) {
       const vendido = Math.max(0, p.ini - p.act);
       const pct = p.ini>0 ? Math.min(100, Math.round(p.act/p.ini*100)) : (p.act>0?100:0);
       const bc = pct<20?'sbar-lo':pct<50?'sbar-mid':'sbar-ok';
-      const cc = catColor('Plantillas');
+      const cc = famColors[fam] || catColor('Plantillas');
       return `<div class="pkc" style="border-left:3px solid ${cc.c};">
         <div class="pkc-head" style="background:${cc.bg};">
           <div><div class="pkc-n">${e(p.n)}</div><div class="pkc-cat" style="color:${cc.c};">${p.marca?e(p.marca)+' · ':''}Plantillas</div></div>
@@ -2984,9 +3101,11 @@ function rprod() {
             <div><div class="sk-v" style="color:var(--warn);">${vendido}</div><div class="sk-l">Vendido</div></div>
             <div><div class="sk-v" style="color:var(--red);">${p.act}</div><div class="sk-l">Actual</div></div>
           </div>
-          <div class="pkc-row"><span class="pkc-lbl">Profe</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
-          <div class="pkc-row"><span class="pkc-lbl">Turista</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
-          ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Gan. profe</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
+          <div class="bloque-privado">
+          <div class="pkc-row"><span class="pkc-lbl">Baja</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
+          <div class="pkc-row"><span class="pkc-lbl">Alta</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
+          ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Gan. Baja</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
+          </div>
         </div>
       </div>`;
     }
@@ -2999,15 +3118,15 @@ function rprod() {
     html += `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:4px;align-items:start;">
       <div>
         ${colHeader('Custom')}
-        <div style="display:flex;flex-direction:column;gap:10px;">${custom.map(p=>plantillaCard(p)).join('') || '<div style="font-size:12px;color:var(--txt3);">Sin productos</div>'}</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">${custom.map(p=>plantillaCard(p,'custom')).join('') || '<div style="font-size:12px;color:var(--txt3);">Sin productos</div>'}</div>
       </div>
       <div>
         ${colHeader('Race')}
-        <div style="display:flex;flex-direction:column;gap:10px;">${race.map(p=>plantillaCard(p)).join('') || '<div style="font-size:12px;color:var(--txt3);">Sin productos</div>'}</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">${race.map(p=>plantillaCard(p,'race')).join('') || '<div style="font-size:12px;color:var(--txt3);">Sin productos</div>'}</div>
       </div>
       <div>
         ${colHeader('Podetti')}
-        <div style="display:flex;flex-direction:column;gap:10px;">${podetti.map(p=>plantillaCard(p)).join('') || '<div style="font-size:12px;color:var(--txt3);">Sin productos</div>'}</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">${podetti.map(p=>plantillaCard(p,'podetti')).join('') || '<div style="font-size:12px;color:var(--txt3);">Sin productos</div>'}</div>
       </div>
     </div>`;
     if (others.length) html += others.map(p => fullCard(p)).join('');
@@ -3027,34 +3146,85 @@ function rprod() {
     html += prods.map(p => fullCard(p)).join('');
   }
 
-  // PLAQUITAS — 3 columnas: Lifters | Soles 5355 | GripWalk 23223
-  if (!cf || cf==='Plaquitas') {
-    const plaquitas = D.productos.filter(p => p.c === 'Plaquitas');
-    // Classify by subcategory based on name keywords
-    const lifters    = plaquitas.filter(p => !p.n.match(/5355|gripwalk|gw|23223/i)).sort((a,b) => {
-      const mm = n => { const m = n.n.match(/(\d+(?:\.\d+)?)\s*mm/i); return m ? parseFloat(m[1]) : 999; };
-      return mm(a) - mm(b);
-    });
-    const soles5355  = plaquitas.filter(p => p.n.match(/5355/i));
-    const gripwalk   = plaquitas.filter(p => p.n.match(/gripwalk|gw|23223/i));
+  // PLAQUITAS — tabla vertical agrupada: Lifters → Soles 5355 → Gripwalk
+  if (!cf || cf==='Lifters' || cf==='Plaquitas') {
+    const plaquitas = D.productos.filter(p => p.c === 'Lifters' || p.c === 'Plaquitas');
+    const lifters   = plaquitas.filter(p => !p.subplaq || p.subplaq === 'Lifter');
+    const soles5355 = plaquitas.filter(p => p.subplaq === 'Soles5355');
+    const gripwalk  = plaquitas.filter(p => p.subplaq === 'Gripwalk');
+    const plaqColor = catColor('Lifters');
 
-    const plaqColor = catColor('Plaquitas');
-    html += `<div style="grid-column:1/-1;">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:8px;">
-        <div>
-          <div style="font-family:var(--fd);font-size:14px;font-weight:700;letter-spacing:.5px;color:${plaqColor.c};margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid ${plaqColor.c};">LIFTERS</div>
-          <div style="display:flex;flex-direction:column;gap:10px;">${lifters.map(p=>fullCard(p)).join('')||'<div style="font-size:12px;color:var(--txt3);padding:8px;">Sin productos</div>'}</div>
+    function plaqRow(p) {
+      const vendido = Math.max(0, p.ini - p.act);
+      const stockColor = p.act===0?'var(--red)':p.act<=2?'var(--warn)':'var(--ok)';
+      return `<div style="display:grid;grid-template-columns:1fr 160px 200px 80px;gap:0;border-bottom:1px solid var(--bd);padding:12px 14px;align-items:start;background:var(--s1);">
+        <!-- COL 1: nombre + costo + notas -->
+        <div style="padding-right:12px;border-right:1px solid var(--bd);">
+          <div style="font-size:14px;font-weight:700;color:var(--dark);margin-bottom:4px;">${e(p.n)}</div>
+          ${p.marca?`<div style="font-size:11px;color:var(--txt3);margin-bottom:4px;">${e(p.marca)}</div>`:''}
+          <div class="bloque-privado" style="font-size:12px;color:var(--txt2);">Costo: <span style="font-family:var(--fm);font-weight:600;">${p.cu?'u$s '+p.cu:'—'}</span></div>
+          ${p.notas?`<div style="margin-top:6px;font-size:11px;color:var(--txt3);background:var(--s2);border-radius:4px;padding:4px 8px;line-height:1.5;">${e(p.notas)}</div>`:''}
         </div>
-        <div>
-          <div style="font-family:var(--fd);font-size:14px;font-weight:700;letter-spacing:.5px;color:${plaqColor.c};margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid ${plaqColor.c};">SOLES 5355</div>
-          <div style="display:flex;flex-direction:column;gap:10px;">${soles5355.map(p=>fullCard(p)).join('')||'<div style="font-size:12px;color:var(--txt3);padding:8px;">Sin productos</div>'}</div>
+        <!-- COL 2: stock -->
+        <div style="padding:0 12px;border-right:1px solid var(--bd);">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--txt3);margin-bottom:6px;">Stock</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center;">
+            <div><div style="font-size:15px;font-weight:700;color:var(--txt2);">${p.ini}</div><div style="font-size:9px;text-transform:uppercase;color:var(--txt3);">Ini</div></div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--warn);">${vendido}</div><div style="font-size:9px;text-transform:uppercase;color:var(--txt3);">Vend.</div></div>
+            <div><div style="font-size:15px;font-weight:700;color:${stockColor};">${p.act}</div><div style="font-size:9px;text-transform:uppercase;color:var(--txt3);">Act.</div></div>
+          </div>
         </div>
-        <div>
-          <div style="font-family:var(--fd);font-size:14px;font-weight:700;letter-spacing:.5px;color:${plaqColor.c};margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid ${plaqColor.c};">GRIPWALK 23223</div>
-          <div style="display:flex;flex-direction:column;gap:10px;">${gripwalk.map(p=>fullCard(p)).join('')||'<div style="font-size:12px;color:var(--txt3);padding:8px;">Sin productos</div>'}</div>
+        <!-- COL 3: precios -->
+        <div class="bloque-privado" style="padding:0 12px;border-right:1px solid var(--bd);">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--txt3);margin-bottom:6px;">Precios</div>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;color:var(--txt3);">Suelta</span>
+              <span style="font-family:var(--fm);font-size:13px;font-weight:700;color:var(--dark);">${p.ps?'u$s '+p.ps:'—'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;color:var(--txt3);">Recambio</span>
+              <span style="font-family:var(--fm);font-size:13px;font-weight:700;color:var(--profe);">${p.pr?'u$s '+p.pr:'—'}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:11px;color:var(--txt3);">Freza</span>
+              <span style="font-family:var(--fm);font-size:13px;font-weight:700;color:var(--turista);">${p.pf?'u$s '+p.pf:'—'}</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>`;
+        <!-- COL 4: acciones -->
+        <div style="padding-left:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+          <button class="btn btn-s btn-sm btn-ic" onclick="editProd(${p._r})" style="font-size:11px;padding:3px 10px;">✏️ editar</button>
+          <button class="btn btn-s btn-sm btn-ic" onclick="del('PRODUCTOS',${p._r},'prods')" style="font-size:11px;padding:3px 10px;color:var(--red);border-color:var(--red);">✕ eliminar</button>
+        </div>
+      </div>`;
+    }
+
+    function plaqSection(title, items) {
+      const totalDisp = items.reduce((a,p) => a+p.act, 0);
+      const totalIni  = items.reduce((a,p) => a+p.ini, 0);
+      return `<div style="grid-column:1/-1;margin-bottom:16px;">
+        <div style="font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--gray2);text-transform:uppercase;padding:8px 14px 7px;border-bottom:3px solid ${plaqColor.c};display:flex;align-items:center;gap:10px;">
+          ${title}
+          <span style="font-size:11px;font-weight:400;color:var(--txt3);text-transform:none;letter-spacing:0;">${items.length} producto${items.length!==1?'s':''}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--ok);text-transform:none;">${totalDisp} disp.</span>
+          <span style="font-size:11px;font-weight:400;color:var(--txt3);text-transform:none;">/ ${totalIni} total</span>
+        </div>
+        <div style="border:1px solid var(--bd);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:1fr 160px 200px 60px;gap:0;padding:5px 14px;background:var(--s2);border-bottom:1px solid var(--bd);">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);">Producto</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);padding-left:12px;">Stock</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);padding-left:12px;">Precios</div>
+            <div></div>
+          </div>
+          ${items.length ? items.map(p => plaqRow(p)).join('') : `<div style="font-size:12px;color:var(--txt3);padding:14px;">Sin productos cargados. Usá <strong>+ Producto</strong> con categoría <strong>Lifters</strong>.</div>`}
+        </div>
+      </div>`;
+    }
+
+    html += plaqSection('LIFTERS', lifters);
+    html += plaqSection('SOLES 5355', soles5355);
+    html += plaqSection('GRIPWALK', gripwalk);
   }
 
   // BOTAS — 3 columnas por marca: Lange | Atomic | Reboleo
@@ -3072,77 +3242,148 @@ function rprod() {
       if (fAncho && b.ancho && b.ancho !== fAncho) return;
       if (fTalle && parseFloat(b.talle) !== parseFloat(fTalle)) return;
       const k = `${b.marca}||${b.mod}`;
-      if (!botaMap[k]) botaMap[k] = {marca:b.marca,mod:b.mod,fc:b.fc,cu:b.cu,vu:b.vu,gu:b.gu,ancho:b.ancho||'',notas:b.notas||'',talles:[]};
+      if (!botaMap[k]) botaMap[k] = {marca:b.marca,mod:b.mod,fc:b.fc,cu:b.cu,vu:b.vu,gu:b.gu,ancho:b.ancho||'',notas:b.notas||'',codigo:b.codigo||'',anioBota:b.anioBota||'',canting:b.canting||'',fechaImp:b.fechaImp||'',pagoPodetti:b.pagoPodetti||'',talles:[]};
       botaMap[k].talles.push({talle:b.talle,ini:b.ini,act:b.act,_r:b._r});
     });
 
-    function botaCard(bm) {
-      const tIni = bm.talles.reduce((a,t) => a+t.ini, 0);
-      const tAct = bm.talles.reduce((a,t) => a+t.act, 0);
+    const anchoColors = {Angosta:'var(--info)',Media:'var(--ok)',Ancha:'var(--warn)'};
+    const cantingColors = {'Nuevo':'var(--ok)','Viejo':'var(--warn)'};
+
+    function botaRow(bm) {
       const ccB = catColor('Botas');
-      const anchoColors = {Angosta:'var(--info)',Media:'var(--ok)',Ancha:'var(--warn)'};
-      const anchoBadge = bm.ancho ? `<span style="font-size:10px;background:var(--s2);border:1px solid var(--bd);border-radius:4px;padding:1px 6px;color:${anchoColors[bm.ancho]||'var(--txt2)'};">${bm.ancho}</span>` : '';
-      const tallesHtml = bm.talles
+      const _mk = (bg,bd,col,txt) => `<span style="display:inline-block;font-size:10px;background:${bg};border:1px solid ${bd};border-radius:4px;padding:2px 7px;color:${col};font-weight:600;">${txt}</span>`;
+      const _gr = txt => _mk('#d1fae5','#6ee7b7','#065f46',txt);
+      const _am = txt => _mk('#fef3c7','#fcd34d','#92400e',txt);
+      const _marcaLow = (bm.marca||'').toLowerCase();
+      const _paid = bm.pagoPodetti==='1';
+      let pagoBadge;
+      if (_marcaLow === 'atomic')      pagoBadge = _gr('✓ Pagado');                                   // ya abonadas
+      else if (_marcaLow === 'lange')  pagoBadge = _paid ? _gr('✓ Pago a Podetti') : _am('Pendiente · Podetti');
+      else                             pagoBadge = _paid ? _gr('✓ Pago')           : _am('No pago');   // reboleo, sin a quién
+
+      const lbl = (txt) => `<span style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--txt3);letter-spacing:.4px;display:inline-block;width:36px;">${txt}</span>`;
+      const val = (txt, color) => `<span style="font-size:12px;color:${color||'var(--txt)'};font-weight:500;">${txt||'—'}</span>`;
+
+      const cantingColor = bm.canting==='Nuevo'?'var(--ok)':bm.canting==='Viejo'?'var(--warn)':'var(--txt3)';
+      const anchoColor = anchoColors[bm.ancho]||'var(--txt3)';
+
+      // Mini-tabla talles: una fila por talle con DISP / INI bien separados
+      const tallesRows = bm.talles
         .sort((a,b) => parseFloat(a.talle)-parseFloat(b.talle))
         .map(t => {
-          const cls = t.act===0?'tcnt-zero':t.act<2?'tcnt-lo':'tcnt-ok';
-          return `<div class="trow" style="display:flex;align-items:center;gap:6px;">
-            <span style="font-family:var(--fm);font-weight:500;flex:1;">${e(t.talle)}</span>
-            <span class="tcnt ${cls}" style="cursor:pointer;title='Click para editar stock'" 
-              onclick="editTalleStock(${t._r},${t.act},${t.ini},this)">${t.act}/${t.ini}</span>
-            <button class="btn btn-s btn-sm del-talle-btn" data-row="${t._r}" style="padding:1px 6px;font-size:10px;color:var(--red);border-color:var(--red);">✕</button>
+          const dispColor = t.act===0?'var(--red)':t.act===1?'var(--warn)':'var(--ok)';
+          return `<div class="talle-fila" data-row="${t._r}" data-act="${t.act}" data-ini="${t.ini}" style="display:grid;grid-template-columns:44px 28px 8px 28px 22px;align-items:center;gap:0;padding:3px 0;border-bottom:1px solid var(--bd);">
+            <span style="font-family:var(--fm);font-size:12px;font-weight:600;color:var(--dark);">${e(t.talle)}</span>
+            <span class="talle-disp" style="font-family:var(--fm);font-size:13px;font-weight:700;color:${dispColor};text-align:right;cursor:pointer;text-decoration:underline dotted;" onclick="editTalleRow(this)" title="Click para editar stock">${t.act}</span>
+            <span style="font-size:10px;color:var(--txt3);text-align:center;">/</span>
+            <span class="talle-ini" style="font-family:var(--fm);font-size:12px;color:var(--txt3);text-align:left;">${t.ini}</span>
+            <button class="del-talle-btn" data-row="${t._r}" style="background:none;border:none;cursor:pointer;color:var(--gray3);font-size:11px;padding:0;text-align:center;line-height:1;" title="Eliminar talle">✕</button>
           </div>`;
         }).join('');
-      return `<div class="pkc" style="border-left:3px solid ${ccB.c};">
-        <div class="pkc-head" style="background:${ccB.bg};">
-          <div>
-            <div class="pkc-n">${e(bm.mod)} ${anchoBadge}</div>
-            <div class="pkc-cat" style="color:${ccB.c};">${e(bm.marca)}${bm.fc?' · '+fd(bm.fc):''}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-            <div style="font-family:var(--fm);font-size:13px;color:var(--txt2);">${tAct}/${tIni}</div>
-            <div style="display:flex;gap:4px;">
-              <button class="btn btn-s btn-sm btn-ic edit-bota-btn" data-marca="${e(bm.marca)}" data-mod="${e(bm.mod)}" style="font-size:11px;padding:2px 6px;">✏️</button>
-              <button class="btn btn-s btn-sm btn-ic add-talle-btn" data-marca="${e(bm.marca)}" data-mod="${e(bm.mod)}" style="font-size:11px;padding:2px 6px;" title="Agregar talle">+</button>
-            </div>
+
+      const talleHeader = `<div style="display:grid;grid-template-columns:44px 28px 8px 28px 22px;align-items:center;gap:0;padding:0 0 3px 0;border-bottom:2px solid var(--bd);margin-bottom:2px;">
+        <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--txt3);">Talle</span>
+        <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--txt3);text-align:right;">Disp</span>
+        <span></span>
+        <span style="font-size:9px;font-weight:700;text-transform:uppercase;color:var(--txt3);">Ini</span>
+        <span></span>
+      </div>`;
+
+      return `<div class="bota-card" style="display:grid;grid-template-columns:200px 1fr 110px 100px 70px;gap:0;border-bottom:1px solid var(--bd);padding:12px 14px;align-items:start;background:var(--s1);" data-marca="${e(bm.marca)}" data-mod="${e(bm.mod)}">
+
+        <!-- COL 1: info del modelo -->
+        <div style="padding-right:12px;border-right:1px solid var(--bd);">
+          <div style="font-size:14px;font-weight:700;color:var(--dark);margin-bottom:6px;line-height:1.2;">${e(bm.mod)}</div>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <div>${lbl('Horma')} ${val(bm.ancho||'—', anchoColor)}</div>
+            <div>${lbl('Cant.')} ${val(bm.canting||'—', cantingColor)}</div>
+            <div>${lbl('Año')} ${val(bm.anioBota||'—')}</div>
+            <div>${lbl('Imp.')} ${val(bm.fechaImp||'—')}</div>
+            ${bm.codigo?`<div style="margin-top:4px;font-size:10px;color:var(--txt3);">cod: ${e(bm.codigo)}</div>`:''}
           </div>
         </div>
-        <div class="pkc-body">
-          ${tallesHtml}
-          <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);">
-            <div class="pkc-row"><span class="pkc-lbl">Costo</span><span class="pkc-val">${bm.cu?'u$s '+bm.cu:'—'}</span></div>
-            <div class="pkc-row"><span class="pkc-lbl">Venta</span><span class="pkc-val c-turista">${bm.vu?'u$s '+bm.vu:'—'}</span></div>
-            ${bm.gu?`<div class="pkc-row"><span class="pkc-lbl">Ganancia</span><span class="gain-tag">+u$s ${bm.gu}</span></div>`:''}
-            ${bm.notas?`<div style="margin-top:8px;font-size:11px;color:var(--txt2);background:var(--s2);border-radius:4px;padding:6px 8px;line-height:1.5;">${e(bm.notas)}</div>`:''}
-          </div>
+
+        <!-- COL 2: mini-tabla talles -->
+        <div style="padding:0 12px;">
+          ${talleHeader}
+          ${tallesRows || '<span style="font-size:11px;color:var(--txt3);">Sin talles</span>'}
+          <button class="btn btn-s btn-sm btn-ic add-talle-btn" data-marca="${e(bm.marca)}" data-mod="${e(bm.mod)}" style="font-size:11px;padding:2px 8px;margin-top:6px;">+ talle</button>
+        </div>
+
+        <!-- COL 3: Podetti -->
+        <div class="bloque-privado" style="padding:0 10px;border-left:1px solid var(--bd);text-align:right;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);margin-bottom:4px;">${_marcaLow==='lange'?'Podetti':'Costo'}</div>
+          <div style="font-family:var(--fm);font-size:14px;font-weight:700;color:var(--dark);">${bm.cu?'u$s '+bm.cu:'—'}</div>
+          <div style="margin-top:6px;">${pagoBadge}</div>
+        </div>
+
+        <!-- COL 4: Venta -->
+        <div class="bloque-privado" style="padding:0 10px;border-left:1px solid var(--bd);text-align:right;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);margin-bottom:4px;">Venta</div>
+          <div style="font-family:var(--fm);font-size:14px;font-weight:700;color:var(--turista);">${bm.vu?'u$s '+bm.vu:'—'}</div>
+          ${bm.gu?`<div style="font-size:11px;color:var(--ok);margin-top:2px;">+u$s ${bm.gu}</div>`:''}
+        </div>
+
+        <!-- COL 5: acciones -->
+        <div style="padding-left:10px;border-left:1px solid var(--bd);display:flex;flex-direction:column;gap:6px;align-items:flex-end;justify-content:flex-start;">
+          <button class="btn btn-s btn-sm btn-ic edit-bota-btn" data-marca="${e(bm.marca)}" data-mod="${e(bm.mod)}" style="font-size:11px;padding:3px 10px;">✏️ editar</button>
+          <button class="btn btn-s btn-sm btn-ic del-bota-btn" data-marca="${e(bm.marca)}" data-mod="${e(bm.mod)}" style="font-size:11px;padding:3px 10px;color:var(--red);border-color:var(--red);">✕ eliminar</button>
         </div>
       </div>`;
     }
 
-    function botaCol(title, marca) {
-      const models = Object.values(botaMap).filter(b => b.marca.toLowerCase() === marca.toLowerCase());
-      return `<div>
-        <div style="font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:1px;color:var(--gray2);text-transform:uppercase;padding:6px 0 8px;border-bottom:2px solid var(--bd);margin-bottom:8px;">${title}</div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          ${models.length ? models.map(bm => botaCard(bm)).join('') : '<div style="font-size:12px;color:var(--txt3);padding:8px 0;">Sin botas cargadas</div>'}
+    function botaSection(title, models) {
+      const totalDisp = models.reduce((a,b) => a+b.talles.reduce((x,t) => x+t.act, 0), 0);
+      const totalIni  = models.reduce((a,b) => a+b.talles.reduce((x,t) => x+t.ini, 0), 0);
+      return `<div style="grid-column:1/-1;margin-bottom:16px;">
+        <div style="font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--gray2);text-transform:uppercase;padding:8px 14px 7px;border-bottom:3px solid var(--red);display:flex;align-items:center;gap:10px;">
+          ${title}
+          <span style="font-size:11px;font-weight:400;color:var(--txt3);text-transform:none;letter-spacing:0;">${models.length} modelo${models.length!==1?'s':''}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--ok);text-transform:none;letter-spacing:0;">${totalDisp} disp.</span>
+          <span style="font-size:11px;font-weight:400;color:var(--txt3);text-transform:none;letter-spacing:0;">/ ${totalIni} total</span>
+        </div>
+        <div style="border:1px solid var(--bd);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;">
+          <!-- header columnas -->
+          <div style="display:grid;grid-template-columns:200px 1fr 110px 100px 70px;gap:0;padding:5px 14px;background:var(--s2);border-bottom:1px solid var(--bd);">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);">Modelo / Info</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);padding-left:12px;">Talles</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);text-align:right;padding-right:10px;">${title==='LANGE'?'Podetti':'Costo'}</div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--txt3);text-align:right;padding-right:10px;">Venta</div>
+            <div></div>
+          </div>
+          ${models.length ? models.map(bm => botaRow(bm)).join('') : '<div style="font-size:12px;color:var(--txt3);padding:14px;">Sin botas cargadas</div>'}
         </div>
       </div>`;
     }
 
-    // Botas que no son Lange ni Atomic van a "Reboleo"
-    const reboleoBrands = Object.values(botaMap)
-      .filter(b => b.marca.toLowerCase() !== 'lange' && b.marca.toLowerCase() !== 'atomic');
+    // Agrupar por marca: Lange primero, Atomic segundo, resto después
+    // Dentro de cada marca: por año de importación ascendente (vacíos al final), luego alfabético por modelo
+    const _yrImp = bm => { const y = parseInt(bm.fechaImp); return isNaN(y) ? Infinity : y; };
+    const _ordBotas = arr => arr.sort((a,b) => (_yrImp(a)-_yrImp(b)) || a.mod.localeCompare(b.mod,'es',{sensitivity:'base'}));
+    const allModels = Object.values(botaMap);
+    const langeMods  = _ordBotas(allModels.filter(b => b.marca.toLowerCase() === 'lange'));
+    const atomicMods = _ordBotas(allModels.filter(b => b.marca.toLowerCase() === 'atomic'));
+    const reboleoMods = allModels.filter(b => b.marca.toLowerCase() !== 'lange' && b.marca.toLowerCase() !== 'atomic');
 
-    html += `<div style="grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:4px;align-items:start;">
-      ${botaCol('LANGE', 'Lange')}
-      ${botaCol('ATOMIC', 'Atomic')}
-      <div>
-        <div style="font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:1px;color:var(--gray2);text-transform:uppercase;padding:6px 0 8px;border-bottom:2px solid var(--bd);margin-bottom:8px;">REBOLEO</div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          ${reboleoBrands.length ? reboleoBrands.map(bm => botaCard(bm)).join('') : '<div style="font-size:12px;color:var(--txt3);padding:8px 0;">Sin botas cargadas</div>'}
+    html += botaSection('LANGE', langeMods);
+    if (atomicMods.length || !cf) html += botaSection('ATOMIC', atomicMods);
+    // Reboleo: siempre visible, agrupa todo lo que no es Lange ni Atomic
+    if (reboleoMods.length) {
+      const rebMarcas = [...new Set(reboleoMods.map(b => b.marca))];
+      rebMarcas.forEach(m => {
+        html += botaSection(m.toUpperCase(), _ordBotas(reboleoMods.filter(b => b.marca===m)));
+      });
+    } else {
+      html += `<div style="grid-column:1/-1;margin-bottom:16px;">
+        <div style="font-family:var(--fd);font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--gray2);text-transform:uppercase;padding:8px 14px 7px;border-bottom:3px solid var(--bd);display:flex;align-items:center;gap:10px;">
+          REBOLEO
+          <span style="font-size:11px;font-weight:400;color:var(--txt3);text-transform:none;letter-spacing:0;">otras marcas</span>
         </div>
-      </div>
-    </div>`;
+        <div style="border:1px solid var(--bd);border-top:none;border-radius:0 0 8px 8px;padding:14px;font-size:12px;color:var(--txt3);">
+          Acá van a aparecer botas de otras marcas (Fischer, Rossignol, Head...). Para agregar una, usá el botón <strong>+ Bota con talles</strong> y ponés la marca que sea — cae acá automáticamente.
+        </div>
+      </div>`;
+    }
   }
 
   grid.innerHTML = html || `<div class="empty"><div class="empty-i">📦</div><p>Sin productos cargados</p></div>`;
@@ -3150,6 +3391,21 @@ function rprod() {
   // Wire bota edit buttons safely via data attributes
   grid.querySelectorAll('.edit-bota-btn').forEach(btn => {
     btn.addEventListener('click', () => editBotaModelo(btn.dataset.marca, btn.dataset.mod));
+  });
+
+  // Wire bota delete-model buttons (borra el modelo completo y todos sus talles)
+  grid.querySelectorAll('.del-bota-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const marca = btn.dataset.marca, mod = btn.dataset.mod;
+      const rows = D.botas.filter(b => b.marca===marca && b.mod===mod);
+      if (!rows.length) return;
+      if (!confirm(`¿Eliminar la bota ${marca} ${mod} y sus ${rows.length} talle(s)?\nEsta acción no se puede deshacer.`)) return;
+      try {
+        for (const b of rows) { await sC(`BOTAS!A${b._r}:Z${b._r}`); }
+        await lBotas();
+        tst('Bota eliminada ✓','ok');
+      } catch(ex) { tst('Error eliminando: '+ex.message,'err'); }
+    });
   });
 
   // Wire add-talle buttons
@@ -3191,7 +3447,7 @@ function rserv() {
           <button class="btn btn-s btn-sm btn-ic" onclick="del('SERVICIOS',${s._r},'servs')" style="padding:2px 5px;font-size:11px;">✕</button>
         </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <div class="bloque-privado" style="display:flex;gap:8px;flex-wrap:wrap;">
         <span style="font-size:12px;font-family:var(--fm);color:var(--profe);background:var(--profe-bg);padding:2px 8px;border-radius:4px;">u$s ${s.pu} · $${(s.pu*dol/1000).toFixed(0)}k</span>
         <span style="font-size:12px;font-family:var(--fm);color:var(--turista);background:var(--turista-bg);padding:2px 8px;border-radius:4px;">u$s ${s.tu} · $${(s.tu*dol/1000).toFixed(0)}k</span>
       </div>
@@ -3241,22 +3497,27 @@ function rpr() {
   if (prDolEl && !prDolEl.value) prDolEl.value = D.cfg.dol;
   const dol = parseFloat(prDolEl?.value) || D.cfg.dol;
 
-  // ── Productos: agrupar por precio (pu+tu), mostrar una fila con nombres agrupados
-  const prodRows = [];
+  // ── Productos: agrupar por precio (pu+tu) — solo categorías con Baja/Alta (Plantillas, Medias, Otros)
   const priceGroups = {};
   D.productos.forEach(p => {
+    if (p.c === 'Boosters' || p.c === 'Lifters' || p.c === 'Plaquitas') return; // se renderizan aparte
     if (!p.pu && !p.tu) return;
     const key = p.c + '|' + p.pu + '|' + p.tu;
     if (!priceGroups[key]) priceGroups[key] = {cat:p.c, pu:p.pu, tu:p.tu, cu:p.cu, names:[], _r:p._r, src:'prod'};
     priceGroups[key].names.push(p.n);
   });
-  Object.values(priceGroups).forEach(g => prodRows.push(g));
+
+  // ── Boosters: una sola fila con las 4 variantes (cada una con su precio)
+  const boosters = D.productos.filter(p => p.c === 'Boosters' && (p.pu || p.tu)).sort((a,b)=>a._r-b._r);
+
+  // ── Lifters: una fila por lifter (precios Suelta / Recambio / Freza)
+  const lifters = D.productos.filter(p => p.c === 'Lifters' || p.c === 'Plaquitas').sort((a,b)=>a._r-b._r);
 
   // ── Botas: una fila por modelo con talles disponibles
   const botaMap = {};
   D.botas.forEach(b => {
     const k = b.marca+'|'+b.mod;
-    if (!botaMap[k]) botaMap[k] = {marca:b.marca, mod:b.mod, cu:b.cu, vu:b.vu, talles:[]};
+    if (!botaMap[k]) botaMap[k] = {marca:b.marca, mod:b.mod, cu:b.cu, vu:b.vu, fechaImp:b.fechaImp||'', talles:[]};
     if (b.act > 0) botaMap[k].talles.push(b.talle);
   });
 
@@ -3269,19 +3530,18 @@ function rpr() {
     servGroups[key].names.push(s.n);
   });
 
-  const catOrder = {'Plantillas':1,'Boosters':2,'Plaquitas':3,'Medias':4,'Botas':5,'Servicios':6,'Otros':7};
+  const catOrder = {'Plantillas':1,'Boosters':2,'Lifters':3,'Medias':4,'Botas':5,'Servicios':6,'Otros':7};
   const fmt = (n,dol) => n ? '$'+(n*dol).toLocaleString('es-AR') : '—';
   const fmtU = n => n ? 'u$s '+n : '—';
 
   let html = '';
 
-  // ── Render productos agrupados por cat
-  const allProdRows = prodRows.sort((a,b) => (catOrder[a.cat]||8)-(catOrder[b.cat]||8) || a._r-b._r);
-  allProdRows.forEach(p => {
+  // ── Helper: fila estándar Baja/Alta para un grupo de precio
+  function prodGroupRow(p) {
     const cc = catColor(p.cat);
     const label = p.names.length === 1 ? `<strong>${e(p.names[0])}</strong>` :
       `<strong>${e(p.names[0].replace(/ (XS|S|M|L|XL)$/,''))}</strong> <span style="font-size:11px;color:var(--txt3);">${p.names.map(n=>n.match(/(XS|S|M|L|XL)$/)?.[0]||n).join(' · ')}</span>`;
-    html += `<tr style="border-left:3px solid ${cc.c};">
+    return `<tr style="border-left:3px solid ${cc.c};">
       <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
       <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:${cc.bg};color:${cc.c};padding:2px 8px;border-radius:20px;">${e(p.cat)}</span></td>
       <td>${label}</td>
@@ -3292,11 +3552,61 @@ function rpr() {
       <td style="font-family:var(--fm);color:var(--turista);font-weight:500;">${fmt(p.tu,dol)}</td>
       <td>—</td>
     </tr>`;
-  });
+  }
 
-  // ── Render botas
+  // 1) PLANTILLAS
+  Object.values(priceGroups).filter(g => g.cat === 'Plantillas').sort((a,b)=>a._r-b._r)
+    .forEach(g => { html += prodGroupRow(g); });
+
+  // 2) BOOSTERS — una sola fila con las variantes apiladas
+  if (boosters.length) {
+    const cc = catColor('Boosters');
+    const stk = arr => arr.map(x => `<div style="line-height:1.7;">${x}</div>`).join('');
+    html += `<tr style="border-left:3px solid ${cc.c};">
+      <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:${cc.bg};color:${cc.c};padding:2px 8px;border-radius:20px;">Boosters</span></td>
+      <td>${stk(boosters.map(b => `<strong>${e(b.n)}</strong>`))}</td>
+      <td style="font-family:var(--fm);color:var(--txt3);">${stk(boosters.map(b => b.cu?'u$s '+(+b.cu.toFixed(2)):'—'))}</td>
+      <td style="font-family:var(--fm);color:var(--profe);">${stk(boosters.map(b => fmtU(b.pu)))}</td>
+      <td style="font-family:var(--fm);color:var(--turista);">${stk(boosters.map(b => fmtU(b.tu)))}</td>
+      <td style="font-family:var(--fm);color:var(--profe);font-weight:500;">${stk(boosters.map(b => fmt(b.pu,dol)))}</td>
+      <td style="font-family:var(--fm);color:var(--turista);font-weight:500;">${stk(boosters.map(b => fmt(b.tu,dol)))}</td>
+      <td>—</td>
+    </tr>`;
+  }
+
+  // 3) LIFTERS — una fila por lifter, con Suelta / Recambio / Freza apilados
+  if (lifters.length) {
+    const cc = catColor('Lifters');
+    const usdLine = (lbl,u) => `<div style="display:flex;justify-content:space-between;gap:10px;line-height:1.7;"><span style="font-size:10px;color:var(--txt3);text-transform:uppercase;">${lbl}</span><span style="font-weight:600;">${u?'u$s '+u:'—'}</span></div>`;
+    const arsLine = u => `<div style="line-height:1.7;text-align:right;">${u?'$'+Math.round(u*dol).toLocaleString('es-AR'):'—'}</div>`;
+    lifters.forEach(p => {
+      html += `<tr style="border-left:3px solid ${cc.c};">
+        <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
+        <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:${cc.bg};color:${cc.c};padding:2px 8px;border-radius:20px;">Lifters</span></td>
+        <td><strong>${e(p.n)}</strong>${p.marca?` <span style="font-size:11px;color:var(--txt3);">${e(p.marca)}</span>`:''}</td>
+        <td style="font-family:var(--fm);color:var(--txt3);">${p.cu?'u$s '+(+p.cu.toFixed(2)):'—'}</td>
+        <td colspan="2" style="font-family:var(--fm);color:var(--profe);">${usdLine('Suelta',p.ps)}${usdLine('Recambio',p.pr)}${usdLine('Freza',p.pf)}</td>
+        <td colspan="2" style="font-family:var(--fm);color:var(--profe);font-weight:500;">${arsLine(p.ps)}${arsLine(p.pr)}${arsLine(p.pf)}</td>
+        <td>—</td>
+      </tr>`;
+    });
+  }
+
+  // 4) RESTO (Medias, Otros)
+  Object.values(priceGroups).filter(g => g.cat !== 'Plantillas')
+    .sort((a,b) => (catOrder[a.cat]||8)-(catOrder[b.cat]||8) || a._r-b._r)
+    .forEach(g => { html += prodGroupRow(g); });
+
+  // ── Render botas — mismo orden que Productos: marca (Lange, Atomic, resto), año de importación, luego alfabético
   const cc = catColor('Botas');
-  Object.values(botaMap).sort((a,b)=>a.marca.localeCompare(b.marca)||a.mod.localeCompare(b.mod)).forEach(b => {
+  const _mOrd = m => { m=(m||'').toLowerCase(); return m==='lange'?0:m==='atomic'?1:2; };
+  const _yImp = b => { const y = parseInt(b.fechaImp); return isNaN(y) ? Infinity : y; };
+  Object.values(botaMap).sort((a,b)=>
+    _mOrd(a.marca)-_mOrd(b.marca) ||
+    _yImp(a)-_yImp(b) ||
+    a.mod.localeCompare(b.mod,'es',{sensitivity:'base'})
+  ).forEach(b => {
     const tallesStr = b.talles.length
       ? b.talles.sort((a,b)=>parseFloat(a)-parseFloat(b)).join(' · ')
       : '<span style="color:var(--txt3)">sin stock</span>';
@@ -3540,7 +3850,7 @@ async function loadAllVentas() {
         let itemsDetail = null;
         try { if (r[13]) itemsDetail = JSON.parse(r[13]); } catch(e) {}
         return {
-          _r:i+2, fecha:r[0]||'', cli:r[1]||'', tipo:r[2]||'', items:r[3]||'', obs:r[4]||'',
+          _r:i+2, fecha:toISO(r[0]||''), cli:r[1]||'', tipo:r[2]||'', items:r[3]||'', obs:r[4]||'',
           pp:parseFloat(r[5])||0, up:parseFloat(r[6])||0,
           pex:parseFloat(r[7])||0, uex:parseFloat(r[8])||0,
           tusd:parseFloat(r[9])||0, mp:r[10]||'', dol:parseFloat(r[11])||D.cfg.dol,
@@ -3568,8 +3878,8 @@ async function rbal() {
 
   // Filter
   let ventas = allVentas;
-  if (de)    ventas = ventas.filter(v => v.fecha >= de);
-  if (ha)    ventas = ventas.filter(v => v.fecha <= ha);
+  if (de)    ventas = ventas.filter(v => toISO(v.fecha) >= de);
+  if (ha)    ventas = ventas.filter(v => toISO(v.fecha) <= ha);
   if (tipo)  ventas = ventas.filter(v => v.tipo === tipo);
   // Helper: parse mixto parts from obs, returns [{mp, ars, usd}] or null
   function parseMixtoParts(v, dol) {
@@ -3607,7 +3917,7 @@ async function rbal() {
   }
   if (itemF) {
     const catMap = {
-      'plantilla': 'Plantillas', 'booster': 'Boosters', 'plaquita': 'Plaquitas',
+      'plantilla': 'Plantillas', 'booster': 'Boosters', 'plaquita': 'Lifters',
       'media': 'Medias', 'bota': 'Botas'
     };
     const targetCat = catMap[itemF];
@@ -3659,7 +3969,7 @@ async function rbal() {
       }
     }
     if (itemF && v.itemsDetail) {
-      const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Plaquitas','media':'Medias','bota':'Botas'};
+      const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
       const targetCat = catMap[itemF];
       if (targetCat) {
         return v.itemsDetail.filter(it => it.cat === targetCat).reduce((a,it) => a + it.real, 0);
@@ -3687,20 +3997,16 @@ async function rbal() {
   // Gastos — separar temporada (afecta neta) de inversión (recuadro separado)
   let gastosAll = [...D.gastos.map(g => ({...g, src:'obr'}))];
   const gpAll = _gpTaller;
-  if (de) { gastosAll = gastosAll.filter(g => g.f >= de); }
-  if (ha) { gastosAll = gastosAll.filter(g => g.f <= ha); }
-  const gpGastosFilt = gpAll.filter(g => (!de||g.f>=de)&&(!ha||g.f<=ha));
+  if (de) { gastosAll = gastosAll.filter(g => toISO(g.f) >= de); }
+  if (ha) { gastosAll = gastosAll.filter(g => toISO(g.f) <= ha); }
+  const gpGastosFilt = gpAll.filter(g => (!de||toISO(g.f)>=de)&&(!ha||toISO(g.f)<=ha));
 
-  // Temporada: cat=Temporada (OBR) + gp-fijo
-  const gastosTemp = [
-    ...gastosAll.filter(g => g.c === 'Temporada'),
-    ...gpGastosFilt.filter(g => g.src === 'gp-fijo')
-  ];
-  // Inversión: todo lo demás (OBR no-Temporada + gp variables)
-  const gastosInv = [
-    ...gastosAll.filter(g => g.c !== 'Temporada'),
-    ...gpGastosFilt.filter(g => g.src === 'gp')
-  ];
+  // Clasificar igual que la página de Gastos (isInversion mira la categoría, no solo el origen):
+  // - gp-fijo y cualquier gasto con cat=Temporada → Temporada
+  // - todo lo demás → Inversión
+  const allGastosBal = [...gastosAll, ...gpGastosFilt];
+  const gastosTemp = allGastosBal.filter(g => !isInversion(g));
+  const gastosInv  = allGastosBal.filter(g =>  isInversion(g));
 
   const gasUsd     = gastosTemp.reduce((a,g) => a + (g.u || (g.p ? g.p/dol : 0)), 0);
   const gasInvUsd  = gastosInv.reduce((a,g)  => a + (g.u || (g.p ? g.p/dol : 0)), 0);
@@ -3732,7 +4038,7 @@ async function rbal() {
     // Use itemsDetail if available
     if (v.itemsDetail) {
       const relevantItems = itemF ? (() => {
-        const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Plaquitas','media':'Medias','bota':'Botas'};
+        const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
         const tc = catMap[itemF];
         return tc ? v.itemsDetail.filter(it => it.cat === tc)
                   : v.itemsDetail.filter(it => it.cat === 'Servicios' && it.n.toLowerCase().includes(itemF));
@@ -3818,7 +4124,7 @@ async function rbal() {
     if (!v.items || v.items==='(sin items)') return;
     if (v.itemsDetail) {
       // Use exact itemsDetail — filter by category if needed
-      const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Plaquitas','media':'Medias','bota':'Botas'};
+      const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
       const targetCat = catMap[itemF];
       const relevant = itemF
         ? (targetCat
@@ -4023,12 +4329,21 @@ function buildCatalog() {
   const items = [];
   const isProfe = D.ptMode === 'profe';
   D.productos.forEach(p => {
-    const price = isProfe ? p.pu : p.tu;
-    items.push({
-      id: 'p'+p._r, n: p.n, cat: p.c,
-      price: price, pu: p.pu, tu: p.tu,
-      stock: p.act, tipo: 'producto', _r: p._r
-    });
+    if (p.c === 'Lifters' || p.c === 'Plaquitas') {
+      // Plaquitas generate 3 items: Suelta, Recambio, Freza
+      if (p.ps) items.push({ id:'p'+p._r+'_s', n:`${p.n} — Suelta`,    cat:p.c, price:p.ps, pu:p.ps, tu:p.ps, stock:p.act, tipo:'producto', _r:p._r, plaqTipo:'Suelta' });
+      if (p.pr) items.push({ id:'p'+p._r+'_r', n:`${p.n} — Recambio`,  cat:p.c, price:p.pr, pu:p.pr, tu:p.pr, stock:p.act, tipo:'producto', _r:p._r, plaqTipo:'Recambio' });
+      if (p.pf) items.push({ id:'p'+p._r+'_f', n:`${p.n} — Freza`,     cat:p.c, price:p.pf, pu:p.pf, tu:p.pf, stock:p.act, tipo:'producto', _r:p._r, plaqTipo:'Freza' });
+      // Fallback si no tiene precios aún
+      if (!p.ps && !p.pr && !p.pf) items.push({ id:'p'+p._r, n:p.n, cat:p.c, price:0, pu:0, tu:0, stock:p.act, tipo:'producto', _r:p._r });
+    } else {
+      const price = isProfe ? p.pu : p.tu;
+      items.push({
+        id: 'p'+p._r, n: p.n, cat: p.c,
+        price: price, pu: p.pu, tu: p.tu,
+        stock: p.act, tipo: 'producto', _r: p._r
+      });
+    }
   });
   D.botas.forEach(b => {
     if (b.act > 0) {
@@ -4379,7 +4694,7 @@ function editProd(rowNum) {
   if (existing) { existing.remove(); if (parseInt(existing.dataset.row) === rowNum) { D.editProd=null; return; } }
 
   D.editProd = rowNum;
-  const cats = ['Plantillas','Boosters','Plaquitas','Medias','Otros'];
+  const cats = ['Plantillas','Boosters','Lifters','Medias','Otros'];
   const catOpts = cats.map(c => `<option value="${c}" ${p.c===c?'selected':''}>${c}</option>`).join('');
 
   const form = document.createElement('div');
@@ -4403,6 +4718,8 @@ function editProd(rowNum) {
     form.style.cssText = 'background:#fff;border:2px solid var(--red);border-radius:12px;padding:16px;margin-bottom:16px;';
   }
 
+  const isPlaq = p.c === 'Lifters' || p.c === 'Plaquitas';
+
   form.innerHTML = `
     <div style="font-family:var(--fd);font-size:16px;font-weight:700;color:var(--red);margin-bottom:14px;">✏️ ${e(p.n)}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
@@ -4418,10 +4735,28 @@ function editProd(rowNum) {
         <input type="number" id="epf-i" value="${p.ini}" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--red);display:block;margin-bottom:4px;">Costo USD</label>
         <input type="number" id="epf-cu" value="${p.cu||''}" style="width:100%;padding:8px 10px;border:2px solid var(--red);border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;"></div>
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--profe);display:block;margin-bottom:4px;">Precio profe USD</label>
+      ${isPlaq ? `
+      <div style="grid-column:1/-1;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Tipo de plaquita</label>
+        <select id="epf-subplaq" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;">
+          <option value="Lifter" ${p.subplaq==='Lifter'||!p.subplaq?'selected':''}>Lifter</option>
+          <option value="Soles5355" ${p.subplaq==='Soles5355'?'selected':''}>Soles 5355</option>
+          <option value="Gripwalk" ${p.subplaq==='Gripwalk'?'selected':''}>Gripwalk</option>
+        </select></div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Precio Suelta USD</label>
+        <input type="number" id="epf-ps" value="${p.ps||''}" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--profe);display:block;margin-bottom:4px;">Precio Recambio USD</label>
+        <input type="number" id="epf-pr" value="${p.pr||''}" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--profe);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      <div style="grid-column:1/-1;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--turista);display:block;margin-bottom:4px;">Precio Freza USD</label>
+        <input type="number" id="epf-pf" value="${p.pf||''}" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--turista);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      ` : `
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--profe);display:block;margin-bottom:4px;">Precio Baja USD</label>
         <input type="number" id="epf-pu" value="${p.pu||''}" style="width:100%;padding:8px 10px;border:1px solid var(--profe);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--turista);display:block;margin-bottom:4px;">Precio turista USD</label>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--turista);display:block;margin-bottom:4px;">Precio Alta USD</label>
         <input type="number" id="epf-tu" value="${p.tu||''}" style="width:100%;padding:8px 10px;border:1px solid var(--turista);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      `}
+    </div>
+    <div style="margin-bottom:10px;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Notas</label>
+      <textarea id="epf-notas" rows="2" placeholder="Comentarios, observaciones..." style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;">${e(p.notas||'')}</textarea>
     </div>
     <div style="display:flex;gap:8px;">
       <button id="epf-save" style="flex:1;background:var(--red);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Guardar</button>
@@ -4452,30 +4787,39 @@ function editProd(rowNum) {
   form.querySelector('#epf-save').addEventListener('click', async () => {
     const n   = document.getElementById('epf-n').value.trim();
     if (!n) { tst('Nombre obligatorio','err'); return; }
-    // Force read as string first, then parse — avoids browser step rounding
     const cuRaw = document.getElementById('epf-cu').value;
-    const puRaw = document.getElementById('epf-pu').value;
-    const tuRaw = document.getElementById('epf-tu').value;
     const cu  = cuRaw === '' ? 0 : Number(cuRaw);
-    const pu  = puRaw === '' ? 0 : Number(puRaw);
-    const tu  = tuRaw === '' ? 0 : Number(tuRaw);
     const ini = parseInt(document.getElementById('epf-i').value)||0;
     const prev = D.productos.find(x => x._r === rowNum);
     const delta = prev ? ini - prev.ini : 0;
     const act = prev ? Math.max(0, prev.act + delta) : ini;
-    const gp = pu ? +(pu-cu).toFixed(2) : '';
-    const gt = tu ? +(tu-cu).toFixed(2) : '';
+    const cat = document.getElementById('epf-c').value;
+    const notas = document.getElementById('epf-notas').value.trim();
+    let pu=0, tu=0, gp='', gt='', ps=0, pr=0, pf=0, subplaq='';
+    if (cat === 'Lifters' || cat === 'Plaquitas') {
+      ps = Number(document.getElementById('epf-ps')?.value||0)||0;
+      pr = Number(document.getElementById('epf-pr')?.value||0)||0;
+      pf = Number(document.getElementById('epf-pf')?.value||0)||0;
+      subplaq = document.getElementById('epf-subplaq')?.value||'Lifter';
+    } else {
+      const puRaw = document.getElementById('epf-pu').value;
+      const tuRaw = document.getElementById('epf-tu').value;
+      pu = puRaw === '' ? 0 : Number(puRaw);
+      tu = tuRaw === '' ? 0 : Number(tuRaw);
+      gp = pu ? +(pu-cu).toFixed(2) : '';
+      gt = tu ? +(tu-cu).toFixed(2) : '';
+    }
     const row = [n, document.getElementById('epf-m').value,
-      document.getElementById('epf-c').value,
+      cat,
       document.getElementById('epf-f').value,
-      ini, act, cu, pu, tu, gp, gt];
-    form.querySelector('#epf-save').textContent = `Guardando cu=${cu}...`;
+      ini, act, cu, pu, tu, gp, gt, ps, pr, pf, notas, subplaq];
+    form.querySelector('#epf-save').textContent = 'Guardando...';
     try {
-      await sUraw(`PRODUCTOS!A${rowNum}:K${rowNum}`, [row]);
+      await sUraw(`PRODUCTOS!A${rowNum}:P${rowNum}`, [row]);
       doClose();
       await lProd();
       rpr();
-      tst(`Guardado: ${n} · costo u$s ${cu}`, 'ok');
+      tst(`Guardado: ${n}`, 'ok');
     } catch(ex) { tst('Error: '+ex.message,'err'); form.querySelector('#epf-save').textContent = 'Guardar'; }
   });
 }
@@ -4513,29 +4857,45 @@ function calcBotaGain() {
   document.getElementById('bt-gu').value = vu ? +(vu-cu).toFixed(2) : '';
 }
 
+function onProdCatChange() {
+  const isPlaq = document.getElementById('pd-c').value === 'Lifters';
+  document.querySelectorAll('.pd-normal').forEach(el => el.style.display = isPlaq ? 'none' : '');
+  document.querySelectorAll('.pd-plaq').forEach(el => el.style.display = isPlaq ? '' : 'none');
+}
+
 async function saveProd() {
   const n = document.getElementById('pd-n').value.trim();
   if (!n) return tst('Nombre obligatorio','err');
+  const cat = document.getElementById('pd-c').value;
   const cu  = parseFloat(document.getElementById('pd-cu').value)||0;
-  const pu  = parseFloat(document.getElementById('pd-pu').value)||0;
-  const tu  = parseFloat(document.getElementById('pd-tu').value)||0;
   const ini = parseInt(document.getElementById('pd-i').value)||0;
+  const notas = document.getElementById('pd-notas')?.value.trim()||'';
+  let pu=0, tu=0, gp='', gt='', ps=0, pr=0, pf=0, subplaq='';
+  if (cat === 'Lifters' || cat === 'Plaquitas') {
+    ps = parseFloat(document.getElementById('pd-ps').value)||0;
+    pr = parseFloat(document.getElementById('pd-pr').value)||0;
+    pf = parseFloat(document.getElementById('pd-pf').value)||0;
+    subplaq = document.getElementById('pd-subplaq')?.value||'Lifter';
+  } else {
+    pu = parseFloat(document.getElementById('pd-pu').value)||0;
+    tu = parseFloat(document.getElementById('pd-tu').value)||0;
+    gp = pu ? +(pu-cu).toFixed(2) : '';
+    gt = tu ? +(tu-cu).toFixed(2) : '';
+  }
   try {
     if (D.editProd) {
       const prev = D.productos.find(p => p._r === D.editProd);
       const delta = prev ? ini - prev.ini : 0;
       const act = prev ? Math.max(0, prev.act + delta) : ini;
-      const row = [n, document.getElementById('pd-m').value, document.getElementById('pd-c').value,
-        document.getElementById('pd-f').value, ini, act, cu, pu, tu,
-        pu?+(pu-cu).toFixed(2):'', tu?+(tu-cu).toFixed(2):''];
-      await sUraw(`PRODUCTOS!A${D.editProd}:K${D.editProd}`, [row]);
+      const row = [n, document.getElementById('pd-m').value, cat,
+        document.getElementById('pd-f').value, ini, act, cu, pu, tu, gp, gt, ps, pr, pf, notas, subplaq];
+      await sUraw(`PRODUCTOS!A${D.editProd}:P${D.editProd}`, [row]);
       D.editProd = null;
       document.querySelector('#m-prod .mt').textContent = 'PRODUCTO';
       tst('Producto actualizado ✓','ok');
     } else {
-      const row = [n, document.getElementById('pd-m').value, document.getElementById('pd-c').value,
-        document.getElementById('pd-f').value, ini, ini, cu, pu, tu,
-        pu?+(pu-cu).toFixed(2):'', tu?+(tu-cu).toFixed(2):''];
+      const row = [n, document.getElementById('pd-m').value, cat,
+        document.getElementById('pd-f').value, ini, ini, cu, pu, tu, gp, gt, ps, pr, pf, notas, subplaq];
       await sA('PRODUCTOS',[row]);
       tst('Producto guardado ✓','ok');
     }
@@ -4594,9 +4954,9 @@ async function saveBota() {
   const vu = parseFloat(document.getElementById('bt-vu').value)||0;
   const gu = vu ? +(vu-cu).toFixed(2) : 0;
   const ancho = document.getElementById('bt-ancho').value||'';
-  const rows = D.btTalles.map(t => [marca, mod, t.n, t.s, t.s, fc, cu, vu, gu, ancho]);
+  const rows = D.btTalles.map(t => [marca, mod, t.n, t.s, t.s, fc, cu, vu, gu, ancho, '', '', '', '', '', '']);
   try {
-    await sA('BOTAS', rows);
+    await sAraw('BOTAS', rows);
     closeM('m-bota'); D.btTalles = []; renderBtTalles();
     await lBotas(); tst('Botas guardadas ✓','ok');
   } catch(ex) { tst('Error guardando botas: '+ex.message,'err'); }
@@ -4614,6 +4974,8 @@ async function saveServ() {
       document.querySelector('#m-serv .mt').textContent = 'SERVICIO';
       tst('Servicio actualizado ✓','ok');
     } else {
+      const dup = D.servicios.find(s => (s.n||'').toLowerCase().trim() === n.toLowerCase());
+      if (dup && !confirm(`Ya existe un servicio llamado "${dup.n}".\n\n¿Querés crear uno nuevo igual?\n(Si querías modificar el que ya existe, cancelá acá y editalo con el lápiz ✏️ desde la lista de servicios.)`)) return;
       await sA('SERVICIOS',[row]);
       tst('Servicio guardado ✓','ok');
     }
@@ -4726,13 +5088,24 @@ async function seedLange() {
     ['Lange','ZB','25.5','1','1','2025-05-22','300','',''],
   ];
   try {
-    await sA('BOTAS', rows);
+    await sAraw('BOTAS', rows);
     await lBotas();
     tst('18 botas Lange cargadas ✓','ok');
     document.getElementById('btn-lange').style.display = 'none';
   } catch(ex) { tst('Error: '+ex.message,'err'); }
 }
 
+function calcGastoUsd() {
+  const p   = parseFloat(document.getElementById('g-p').value) || 0;
+  const dol = parseFloat(document.getElementById('g-dol').value) || 0;
+  const uEl = document.getElementById('g-u');
+  // Si hay pesos y dólar, el USD se calcula con el dólar del día del gasto
+  if (p > 0 && dol > 0) {
+    uEl.value = +(p / dol).toFixed(2);
+  } else if (p === 0) {
+    // sin pesos: gasto en USD directo, no piso lo que escriba
+  }
+}
 async function saveGasto() {
   const n = document.getElementById('g-n').value.trim();
   if (!n) return tst('Concepto obligatorio','err');
@@ -4762,6 +5135,8 @@ function editGasto(rowNum) {
   document.getElementById('g-n').value = g.n||'';
   document.getElementById('g-p').value = g.p||'';
   document.getElementById('g-u').value = g.u||'';
+  const gd=document.getElementById('g-dol');
+  if (gd) gd.value = (g.p>0 && g.u>0) ? Math.round(g.p/g.u) : D.cfg.dol;
   document.getElementById('g-det').value = g.det||'';
   const catEl = document.getElementById('g-c');
   for (let i=0; i<catEl.options.length; i++) { if(catEl.options[i].value===g.c){catEl.selectedIndex=i;break;} }
@@ -4894,6 +5269,26 @@ async function saveDolar() {
 // ─────────────────────────────────────────
 // UI HELPERS
 // ─────────────────────────────────────────
+function toggleMostrador() {
+  const on = document.body.classList.toggle('mostrador');
+  const btn = document.getElementById('btn-mostrador');
+  btn.textContent = on ? '🔒 Mostrador' : '🔓 Mostrador';
+  // Si se activa estando en una pestaña privada, mover a Productos
+  if (on) {
+    const privateViews = ['ventas','precios','gastos','balance','provs'];
+    const activePrivate = privateViews.some(v =>
+      document.getElementById('view-'+v)?.classList.contains('on')
+    );
+    if (activePrivate) {
+      const prodBtn = [...document.querySelectorAll('.nb')].find(b => b.textContent.trim() === 'Productos');
+      sv('productos', prodBtn);
+    }
+  }
+  // Re-render productos y servicios para aplicar/quitar ocultamiento
+  rprod();
+  rserv();
+}
+
 function sv(name, btn) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
   document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
@@ -4903,6 +5298,7 @@ function sv(name, btn) {
     const el = document.getElementById('pr-dolar');
     if (el && !el.value) el.value = D.cfg.dol;
     rpr();
+    renderPagos();
   }
   if (name==='balance') {
     const de = document.getElementById('bal-de');
@@ -4924,6 +5320,34 @@ function openM(id) {
   el.style.justifyContent = 'center';
   el.classList.add('on');
   document.body.style.overflow = 'hidden';
+}
+function openDolar() {
+  const badge = document.querySelector('.usd-b');
+  if (!badge || badge.dataset.editing === '1') return;
+  badge.dataset.editing = '1';
+  const cur = D.cfg.dol;
+  const restore = (val) => {
+    badge.innerHTML = '<div class="usd-dot"></div>$<span id="hdr-dolar">'+Number(val).toLocaleString('es-AR')+'</span>';
+    badge.dataset.editing = '0';
+  };
+  badge.innerHTML = '<input id="dol-inline" type="number" step="1" value="'+cur+'" style="width:66px;border:none;background:transparent;font-family:var(--fm);font-size:12px;font-weight:600;color:var(--red);outline:none;text-align:right;">';
+  const inp = badge.querySelector('#dol-inline');
+  inp.focus(); inp.select();
+  let saved = false;
+  const commit = async () => {
+    if (saved) return; saved = true;
+    const v = parseFloat(inp.value);
+    if (!v || v <= 0) { restore(cur); return; }
+    D.cfg.dol = v;
+    restore(v);
+    try { await sU('CONFIG!B2:B2', [[v]]); tst('Dólar actualizado a $'+v.toLocaleString('es-AR')+' \u2713','ok'); }
+    catch(e) { tst('Error guardando dólar: '+e.message,'err'); }
+  };
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+    else if (e.key === 'Escape') { saved = true; restore(cur); }
+  });
+  inp.addEventListener('blur', commit);
 }
 function closeM(id) {
   const el = document.getElementById(id);
@@ -4956,7 +5380,7 @@ function openVenta() {
   rItems(); rSel();
   openM('m-venta');
 }
-function openGasto() { document.getElementById('g-f').value=new Date().toISOString().split('T')[0]; openM('m-gasto'); }
+function openGasto() { document.getElementById('g-f').value=new Date().toISOString().split('T')[0]; const d=document.getElementById('g-dol'); if(d) d.value=D.cfg.dol; openM('m-gasto'); }
 function openProv() { openProvInline('',''); }
 function openProvFor(nombre, tel) { openProvInline(nombre, tel); }
 
@@ -5018,13 +5442,7 @@ function openProvInline(nombre, tel) {
 }
 // Reset edit state on modal close
 document.querySelectorAll('.mo').forEach(o => o.addEventListener('click', ev => {
-  if (ev.target===o) {
-    o.classList.remove('on');
-    if (o.id==='m-prod')  { D.editProd=null;  document.querySelector('#m-prod .mt').textContent='PRODUCTO'; }
-    if (o.id==='m-serv')  { D.editServ=null;  document.querySelector('#m-serv .mt').textContent='SERVICIO'; }
-    if (o.id==='m-venta') { D.editVenta=null; document.querySelector('#m-venta .mt').textContent='NUEVA VENTA'; }
-    if (o.id==='m-gasto') { D.editGasto=null; document.querySelector('#m-gasto .mt').textContent='GASTO TALLER'; }
-  }
+  if (ev.target===o) closeM(o.id);
 }));
 
 async function syncAll() { spin(true); await loadCfg(); renderYearBtns(); await loadAll(); tst('Sincronizado ✓','ok'); }
@@ -5099,22 +5517,44 @@ function editBotaModelo(marca, mod) {
   const anchoOpts = ['','Angosta','Media','Ancha'].map(o =>
     `<option value="${o}" ${first.ancho===o?'selected':''}>${o||'Sin especificar'}</option>`
   ).join('');
+  const cantingOpts = ['','Nuevo','Viejo'].map(o =>
+    `<option value="${o}" ${first.canting===o?'selected':''}>${o||'Sin especificar'}</option>`
+  ).join('');
 
   form.innerHTML = `
     <div style="font-family:var(--fd);font-size:16px;font-weight:700;margin-bottom:12px;color:var(--red);">✏️ Editando: ${marca} ${mod}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Marca</label>
+        <input type="text" id="ibe-marca" value="${first.marca||marca}" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Nombre del modelo</label>
+        <input type="text" id="ibe-mod" value="${first.mod||mod}" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Código</label>
+        <input type="text" id="ibe-codigo" value="${first.codigo||''}" placeholder="LBN6020..." style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Año de la bota</label>
+        <input type="number" id="ibe-anio" value="${first.anioBota||''}" placeholder="2024" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;">
+      </div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Ancho de horma</label>
         <select id="ibe-ancho" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;">${anchoOpts}</select>
+      </div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Canting</label>
+        <select id="ibe-canting" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;">${cantingOpts}</select>
       </div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Precio venta USD</label>
         <input type="number" id="ibe-vu" value="${first.vu||''}" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Costo USD</label>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">${(first.marca||'').toLowerCase()==='lange'?'Costo Podetti USD':'Costo USD'}</label>
         <input type="number" id="ibe-cu" value="${first.cu||''}" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Fecha compra</label>
-        <input type="date" id="ibe-fc" value="${first.fc||''}" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;">
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Año importación</label>
+        <input type="number" id="ibe-fimp" value="${first.fechaImp||''}" placeholder="2026" min="2000" max="2099" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;">
       </div>
+    </div>
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;background:${first.pagoPodetti==='1'?'#d1fae5':'#fef3c7'};border-radius:8px;padding:10px 14px;">
+      <input type="checkbox" id="ibe-pago" ${first.pagoPodetti==='1'?'checked':''} style="width:16px;height:16px;cursor:pointer;">
+      <label for="ibe-pago" style="font-size:13px;font-weight:600;cursor:pointer;">${(first.marca||'').toLowerCase()==='lange'?'Pagado a Podetti':(first.marca||'').toLowerCase()==='atomic'?'Pagado (Atomic — ya abonadas)':'Pago hecho'}</label>
     </div>
     <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Notas</label>
       <textarea id="ibe-notas" rows="2" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical;">${first.notas||''}</textarea>
@@ -5156,20 +5596,28 @@ function editBotaModelo(marca, mod) {
   };
   form.querySelector('#ibe-cancel').addEventListener('click', doClose);
   form.querySelector('#ibe-save').addEventListener('click', async () => {
-    const ancho = document.getElementById('ibe-ancho').value;
-    const vu    = parseFloat(document.getElementById('ibe-vu').value)||0;
-    const cu    = parseFloat(document.getElementById('ibe-cu').value)||0;
-    const fc    = document.getElementById('ibe-fc').value;
-    const notas = document.getElementById('ibe-notas').value.trim();
-    const gu    = vu && cu ? +(vu-cu).toFixed(2) : 0;
+    const nuevaMarca = document.getElementById('ibe-marca').value.trim();
+    const nuevoMod  = document.getElementById('ibe-mod').value.trim();
+    const ancho   = document.getElementById('ibe-ancho').value;
+    const vu      = parseFloat(document.getElementById('ibe-vu').value)||0;
+    const cu      = parseFloat(document.getElementById('ibe-cu').value)||0;
+    const notas   = document.getElementById('ibe-notas').value.trim();
+    const codigo  = document.getElementById('ibe-codigo').value.trim();
+    const anio    = document.getElementById('ibe-anio').value.trim();
+    const canting = document.getElementById('ibe-canting').value;
+    const fechaImp= document.getElementById('ibe-fimp').value.trim();
+    const pago    = document.getElementById('ibe-pago').checked ? '1' : '';
+    const gu      = vu && cu ? +(vu-cu).toFixed(2) : 0;
+    if (!nuevaMarca || !nuevoMod) return tst('Marca y modelo son obligatorios','err');
     form.querySelector('#ibe-save').textContent = 'Guardando...';
     try {
       for (const b of rows) {
-        await sU(`BOTAS!F${b._r}:K${b._r}`, [[fc||b.fc, cu||b.cu, vu||b.vu, gu||b.gu, ancho, notas]]);
+        await sU(`BOTAS!A${b._r}:B${b._r}`, [[nuevaMarca, nuevoMod]]);
+        await sU(`BOTAS!F${b._r}:P${b._r}`, [[b.fc||'', cu||b.cu, vu||b.vu, gu||b.gu, ancho, notas, codigo, anio, canting, fechaImp, pago]]);
       }
       doClose();
       await lBotas();
-      tst(`${marca} ${mod} actualizado ✓`, 'ok');
+      tst(`${nuevaMarca} ${nuevoMod} actualizado ✓`, 'ok');
     } catch(ex) { tst('Error: '+ex.message,'err'); form.querySelector('#ibe-save').textContent = 'Guardar'; }
   });
 }
@@ -5187,12 +5635,28 @@ async function saveBotaModelo() {
   tst(`Actualizando ${rows.length} talles...`);
   try {
     for (const b of rows) {
-      await sU(`BOTAS!F${b._r}:K${b._r}`, [[fc||b.fc, cu||b.cu, vu||b.vu, gu||b.gu, ancho, notas]]);
+      await sU(`BOTAS!F${b._r}:P${b._r}`, [[fc||b.fc, cu||b.cu, vu||b.vu, gu||b.gu, ancho, notas, b.codigo||'', b.anioBota||'', b.canting||'', b.fechaImp||'', b.pagoPodetti||'']]);
     }
     closeM('m-edit-bota');
     await lBotas();
     tst(`${marca} ${mod} actualizado ✓`, 'ok');
   } catch(ex) { tst('Error: '+ex.message,'err'); }
+}
+
+async function migrarBotas() {
+  try {
+    await sU('BOTAS!A1:P1', [['Marca','Modelo','Talle','StockInicial','StockActual','FechaCompra','CostoUSD','VentaUSD','GananciaUSD','Ancho','Notas','Codigo','AnioBota','Canting','FechaImportacion','PagoPodetti']]);
+    tst('Header BOTAS actualizado ✓ — podés cerrar este mensaje', 'ok');
+    document.getElementById('btn-migrar-botas').style.display = 'none';
+  } catch(ex) { tst('Error: '+ex.message, 'err'); }
+}
+
+async function migrarProductos() {
+  try {
+    await sU('PRODUCTOS!A1:P1', [['Nombre','Marca','Cat','FechaCompra','StockInicial','StockActual','CostoUSD','ProfeUSD','TuristaUSD','GananciaProfe','GananciaTurista','PrecioSueltas','PrecioRecambio','PrecioFreza','Notas','SubtipoPlaquita']]);
+    tst('Header PRODUCTOS actualizado ✓', 'ok');
+    document.getElementById('btn-migrar-prods').style.display = 'none';
+  } catch(ex) { tst('Error: '+ex.message, 'err'); }
 }
 
 function addTalleInline(marca, mod, btn) {
@@ -5216,7 +5680,8 @@ function addTalleInline(marca, mod, btn) {
       <button onclick="document.getElementById('add-talle-form').remove()" style="background:none;border:1px solid var(--bd);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;">✕</button>
     </div>`;
 
-  btn.closest('.pkc').after(form);
+  const anchor = btn.closest('.bota-card') || btn.closest('.pkc') || btn.parentElement;
+  anchor.after(form);
   document.getElementById('nt-talle').focus();
 
   form.querySelector('#nt-save').addEventListener('click', async () => {
@@ -5228,7 +5693,7 @@ function addTalleInline(marca, mod, btn) {
     }
     const gu = first?.vu && first?.cu ? +(first.vu-first.cu).toFixed(2) : 0;
     try {
-      await sA('BOTAS', [[marca, mod, talle, stock, stock, first?.fc||'', first?.cu||'', first?.vu||'', gu, first?.ancho||'', first?.notas||'']]);
+      await sAraw('BOTAS', [[marca, mod, talle, stock, stock, first?.fc||'', first?.cu||'', first?.vu||'', gu, first?.ancho||'', first?.notas||'', first?.codigo||'', first?.anioBota||'', first?.canting||'', first?.fechaImp||'', first?.pagoPodetti||'']]);
       form.remove();
       await lBotas();
       tst(`Talle ${talle} agregado ✓`, 'ok');
@@ -5250,16 +5715,24 @@ function openBotaInline() {
         <input type="text" id="nb-marca" placeholder="Lange, Atomic..." style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Modelo</label>
         <input type="text" id="nb-mod" placeholder="RX Heritage..." style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Código</label>
+        <input type="text" id="nb-codigo" placeholder="LBN6020..." style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Ancho</label>
         <select id="nb-ancho" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;">
           <option value="">Sin especificar</option><option>Angosta</option><option>Media</option><option>Ancha</option>
         </select></div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Canting</label>
+        <select id="nb-canting" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;">
+          <option value="">Sin especificar</option><option>Nuevo</option><option>Viejo</option>
+        </select></div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Año de la bota</label>
+        <input type="number" id="nb-anio" placeholder="2024" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Costo USD</label>
         <input type="number" id="nb-cu" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Precio venta USD</label>
         <input type="number" id="nb-vu" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Fecha compra</label>
-        <input type="date" id="nb-fc" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
+      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Año importación</label>
+        <input type="number" id="nb-fimp" placeholder="2026" min="2000" max="2099" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
     </div>
     <div style="margin-bottom:12px;">
       <div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);margin-bottom:8px;">Talles</div>
@@ -5288,11 +5761,15 @@ function openBotaInline() {
     const cu    = parseFloat(document.getElementById('nb-cu').value)||0;
     const vu    = parseFloat(document.getElementById('nb-vu').value)||0;
     const gu    = vu && cu ? +(vu-cu).toFixed(2) : 0;
-    const fc    = document.getElementById('nb-fc').value;
+    const fc    = '';
     const ancho = document.getElementById('nb-ancho').value;
-    const rows  = window._nbTalles.map(t => [marca, mod, t.n, t.s, t.s, fc, cu, vu, gu, ancho, '']);
+    const codigo  = document.getElementById('nb-codigo').value.trim();
+    const anio    = document.getElementById('nb-anio').value.trim();
+    const canting = document.getElementById('nb-canting').value;
+    const fechaImp= document.getElementById('nb-fimp').value.trim();
+    const rows  = window._nbTalles.map(t => [marca, mod, t.n, t.s, t.s, '', cu, vu, gu, ancho, '', codigo, anio, canting, fechaImp, '']);
     try {
-      await sA('BOTAS', rows);
+      await sAraw('BOTAS', rows);
       form.remove();
       await lBotas();
       tst(`${marca} ${mod} agregado con ${rows.length} talles ✓`, 'ok');
@@ -5316,6 +5793,68 @@ function addNbTalle() {
       <span style="font-family:var(--fm);color:var(--ok);">${t.s} u.</span>
       <span style="cursor:pointer;color:var(--gray3);font-size:16px;" onclick="window._nbTalles.splice(${i},1);addNbTalle();addNbTalle();">✕</span>
     </div>`).join('');
+}
+
+function editTalleRow(dispEl) {
+  const fila = dispEl.closest('.talle-fila');
+  if (!fila) return;
+  if (fila.querySelector('input')) return; // ya editando
+  const rowNum = parseInt(fila.dataset.row);
+  const actAct = parseInt(fila.dataset.act)||0;
+  const actIni = parseInt(fila.dataset.ini)||0;
+  const talleSpan = fila.querySelector('span:first-child');
+  const talleStr  = talleSpan ? talleSpan.textContent.trim() : '';
+
+  // Guardar HTML original para cancelar
+  const origHtml = fila.innerHTML;
+  const origStyle = fila.style.cssText;
+
+  fila.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd);background:var(--s2);border-radius:4px;';
+  fila.innerHTML = `
+    <span style="font-family:var(--fm);font-size:12px;font-weight:600;color:var(--dark);min-width:36px;">${talleStr}</span>
+    <label style="font-size:10px;color:var(--txt3);">Disp</label>
+    <input type="number" value="${actAct}" min="0" style="width:46px;padding:3px 6px;border:2px solid var(--red);border-radius:4px;font-size:13px;font-family:var(--fm);text-align:center;" title="Stock disponible">
+    <label style="font-size:10px;color:var(--txt3);">Ini</label>
+    <input type="number" value="${actIni}" min="0" style="width:46px;padding:3px 6px;border:1px solid var(--bd);border-radius:4px;font-size:13px;font-family:var(--fm);text-align:center;" title="Stock inicial">
+    <button class="tr-save" style="background:var(--ok);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:12px;font-weight:600;cursor:pointer;">✓</button>
+    <button class="tr-cancel" style="background:none;border:1px solid var(--bd);border-radius:4px;padding:3px 8px;font-size:12px;cursor:pointer;color:var(--txt2);">✕</button>
+  `;
+
+  const [inAct, inIni] = fila.querySelectorAll('input');
+  const btnSave   = fila.querySelector('.tr-save');
+  const btnCancel = fila.querySelector('.tr-cancel');
+  inAct.focus(); inAct.select();
+
+  const doCancel = () => {
+    fila.style.cssText = origStyle;
+    fila.innerHTML = origHtml;
+    // Re-wire el nuevo click
+    const newDisp = fila.querySelector('.talle-disp');
+    if (newDisp) newDisp.addEventListener('click', () => editTalleRow(newDisp));
+  };
+
+  const doSave = async () => {
+    const newAct = parseInt(inAct.value)||0;
+    const newIni = parseInt(inIni.value)||0;
+    btnSave.textContent = '...';
+    btnSave.disabled = true;
+    try {
+      await sU(`BOTAS!D${rowNum}:E${rowNum}`, [[newIni, newAct]]);
+      const b = D.botas.find(x => x._r === rowNum);
+      if (b) { b.act = newAct; b.ini = newIni; }
+      await lBotas();
+      tst('Stock actualizado ✓','ok');
+    } catch(ex) {
+      fila.style.cssText = origStyle;
+      fila.innerHTML = origHtml;
+      tst('Error: '+ex.message,'err');
+    }
+  };
+
+  btnSave.addEventListener('click', doSave);
+  btnCancel.addEventListener('click', doCancel);
+  inAct.addEventListener('keydown', ev => { if(ev.key==='Enter') doSave(); if(ev.key==='Escape') doCancel(); });
+  inIni.addEventListener('keydown', ev => { if(ev.key==='Enter') doSave(); if(ev.key==='Escape') doCancel(); });
 }
 
 function editTalleStock(rowNum, actAct, actIni, el) {
@@ -5821,7 +6360,22 @@ function tst(msg,type='') {
   setTimeout(() => t.classList.remove('on'), 2800);
 }
 function e(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function fd(d) { if(!d)return'—'; const p=d.split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:d; }
+function toISO(d) {
+  if (!d) return '';
+  d = String(d).trim();
+  if (/^\d{4}-\d{1,2}-\d{1,2}/.test(d)) {
+    const p = d.slice(0,10).split('-');
+    return `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}`;
+  }
+  const m = d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    let dd=m[1], mm=m[2], yy=m[3];
+    if (yy.length===2) yy='20'+yy;
+    return `${yy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+  }
+  return d;
+}
+function fd(d) { if(!d)return'—'; const p=toISO(d).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:d; }
 function mpb(mp) {
   if(!mp)return'bx-x'; const m=mp.toLowerCase();
   if(m.includes('efectivo'))return'bx-g';
@@ -5834,23 +6388,134 @@ function mpb(mp) {
 // ─────────────────────────────────────────
 // GUARDAR LISTA DE PRECIOS HOY
 // ─────────────────────────────────────────
+// Formatea 'YYYY-MM-DD' a fecha larga es-AR
+function fmtFechaLarga(iso){
+  const p = String(iso).split('-'); if (p.length<3) return iso;
+  const dt = new Date(+p[0],(+p[1])-1,+p[2]);
+  return isNaN(dt) ? iso : dt.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+}
+
+// Guarda una "foto" completa de la lista del día (productos, botas, servicios, dólar) en PRECIOS_HIST
 async function guardarListaHoy() {
   const dol = parseFloat(document.getElementById('pr-dolar')?.value) || D.cfg.dol;
-  const hoy = new Date().toISOString().split('T')[0];
-  const rows = [];
-  D.productos.forEach(p => {
-    if (p.pu || p.tu) rows.push([hoy, p.c, p.n, p.cu||'', p.pu||'', p.tu||'', p.pu?Math.round(p.pu*dol):'', p.tu?Math.round(p.tu*dol):'', dol]);
-  });
-  D.servicios.forEach(s => {
-    if (s.pu || s.tu) rows.push([hoy, s.c, s.n, '', s.pu||'', s.tu||'', s.pu?Math.round(s.pu*dol):'', s.tu?Math.round(s.tu*dol):'', dol]);
-  });
-  if (!rows.length) return tst('Sin datos para guardar','err');
+  const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const snap = {
+    productos: D.productos.map(p => ({c:p.c,n:p.n,pu:p.pu,tu:p.tu,cu:p.cu,ps:p.ps,pr:p.pr,pf:p.pf,marca:p.marca||''})),
+    botas:     D.botas.map(b => ({marca:b.marca,mod:b.mod,cu:b.cu,vu:b.vu,act:b.act,talle:b.talle})),
+    servicios: D.servicios.map(s => ({n:s.n,c:s.c,pu:s.pu,tu:s.tu})),
+  };
+  const nItems = snap.productos.filter(p=>p.pu||p.tu||p.ps||p.pr||p.pf).length
+               + snap.botas.length
+               + snap.servicios.filter(s=>s.pu||s.tu).length;
+  if (!nItems) return tst('Sin datos para guardar','err');
   try {
     await mkSh('PRECIOS_HIST');
-    await sU('PRECIOS_HIST!A1:I1',[['Fecha','Cat','Nombre','CostoUSD','ProfeUSD','TuristaUSD','ProfeARS','TuristaARS','Dolar']]);
-    await sA('PRECIOS_HIST', rows);
-    tst('Lista guardada — ' + rows.length + ' items · $' + dol.toLocaleString('es-AR') + ' · ' + hoy, 'ok');
+    await sU('PRECIOS_HIST!A1:D1',[['Fecha','Dolar','Items','JSON']]);
+    await sAraw('PRECIOS_HIST', [[hoy, dol, nItems, JSON.stringify(snap)]]);
+    await lPreciosHist();
+    rPrHist();
+    const panel = document.getElementById('pr-hist'); if (panel) panel.style.display = 'block';
+    tst('Lista guardada — ' + hoy + ' · ' + nItems + ' items · $' + dol.toLocaleString('es-AR'), 'ok');
   } catch(ex) { tst('Error: '+ex.message,'err'); }
+}
+
+// Carga el historial de listas guardadas
+async function lPreciosHist() {
+  try {
+    const d = await sG('PRECIOS_HIST!A2:D2000');
+    D.preciosHist = (d.values||[]).map((r,i) => {
+      let snap = null; try { snap = JSON.parse(r[3]||'null'); } catch(e) {}
+      return {_r:i+2, fecha:r[0]||'', dol:parseFloat(r[1])||0, items:parseInt(r[2])||0, snap};
+    }).filter(h => h.fecha && h.snap && typeof h.snap === 'object'
+                 && (Array.isArray(h.snap.productos) || Array.isArray(h.snap.botas) || Array.isArray(h.snap.servicios)));
+  } catch(ex) { D.preciosHist = []; }
+}
+
+// Dibuja la lista del historial
+function rPrHist() {
+  const el = document.getElementById('pr-hist-list');
+  if (!el) return;
+  const hist = (D.preciosHist||[]).slice().sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha)));
+  if (!hist.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--txt3);padding:10px;">Todavía no guardaste ninguna lista. Tocá «Guardar lista de hoy».</div>';
+    return;
+  }
+  el.innerHTML = hist.map(h => {
+    const realIdx = D.preciosHist.indexOf(h);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid var(--bd);border-radius:8px;background:#fff;">
+      <div><div style="font-weight:600;font-size:13px;color:var(--dark);">${fmtFechaLarga(h.fecha)}</div>
+      <div style="font-size:11px;color:var(--txt3);">Dólar $${h.dol.toLocaleString('es-AR')} · ${h.items} items</div></div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn btn-s btn-sm" onclick="reimprimirHist(${realIdx})" style="font-size:12px;display:flex;align-items:center;gap:5px;">&#128424; Reimprimir</button>
+        <button class="btn btn-s btn-sm btn-ic" onclick="delHist(${h._r})" title="Eliminar esta lista" style="font-size:12px;color:var(--red);border-color:var(--red);">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Elimina una lista guardada del historial (la fila en PRECIOS_HIST)
+async function delHist(row) {
+  const h = (D.preciosHist||[]).find(x => x._r === row);
+  const label = h ? fmtFechaLarga(h.fecha) : 'esta lista';
+  if (!confirm('¿Eliminar la lista guardada del ' + label + '?\nSe borra del historial (no afecta tus precios actuales).')) return;
+  try {
+    const sid = await getSheetId('PRECIOS_HIST');
+    const t = await getT();
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${D.sid}:batchUpdate`, {
+      method:'POST', headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},
+      body: JSON.stringify({requests:[{deleteDimension:{range:{sheetId:sid,dimension:'ROWS',startIndex:row-1,endIndex:row}}}]})
+    });
+    if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||res.status); }
+    await lPreciosHist();
+    rPrHist();
+    tst('Lista eliminada ✓','ok');
+  } catch(ex) { tst('Error eliminando: '+ex.message,'err'); }
+}
+
+// Reimprime una lista guardada usando el motor de impresión con los datos de esa fecha
+function reimprimirHist(idx) {
+  const h = (D.preciosHist||[])[idx];
+  if (!h || !h.snap) return tst('Lista no encontrada','err');
+  imprimirPreciosCore(h.snap.productos||[], h.snap.botas||[], h.snap.servicios||[], h.dol, fmtFechaLarga(h.fecha));
+}
+
+// Muestra/oculta el panel de historial (carga al abrir la primera vez)
+async function togglePrHist() {
+  const panel = document.getElementById('pr-hist');
+  if (!panel) return;
+  if (panel.style.display !== 'none' && panel.style.display !== '') { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  if (!D.preciosHist) {
+    const lst = document.getElementById('pr-hist-list');
+    if (lst) lst.innerHTML = '<div style="font-size:12px;color:var(--txt3);padding:10px;">Cargando…</div>';
+    await lPreciosHist();
+  }
+  rPrHist();
+}
+
+// ─────────────────────────────────────────
+// FORMAS DE PAGO / ALIAS
+// ─────────────────────────────────────────
+function renderPagos() {
+  const set = (id, val) => { const el = document.getElementById(id); if (el && document.activeElement !== el) el.value = val || ''; };
+  set('pg-jua-mp', D.pagos.jua.mp);
+  set('pg-jua-mpusd', D.pagos.jua.mpusd);
+  set('pg-jua-macro', D.pagos.jua.macro);
+  set('pg-coco-mp', D.pagos.coco.mp);
+  set('pg-coco-macro', D.pagos.coco.macro);
+  set('pg-coco-macrousd', D.pagos.coco.macrousd);
+  set('pg-coco-sant', D.pagos.coco.santander);
+}
+async function savePagos() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  D.pagos = {
+    jua:{ mp:g('pg-jua-mp'), mpusd:g('pg-jua-mpusd'), macro:g('pg-jua-macro') },
+    coco:{ mp:g('pg-coco-mp'), macro:g('pg-coco-macro'), macrousd:g('pg-coco-macrousd'), santander:g('pg-coco-sant') }
+  };
+  try {
+    await sU('CONFIG!A5:B5', [['pagos', JSON.stringify(D.pagos)]]);
+    tst('Alias de pago guardados', 'ok');
+  } catch(e) { tst('Error guardando alias: '+e.message, 'err'); }
 }
 
 // ─────────────────────────────────────────
@@ -5859,33 +6524,51 @@ async function guardarListaHoy() {
 function imprimirPrecios() {
   const dol = parseFloat(document.getElementById('pr-dolar')?.value) || D.cfg.dol;
   const hoy = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
-  const catOrder = {'Plantillas':1,'Boosters':2,'Plaquitas':3,'Medias':4,'Botas':5,'Servicios':6,'Otros':7};
+  imprimirPreciosCore(D.productos, D.botas, D.servicios, dol, hoy);
+}
+function imprimirPreciosCore(P, B, S, dol, hoy) {
+  const catOrder = {'Plantillas':1,'Boosters':2,'Lifters':3,'Medias':4,'Botas':5,'Servicios':6,'Otros':7};
   const fmt = n => n ? '$'+Math.round(n*dol).toLocaleString('es-AR') : '\u2014';
   const fmtU = n => n ? 'u$s '+n : '\u2014';
-  // Productos agrupados por precio
+  // Productos agrupados por precio (Boosters y Lifters van aparte)
   const prodGroups = {};
-  D.productos.forEach(p => {
+  P.forEach(p => {
+    if (p.c==='Boosters' || p.c==='Lifters' || p.c==='Plaquitas') return;
     if (!p.pu && !p.tu) return;
     const key = p.c+'|'+p.pu+'|'+p.tu;
     if (!prodGroups[key]) prodGroups[key] = {cat:p.c,pu:p.pu,tu:p.tu,cu:p.cu,names:[],_r:p._r,tipo:'prod'};
     prodGroups[key].names.push(p.n);
   });
-  // Botas por modelo con talles en stock
+  // Boosters: una sola fila con las variantes
+  const boostersArr = P.filter(p => p.c==='Boosters' && (p.pu||p.tu)).sort((a,b)=>a._r-b._r);
+  const boosterRows = boostersArr.length ? [{cat:'Boosters',tipo:'boosters',items:boostersArr,_r:boostersArr[0]._r}] : [];
+  // Lifters: una fila por lifter (Suelta / Recambio / Freza)
+  const lifterRows = P.filter(p => p.c==='Lifters' || p.c==='Plaquitas').sort((a,b)=>a._r-b._r)
+    .map(p => ({cat:'Lifters',tipo:'lifter',name:p.n,marca:p.marca||'',ps:p.ps,pr:p.pr,pf:p.pf,_r:p._r}));
+  // Botas por modelo con talles en stock — mismo orden que la app: marca (Lange, Atomic, resto), luego año de importación, luego alfabético
   const botaMap = {};
-  D.botas.forEach(b => {
+  const marcaOrd = m => { m=(m||'').toLowerCase(); return m==='lange'?0:m==='atomic'?1:2; };
+  const yrImp = bm => { const y = parseInt(bm.fechaImp); return isNaN(y) ? Infinity : y; };
+  B.forEach(b => {
     const k = b.marca+'|'+b.mod;
-    if (!botaMap[k]) botaMap[k] = {cat:'Botas',marca:b.marca,mod:b.mod,cu:b.cu,pu:b.vu,tu:null,talles:[],_r:0,tipo:'bota'};
+    if (!botaMap[k]) botaMap[k] = {cat:'Botas',marca:b.marca,mod:b.mod,cu:b.cu,pu:b.vu,tu:null,talles:[],_r:0,fechaImp:b.fechaImp||'',tipo:'bota'};
     if (b.act > 0) botaMap[k].talles.push(b.talle);
   });
+  const botaArr = Object.values(botaMap).sort((a,b) =>
+    marcaOrd(a.marca)-marcaOrd(b.marca) ||
+    yrImp(a)-yrImp(b) ||
+    a.mod.localeCompare(b.mod,'es',{sensitivity:'base'})
+  );
+  botaArr.forEach((bm,i) => { bm._r = i; });
   // Servicios agrupados por precio
   const servGroups = {};
-  D.servicios.forEach(s => {
+  S.forEach(s => {
     if (!s.pu && !s.tu) return;
     const key = s.c+'|'+s.pu+'|'+s.tu;
-    if (!servGroups[key]) servGroups[key] = {cat:s.c,pu:s.pu,tu:s.tu,names:[],_r:s._r,tipo:'serv'};
+    if (!servGroups[key]) servGroups[key] = {cat:'Servicios',sub:s.c,pu:s.pu,tu:s.tu,names:[],_r:s._r,tipo:'serv'};
     servGroups[key].names.push(s.n);
   });
-  const allRows = [...Object.values(prodGroups),...Object.values(botaMap),...Object.values(servGroups)]
+  const allRows = [...Object.values(prodGroups),...boosterRows,...lifterRows,...botaArr,...Object.values(servGroups)]
     .sort((a,b)=>(catOrder[a.cat]||8)-(catOrder[b.cat]||8)||(a._r||0)-(b._r||0));
   const cats = {};
   allRows.forEach(r=>{ if(!cats[r.cat])cats[r.cat]=[]; cats[r.cat].push(r); });
@@ -5893,6 +6576,23 @@ function imprimirPrecios() {
   Object.entries(cats).forEach(([cat, items]) => {
     tableRows += '<tr class="cat-row"><td colspan="5">'+cat+'</td></tr>';
     items.forEach(r => {
+      // Boosters: una fila con las 4 variantes apiladas
+      if (r.tipo==='boosters') {
+        const stk = arr => arr.map(x=>'<div style="line-height:1.6;">'+x+'</div>').join('');
+        tableRows += '<tr><td>'+stk(r.items.map(b=>'<span class="name">'+b.n+'</span>'))+'</td>'
+          + '<td class="usd profe">'+stk(r.items.map(b=>fmtU(b.pu)))+'</td>'
+          + '<td class="ars profe">'+stk(r.items.map(b=>fmt(b.pu)))+'</td>'
+          + '<td class="usd turista">'+stk(r.items.map(b=>fmtU(b.tu)))+'</td>'
+          + '<td class="ars turista">'+stk(r.items.map(b=>fmt(b.tu)))+'</td></tr>';
+        return;
+      }
+      // Lifters: una fila con Suelta / Recambio / Freza
+      if (r.tipo==='lifter') {
+        const tier = (lbl,u) => '<div style="display:flex;justify-content:space-between;gap:14px;line-height:1.7;"><span class="sub" style="text-transform:uppercase;">'+lbl+'</span><span style="font-family:\'DM Mono\',monospace;font-size:10px;">'+(u?'u$s '+u:'—')+' · '+(u?fmt(u):'—')+'</span></div>';
+        tableRows += '<tr><td><span class="name">'+r.name+'</span>'+(r.marca?' <span class="sub">'+r.marca+'</span>':'')+'</td>'
+          + '<td colspan="4" style="padding-left:0;">'+tier('Suelta',r.ps)+tier('Recambio',r.pr)+tier('Freza',r.pf)+'</td></tr>';
+        return;
+      }
       let nombre;
       if (r.tipo==='bota') {
         const ts = r.talles.length ? r.talles.sort((a,b)=>parseFloat(a)-parseFloat(b)).join(' \u00b7 ') : 'sin stock';
@@ -5904,9 +6604,31 @@ function imprimirPrecios() {
         const sizes = r.names.map(n=>n.match(/(XS|S|M|L|XL)$/)?.[0]||n).join(' \u00b7 ');
         nombre = '<span class="name">'+base+'</span> <span class="sub">'+sizes+'</span>';
       }
-      tableRows += '<tr><td>'+nombre+'</td><td class="usd profe">'+fmtU(r.pu)+'</td><td class="ars profe">'+fmt(r.pu)+'</td><td class="usd turista">'+fmtU(r.tu)+'</td><td class="ars turista">'+fmt(r.tu)+'</td></tr>';
+      let altaUsd, altaArs;
+      if (r.tipo==='bota') {
+        // Botas: una sola venta, sin precio Alta → usamos el espacio para el costo (referencia interna)
+        altaUsd = '<td class="usd" style="color:#888;">'+(r.cu?'Costo u$s '+r.cu:'—')+'</td>';
+        altaArs = '<td class="ars" style="color:#888;font-weight:400;">—</td>';
+      } else {
+        altaUsd = '<td class="usd turista">'+fmtU(r.tu)+'</td>';
+        altaArs = '<td class="ars turista">'+fmt(r.tu)+'</td>';
+      }
+      tableRows += '<tr><td>'+nombre+'</td><td class="usd profe">'+fmtU(r.pu)+'</td><td class="ars profe">'+fmt(r.pu)+'</td>'+altaUsd+altaArs+'</tr>';
     });
   });
+  // Bloque de alias / formas de pago
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const pgRow = (lbl, val) => val ? '<div class="pg-row"><span class="pg-lbl">'+esc(lbl)+'</span><span class="pg-val">'+esc(val)+'</span></div>' : '';
+  const P_ = D.pagos || {jua:{},coco:{}};
+  const juaRows = pgRow('MP Jua', P_.jua?.mp) + pgRow('MP Jua USD', P_.jua?.mpusd) + pgRow('Macro Jua', P_.jua?.macro);
+  const cocoRows = pgRow('MP Coco', P_.coco?.mp) + pgRow('Macro Coco', P_.coco?.macro) + pgRow('Macro Coco USD', P_.coco?.macrousd) + pgRow('Santander Coco', P_.coco?.santander);
+  let pagosHtml = '';
+  if (juaRows || cocoRows) {
+    pagosHtml = '<div class="pagos"><div class="pagos-t">Formas de pago \u00b7 Alias</div><div class="pagos-cols">'
+      + (juaRows ? '<div class="pg-col"><div class="pg-name">Jua</div>'+juaRows+'</div>' : '')
+      + (cocoRows ? '<div class="pg-col"><div class="pg-name">Coco</div>'+cocoRows+'</div>' : '')
+      + '<\/div><\/div>';
+  }
   const win = window.open('','_blank');
   win.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Lista de Precios \u2014 Otto\'s Boot Room<\/title>'
   + '<style>@import url(\'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap\');'
@@ -5923,12 +6645,19 @@ function imprimirPrecios() {
   + 'td.profe{color:#1565c0;}td.turista{color:#e65100;}td.usd.profe{color:#1565c080;}td.usd.turista{color:#e6510080;}'
   + 'tr.cat-row td{background:#f6f6f6;font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;color:#333;padding:6px 8px;border-bottom:none;border-top:4px solid #fff;}'
   + '.legend{display:flex;gap:16px;margin-top:14px;padding-top:8px;border-top:1px solid #e2e2e2;font-size:9px;color:#888;}.legend span{display:flex;align-items:center;gap:4px;}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}'
+  + '.pagos{margin-top:16px;padding-top:10px;border-top:1.5px solid #D32F2F;}'
+  + '.pagos-t{font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#333;margin-bottom:8px;}'
+  + '.pagos-cols{display:flex;gap:48px;flex-wrap:wrap;}.pg-col{min-width:200px;}'
+  + '.pg-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#D32F2F;margin-bottom:4px;}'
+  + '.pg-row{display:flex;justify-content:space-between;gap:16px;padding:2px 0;font-size:10px;border-bottom:1px dotted #eee;}'
+  + '.pg-lbl{color:#777;}.pg-val{font-family:\'DM Mono\',monospace;font-weight:500;color:#1a1a1a;}'
   + '<\/style><\/head><body>'
   + '<div class="header"><div class="logo-wrap"><div class="logo-circle"><\/div><div class="brand"><div class="brand-name">OTTO\'S BOOT ROOM<\/div><div class="brand-sub">Bariloche \u00b7 Argentina<\/div><\/div><\/div>'
   + '<div class="header-right"><div class="fecha">Lista de precios \u00b7 '+hoy+'<\/div><div class="dolar">D\u00f3lar $'+dol.toLocaleString('es-AR')+'<\/div><\/div><\/div>'
-  + '<table><thead><tr><th>Producto \/ Servicio<\/th><th class="num" style="color:#1565c0;">Profe u$s<\/th><th class="num" style="color:#1565c0;">Profe $ARS<\/th><th class="num" style="color:#e65100;">Turista u$s<\/th><th class="num" style="color:#e65100;">Turista $ARS<\/th><\/tr><\/thead>'
+  + '<table><thead><tr><th>Producto \/ Servicio<\/th><th class="num" style="color:#1565c0;">Baja u$s<\/th><th class="num" style="color:#1565c0;">Baja $ARS<\/th><th class="num" style="color:#e65100;">Alta u$s<\/th><th class="num" style="color:#e65100;">Alta $ARS<\/th><\/tr><\/thead>'
   + '<tbody>'+tableRows+'<\/tbody><\/table>'
-  + '<div class="legend"><span><span class="dot" style="background:#1565c0;"><\/span> Precio Profe \/ Local<\/span><span><span class="dot" style="background:#e65100;"><\/span> Precio Turista<\/span><\/div>'
+  + '<div class="legend"><span><span class="dot" style="background:#1565c0;"><\/span> Precio Baja<\/span><span><span class="dot" style="background:#e65100;"><\/span> Precio Alta<\/span><\/div>'
+  + pagosHtml
   + '<script>window.onload=function(){window.print();}<\/script><\/body><\/html>');
   win.document.close();
 }
