@@ -1724,7 +1724,7 @@ x2 gramaje 60</div>
         <div class="bal-sub"><span id="afip-jua-fact">0</span> facturadas · <span id="afip-jua-pend">0</span> pendientes</div>
       </div>
       <div class="bal-card" style="border-left:3px solid var(--turista);">
-        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco arg</div>
+        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco arg + Macro Coco usd</div>
         <div class="bal-val" id="afip-coco-total" style="color:var(--turista);">$0<div style="font-size:13px;font-weight:400;color:var(--txt2);margin-top:2px;">≈ u$s 0</div></div>
         <div class="bal-sub"><span id="afip-coco-fact">0</span> facturadas · <span id="afip-coco-pend">0</span> pendientes</div>
       </div>
@@ -4204,7 +4204,7 @@ function rAfip(allVentas) {
         if (isUSD) {
           const numMatch = part.match(/u\$s\s*([\d.]+)/);
           usdAmt = numMatch ? parseFloat(numMatch[1]) : 0;
-          arsAmt = usdAmt * dol;
+          arsAmt = usdAmt * (v.dol || dol); // usar TC del día de la venta
         } else {
           const numMatch = part.match(/([\d.,]+)\s*ARS/);
           arsAmt = numMatch ? parseFloat(numMatch[1].replace(/\./g,'').replace(',','.')) : 0;
