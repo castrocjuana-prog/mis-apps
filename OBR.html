@@ -1,7 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0060)file:///C:/Users/juani/Downloads/ottos-boot-room%20(58).html -->
-<html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="es"><head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Otto's Boot Room</title>
 <link href="file:///C:/Users/juani/Downloads/OBR_files/css2" rel="stylesheet">
@@ -1645,7 +1643,7 @@ x2 gramaje 60</div>
           <optgroup label="Productos">
             <option value="plantilla">Plantillas</option>
             <option value="booster">Boosters</option>
-            <option value="plaquita">Lifters</option>
+            <option value="plaquita">Plaquitas</option>
             <option value="media">Medias</option>
             <option value="bota">Botas</option>
           </optgroup>
@@ -1717,7 +1715,7 @@ x2 gramaje 60</div>
 
   <div style="margin-top:20px;">
     <div class="st" style="font-size:16px;margin-bottom:4px;">AFIP / MONOTRIBUTO</div>
-    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Santander + MP COCO + Macro Coco (ARS y USD) = declara Coco · Macro jua + MP JUA = declarás vos. Tildá las ventas que ya facturaste. Los montos en USD se convierten a pesos al TC del día.</p>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Santander + MP COCO + Macro Coco arg = declara Coco · Macro jua + MP JUA = declarás vos. Tildá las ventas que ya facturaste.</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
       <div class="bal-card" style="border-left:3px solid var(--profe);">
@@ -1726,7 +1724,7 @@ x2 gramaje 60</div>
         <div class="bal-sub"><span id="afip-jua-fact">0</span> facturadas · <span id="afip-jua-pend">0</span> pendientes</div>
       </div>
       <div class="bal-card" style="border-left:3px solid var(--turista);">
-        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco</div>
+        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco arg</div>
         <div class="bal-val" id="afip-coco-total" style="color:var(--turista);">$0<div style="font-size:13px;font-weight:400;color:var(--txt2);margin-top:2px;">≈ u$s 0</div></div>
         <div class="bal-sub"><span id="afip-coco-fact">0</span> facturadas · <span id="afip-coco-pend">0</span> pendientes</div>
       </div>
@@ -2427,7 +2425,6 @@ const D = {
 // BOOT
 // ─────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('%cOBR build: top-productos-cat-fix ✓','color:#D32F2F;font-weight:bold;font-size:14px;');
   const c = localStorage.getItem('ottos_cr');
   const sid = localStorage.getItem('ottos_sid');
   if (c && sid) {
@@ -2740,7 +2737,7 @@ async function lV() {
       try { if (r[13]) itemsDetail = JSON.parse(r[13]); } catch(e) {}
       return {
         _r: i+2,
-        fecha:toISO(r[0]||''), cli:r[1]||'', tipo:r[2]||'', items:r[3]||'', obs:r[4]||'',
+        fecha:r[0]||'', cli:r[1]||'', tipo:r[2]||'', items:r[3]||'', obs:r[4]||'',
         pp:parseFloat(r[5])||0, up:parseFloat(r[6])||0,
         pex:parseFloat(r[7])||0, uex:parseFloat(r[8])||0,
         tusd:parseFloat(r[9])||0, mp:r[10]||'', dol:parseFloat(r[11])||D.cfg.dol,
@@ -2810,7 +2807,7 @@ async function loadGPTaller() {
         // sub field distinguishes Inversión vs Temporada; default to Obra/Infraestructura
         const cat = g.sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
         all.push({
-          f: toISO(g.f || ''),
+          f: g.f || '',
           n: g.d || '',
           c: cat,
           p: g.m || 0,
@@ -2874,7 +2871,7 @@ async function lG() {
     // Pad row to at least 7 cols — API drops trailing empty cells
     while (r.length < 7) r.push('');
     return {
-      _r:i+2, f:toISO(r[0]||''), n:r[1]||'', c:r[2]||'',
+      _r:i+2, f:r[0]||'', n:r[1]||'', c:r[2]||'',
       p:parseFloat(r[3])||0, u:parseFloat(r[4])||0, m:r[5]||'', det:r[6]||''
     };
   }).filter(g => g.n);
@@ -3850,7 +3847,7 @@ async function loadAllVentas() {
         let itemsDetail = null;
         try { if (r[13]) itemsDetail = JSON.parse(r[13]); } catch(e) {}
         return {
-          _r:i+2, fecha:toISO(r[0]||''), cli:r[1]||'', tipo:r[2]||'', items:r[3]||'', obs:r[4]||'',
+          _r:i+2, fecha:r[0]||'', cli:r[1]||'', tipo:r[2]||'', items:r[3]||'', obs:r[4]||'',
           pp:parseFloat(r[5])||0, up:parseFloat(r[6])||0,
           pex:parseFloat(r[7])||0, uex:parseFloat(r[8])||0,
           tusd:parseFloat(r[9])||0, mp:r[10]||'', dol:parseFloat(r[11])||D.cfg.dol,
@@ -3861,14 +3858,6 @@ async function loadAllVentas() {
     } catch(e) {}
   }
   return allVentas;
-}
-
-// Lifters y Plaquitas son la misma categoría (nombres históricos distintos)
-function matchCat(itCat, targetCat) {
-  if (itCat === targetCat) return true;
-  if (targetCat === 'Lifters' && itCat === 'Plaquitas') return true;
-  if (targetCat === 'Plaquitas' && itCat === 'Lifters') return true;
-  return false;
 }
 
 async function rbal() {
@@ -3884,27 +3873,10 @@ async function rbal() {
   document.getElementById('bal-ing').textContent = '...';
   const allVentas = await loadAllVentas();
 
-  // Sanitizar categorías en itemsDetail contra D.productos (corrige datos mal guardados)
-  // Los lifters se guardan con nombre compuesto "5mm Salomon — Freza", buscar también por nombre base
-  const prodCatMap = {};
-  D.productos.forEach(p => { prodCatMap[p.n] = p.c; });
-  allVentas.forEach(v => {
-    if (!v.itemsDetail) return;
-    v.itemsDetail = v.itemsDetail.map(it => {
-      // Buscar nombre exacto primero, luego nombre base (sin sufijo " — Xxx")
-      const baseName = it.n.replace(/ — (Suelta|Recambio|Freza)$/, '').trim();
-      const correctCat = prodCatMap[it.n] || prodCatMap[baseName];
-      if (correctCat && !matchCat(correctCat, it.cat)) {
-        return {...it, cat: correctCat};
-      }
-      return it;
-    });
-  });
-
   // Filter
   let ventas = allVentas;
-  if (de)    ventas = ventas.filter(v => toISO(v.fecha) >= de);
-  if (ha)    ventas = ventas.filter(v => toISO(v.fecha) <= ha);
+  if (de)    ventas = ventas.filter(v => v.fecha >= de);
+  if (ha)    ventas = ventas.filter(v => v.fecha <= ha);
   if (tipo)  ventas = ventas.filter(v => v.tipo === tipo);
   // Helper: parse mixto parts from obs, returns [{mp, ars, usd}] or null
   function parseMixtoParts(v, dol) {
@@ -3950,11 +3922,11 @@ async function rbal() {
       ventas = ventas.filter(v => {
         // Use itemsDetail if available (new ventas)
         if (v.itemsDetail) {
-          return v.itemsDetail.some(it => matchCat(it.cat, targetCat));
+          return v.itemsDetail.some(it => it.cat === targetCat);
         }
-        // Fallback for old ventas: match by name or base name (sin sufijo — Suelta/Recambio/Freza)
+        // Fallback for old ventas: exact product name match
         const prodNames = D.productos
-          .filter(p => matchCat(p.c, targetCat))
+          .filter(p => p.c === targetCat)
           .map(p => p.n.toLowerCase().trim());
         const botaMarcas = targetCat === 'Botas'
           ? [...new Set(D.botas.map(b => b.marca.toLowerCase()))]
@@ -3963,8 +3935,7 @@ async function rbal() {
         return v.items.split(',').some(raw => {
           const m = raw.trim().match(/^(\d+)x\s+(.+)$/i);
           const name = (m ? m[2] : raw.trim()).toLowerCase().trim();
-          const baseName = name.replace(/ — (suelta|recambio|freza)$/, '').trim();
-          return prodNames.some(pn => pn === name || pn === baseName) ||
+          return prodNames.some(pn => pn === name) ||
                  botaMarcas.some(bm => name.includes(bm));
         });
       });
@@ -3998,7 +3969,7 @@ async function rbal() {
       const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
       const targetCat = catMap[itemF];
       if (targetCat) {
-        return v.itemsDetail.filter(it => matchCat(it.cat, targetCat)).reduce((a,it) => a + it.real, 0);
+        return v.itemsDetail.filter(it => it.cat === targetCat).reduce((a,it) => a + it.real, 0);
       } else if (itemF === 'servicio') {
         return v.itemsDetail.filter(it => it.cat === 'Servicios').reduce((a,it) => a + it.real, 0);
       } else {
@@ -4023,16 +3994,20 @@ async function rbal() {
   // Gastos — separar temporada (afecta neta) de inversión (recuadro separado)
   let gastosAll = [...D.gastos.map(g => ({...g, src:'obr'}))];
   const gpAll = _gpTaller;
-  if (de) { gastosAll = gastosAll.filter(g => toISO(g.f) >= de); }
-  if (ha) { gastosAll = gastosAll.filter(g => toISO(g.f) <= ha); }
-  const gpGastosFilt = gpAll.filter(g => (!de||toISO(g.f)>=de)&&(!ha||toISO(g.f)<=ha));
+  if (de) { gastosAll = gastosAll.filter(g => g.f >= de); }
+  if (ha) { gastosAll = gastosAll.filter(g => g.f <= ha); }
+  const gpGastosFilt = gpAll.filter(g => (!de||g.f>=de)&&(!ha||g.f<=ha));
 
-  // Clasificar igual que la página de Gastos (isInversion mira la categoría, no solo el origen):
-  // - gp-fijo y cualquier gasto con cat=Temporada → Temporada
-  // - todo lo demás → Inversión
-  const allGastosBal = [...gastosAll, ...gpGastosFilt];
-  const gastosTemp = allGastosBal.filter(g => !isInversion(g));
-  const gastosInv  = allGastosBal.filter(g =>  isInversion(g));
+  // Temporada: cat=Temporada (OBR) + gp-fijo
+  const gastosTemp = [
+    ...gastosAll.filter(g => g.c === 'Temporada'),
+    ...gpGastosFilt.filter(g => g.src === 'gp-fijo')
+  ];
+  // Inversión: todo lo demás (OBR no-Temporada + gp variables)
+  const gastosInv = [
+    ...gastosAll.filter(g => g.c !== 'Temporada'),
+    ...gpGastosFilt.filter(g => g.src === 'gp')
+  ];
 
   const gasUsd     = gastosTemp.reduce((a,g) => a + (g.u || (g.p ? g.p/dol : 0)), 0);
   const gasInvUsd  = gastosInv.reduce((a,g)  => a + (g.u || (g.p ? g.p/dol : 0)), 0);
@@ -4066,7 +4041,7 @@ async function rbal() {
       const relevantItems = itemF ? (() => {
         const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
         const tc = catMap[itemF];
-        return tc ? v.itemsDetail.filter(it => matchCat(it.cat, tc))
+        return tc ? v.itemsDetail.filter(it => it.cat === tc)
                   : v.itemsDetail.filter(it => it.cat === 'Servicios' && it.n.toLowerCase().includes(itemF));
       })() : v.itemsDetail;
       return a + relevantItems.reduce((s, it) => {
@@ -4154,7 +4129,7 @@ async function rbal() {
       const targetCat = catMap[itemF];
       const relevant = itemF
         ? (targetCat
-            ? v.itemsDetail.filter(it => matchCat(it.cat, targetCat))
+            ? v.itemsDetail.filter(it => it.cat === targetCat)
             : itemF === 'servicio'
               ? v.itemsDetail.filter(it => it.cat === 'Servicios')
               : v.itemsDetail.filter(it => it.cat === 'Servicios' && it.n.toLowerCase().includes(itemF)))
@@ -4164,21 +4139,12 @@ async function rbal() {
         itemUsd[it.n]   = (itemUsd[it.n]||0) + it.real;
       });
     } else {
-      // Fallback for old ventas — filtrar por categoría si hay filtro activo
-      const catMap2 = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
-      const targetCat2 = catMap2[itemF];
-      const allowedNames = targetCat2
-        ? new Set(D.productos.filter(p => matchCat(p.c, targetCat2)).map(p => p.n.toLowerCase().trim()))
-        : null;
+      // Fallback for old ventas
       v.items.split(',').forEach(raw => {
         const match = raw.trim().match(/^(\d+x\s+)?(.+)$/);
         if (!match) return;
         const qty = parseInt(match[1])||1;
         const name = match[2].trim();
-        const nameLow = name.toLowerCase().trim();
-        const baseLow = nameLow.replace(/ — (suelta|recambio|freza)$/, '').trim();
-        // Si hay filtro de categoría, solo incluir items que pertenecen a esa categoría
-        if (allowedNames && !allowedNames.has(nameLow) && !allowedNames.has(baseLow)) return;
         itemCount[name] = (itemCount[name]||0) + qty;
         itemUsd[name] = (itemUsd[name]||0) + (v.tusd>0 ? (v.tusd/((v.items.split(',').length)||1)) : 0);
       });
@@ -4212,7 +4178,7 @@ function balResetFiltros() {
 
 function rAfip(allVentas) {
   const mpJua   = ['Macro jua','MP JUA'];
-  const mpCoco  = ['Santander','MP COCO','Macro Coco arg','Macro Coco usd'];
+  const mpCoco  = ['Santander','MP COCO','Macro Coco arg'];
   const dol = D.cfg.dol || 1400;
 
   // Parse a venta into AFIP-relevant "entries" (handles mixto by splitting)
@@ -4293,7 +4259,7 @@ function rAfip(allVentas) {
     try { const j=JSON.parse(v.fact||'{}'); factJua=!!j.Jua; factCoco=!!j.Coco; }
     catch(e) { factJua=v.fact==='✓'; factCoco=v.fact==='✓'; }
     const fact = quien==='Jua' ? factJua : factCoco;
-    const arsStr = arsAmount > 0 ? '$'+Math.round(arsAmount).toLocaleString('es-AR')+(mp==='Macro Coco usd'&&usdAmount>0?'<span style="font-size:10px;color:var(--txt3);margin-left:4px;">(u$s '+Math.round(usdAmount)+')</span>':'') : '—';
+    const arsStr = arsAmount > 0 ? '$'+Math.round(arsAmount).toLocaleString('es-AR') : '—';
     return `<tr style="${fact?'opacity:0.55':''}">
       <td style="width:32px;text-align:center;">
         <span style="font-size:16px;cursor:pointer;" onclick="toggleFacturado(${v._r},'2026',this,'${quien}')" title="${fact?'Marcar como NO facturado':'Marcar como facturado'}">${fact?'✅':'⬜'}</span>
@@ -6395,22 +6361,7 @@ function tst(msg,type='') {
   setTimeout(() => t.classList.remove('on'), 2800);
 }
 function e(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function toISO(d) {
-  if (!d) return '';
-  d = String(d).trim();
-  if (/^\d{4}-\d{1,2}-\d{1,2}/.test(d)) {
-    const p = d.slice(0,10).split('-');
-    return `${p[0]}-${p[1].padStart(2,'0')}-${p[2].padStart(2,'0')}`;
-  }
-  const m = d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (m) {
-    let dd=m[1], mm=m[2], yy=m[3];
-    if (yy.length===2) yy='20'+yy;
-    return `${yy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
-  }
-  return d;
-}
-function fd(d) { if(!d)return'—'; const p=toISO(d).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:d; }
+function fd(d) { if(!d)return'—'; const p=d.split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:d; }
 function mpb(mp) {
   if(!mp)return'bx-x'; const m=mp.toLowerCase();
   if(m.includes('efectivo'))return'bx-g';
