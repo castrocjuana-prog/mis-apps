@@ -2725,6 +2725,7 @@ async function loadAll() {
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
+    await recalcStockFromVentas();
   }
   catch(e) { tst('Error cargando: '+e.message, 'err'); console.error(e); }
   spin(false);
