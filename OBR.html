@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="es"><head>
+<!-- saved from url=(0060)file:///C:/Users/juani/Downloads/ottos-boot-room%20(58).html -->
+<html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Otto's Boot Room</title>
 <link href="file:///C:/Users/juani/Downloads/OBR_files/css2" rel="stylesheet">
@@ -1724,7 +1726,7 @@ x2 gramaje 60</div>
         <div class="bal-sub"><span id="afip-jua-fact">0</span> facturadas · <span id="afip-jua-pend">0</span> pendientes</div>
       </div>
       <div class="bal-card" style="border-left:3px solid var(--turista);">
-        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco arg + Macro Coco usd</div>
+        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco arg</div>
         <div class="bal-val" id="afip-coco-total" style="color:var(--turista);">$0<div style="font-size:13px;font-weight:400;color:var(--txt2);margin-top:2px;">≈ u$s 0</div></div>
         <div class="bal-sub"><span id="afip-coco-fact">0</span> facturadas · <span id="afip-coco-pend">0</span> pendientes</div>
       </div>
@@ -2793,57 +2795,55 @@ async function loadGPTaller() {
   if (!D.cr) return;
   try {
     const t = await getT();
+    const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('CONFIG!A1:B2')}`, {headers:{Authorization:`Bearer ${t}`}});
+    const d = await r.json();
+    const vals = d.values || [];
+    const dataRow = vals.find(r => r[0] === 'data');
+    if (!dataRow || !dataRow[1]) return;
+    const gpData = JSON.parse(dataRow[1]);
+    // Extraer todos los gastos de categoría Taller de todos los meses
     const all = [];
-    const yr = new Date().getFullYear();
-
-    // Leer VARS (gastos variables) y FIJOS desde las pestañas nuevas del Sheet de GP
-    const ranges = ['VARS!A1:H10000','FIJOS!A1:AG500'];
-    const resp = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values:batchGet?${ranges.map(r=>'ranges='+encodeURIComponent(r)).join('&')}`, {headers:{Authorization:`Bearer ${t}`}});
-    const dd = await resp.json();
-    const getRows = i => (dd.valueRanges||[])[i]?.values||[];
-
-    // VARS — gastos variables categoría Taller
-    const varsRows = getRows(0).slice(1); // skip header
-    varsRows.filter(r => r[5] === 'Taller').forEach(r => {
-      const sub = r[7] || '';
-      const cat = sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
-      all.push({
-        f: r[3] || '',
-        n: r[4] || '',
-        c: cat,
-        p: Number(r[6]) || 0,
-        u: 0,
-        m: 'Gastos Personales',
-        det: '',
-        src: 'gp',
-        id: r[2]
+    // Gastos variables Taller
+    Object.entries(gpData.vars || {}).forEach(([mes, gastos]) => {
+      (gastos || []).filter(g => g.c === 'Taller').forEach(g => {
+        // sub field distinguishes Inversión vs Temporada; default to Obra/Infraestructura
+        const cat = g.sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
+        all.push({
+          f: g.f || '',
+          n: g.d || '',
+          c: cat,
+          p: g.m || 0,
+          u: 0,
+          m: 'Gastos Personales',
+          det: '',
+          src: 'gp',
+          id: g.id
+        });
       });
     });
-
-    // FIJOS — gastos fijos categoría Taller
-    const fijosRows = getRows(1).slice(1); // skip header
-    fijosRows.filter(r => r[3] === 'Taller' && r[4] !== 'anual').forEach(r => {
-      const fijosYear = Number(r[0]) || yr;
-      // m1..m12 are columns 6..17
-      for (let i = 1; i <= 12; i++) {
-        const monto = Number(r[5 + i]) || 0;
-        if (!monto) continue;
-        const mm = String(i).padStart(2,'0');
-        const fecha = `${fijosYear}-${mm}-01`;
-        all.push({
-          f: fecha,
-          n: r[2] || '',
-          c: 'Gasto Fijo',
-          p: monto,
-          u: 0,
-          m: 'Gastos Personales (fijo)',
-          det: '',
-          src: 'gp-fijo',
-          id: `fijo-${r[1]}-${i}`
+    // Gastos fijos Taller — cada mes con monto > 0
+    const yr = new Date().getFullYear();
+    const fijosYear = gpData.fijosYears ? Math.max(...gpData.fijosYears) : yr;
+    (gpData.fijos?.[fijosYear] || gpData.fijos || [])
+      .filter(f => f.cat === 'Taller' && f.tipo !== 'anual')
+      .forEach(f => {
+        Object.entries(f.m || {}).forEach(([mesNum, monto]) => {
+          if (!monto) return;
+          const mm = String(mesNum).padStart(2,'0');
+          const fecha = `${fijosYear}-${mm}-01`;
+          all.push({
+            f: fecha,
+            n: f.n || '',
+            c: 'Gasto Fijo',
+            p: monto,
+            u: 0,
+            m: 'Gastos Personales (fijo)',
+            det: '',
+            src: 'gp-fijo',
+            id: `fijo-${f.id}-${mesNum}`
+          });
         });
-      }
-    });
-
+      });
     _gpTaller = all.sort((a,b) => b.f.localeCompare(a.f));
   } catch(e) {
     console.warn('loadGPTaller error:', e);
@@ -4141,14 +4141,30 @@ async function rbal() {
         itemUsd[it.n]   = (itemUsd[it.n]||0) + it.real;
       });
     } else {
-      // Fallback for old ventas
+      // Fallback for old ventas — filter by category if itemF active
+      const fbCatMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
+      const fbTargetCat = fbCatMap[itemF];
+      const fbProdNames = fbTargetCat
+        ? D.productos.filter(p => p.c === fbTargetCat).map(p => p.n.toLowerCase().trim())
+        : null;
+      const fbBotaMarcas = fbTargetCat === 'Botas'
+        ? [...new Set(D.botas.map(b => b.marca.toLowerCase()))]
+        : [];
+      const totalItems = v.items.split(',').length || 1;
       v.items.split(',').forEach(raw => {
         const match = raw.trim().match(/^(\d+x\s+)?(.+)$/);
         if (!match) return;
         const qty = parseInt(match[1])||1;
         const name = match[2].trim();
+        const nameLow = name.toLowerCase().trim();
+        // If category filter active, only include items matching that category
+        if (fbProdNames) {
+          const inCat = fbProdNames.some(pn => pn === nameLow) ||
+                        fbBotaMarcas.some(bm => nameLow.includes(bm));
+          if (!inCat) return;
+        }
         itemCount[name] = (itemCount[name]||0) + qty;
-        itemUsd[name] = (itemUsd[name]||0) + (v.tusd>0 ? (v.tusd/((v.items.split(',').length)||1)) : 0);
+        itemUsd[name] = (itemUsd[name]||0) + (v.tusd>0 ? (v.tusd/totalItems) : 0);
       });
     }
   });
@@ -4180,7 +4196,7 @@ function balResetFiltros() {
 
 function rAfip(allVentas) {
   const mpJua   = ['Macro jua','MP JUA'];
-  const mpCoco  = ['Santander','MP COCO','Macro Coco arg','Macro Coco usd'];
+  const mpCoco  = ['Santander','MP COCO','Macro Coco arg'];
   const dol = D.cfg.dol || 1400;
 
   // Parse a venta into AFIP-relevant "entries" (handles mixto by splitting)
@@ -4204,7 +4220,7 @@ function rAfip(allVentas) {
         if (isUSD) {
           const numMatch = part.match(/u\$s\s*([\d.]+)/);
           usdAmt = numMatch ? parseFloat(numMatch[1]) : 0;
-          arsAmt = usdAmt * (v.dol || dol); // usar TC del día de la venta
+          arsAmt = usdAmt * dol;
         } else {
           const numMatch = part.match(/([\d.,]+)\s*ARS/);
           arsAmt = numMatch ? parseFloat(numMatch[1].replace(/\./g,'').replace(',','.')) : 0;
