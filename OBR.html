@@ -1645,7 +1645,7 @@ x2 gramaje 60</div>
           <optgroup label="Productos">
             <option value="plantilla">Plantillas</option>
             <option value="booster">Boosters</option>
-            <option value="plaquita">Plaquitas</option>
+            <option value="plaquita">Lifters</option>
             <option value="media">Medias</option>
             <option value="bota">Botas</option>
           </optgroup>
@@ -1717,7 +1717,7 @@ x2 gramaje 60</div>
 
   <div style="margin-top:20px;">
     <div class="st" style="font-size:16px;margin-bottom:4px;">AFIP / MONOTRIBUTO</div>
-    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Santander + MP COCO + Macro Coco arg = declara Coco · Macro jua + MP JUA = declarás vos. Tildá las ventas que ya facturaste.</p>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Santander + MP COCO + Macro Coco (ARS y USD) = declara Coco · Macro jua + MP JUA = declarás vos. Tildá las ventas que ya facturaste. Los montos en USD se convierten a pesos al TC del día.</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
       <div class="bal-card" style="border-left:3px solid var(--profe);">
@@ -1726,7 +1726,7 @@ x2 gramaje 60</div>
         <div class="bal-sub"><span id="afip-jua-fact">0</span> facturadas · <span id="afip-jua-pend">0</span> pendientes</div>
       </div>
       <div class="bal-card" style="border-left:3px solid var(--turista);">
-        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco arg</div>
+        <div class="bal-lbl" style="color:var(--turista);">COCO — Santander + MP COCO + Macro Coco</div>
         <div class="bal-val" id="afip-coco-total" style="color:var(--turista);">$0<div style="font-size:13px;font-weight:400;color:var(--txt2);margin-top:2px;">≈ u$s 0</div></div>
         <div class="bal-sub"><span id="afip-coco-fact">0</span> facturadas · <span id="afip-coco-pend">0</span> pendientes</div>
       </div>
@@ -2427,7 +2427,7 @@ const D = {
 // BOOT
 // ─────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  console.log('%cOBR build: gastos-temporada-fix-v3 ✓','color:#D32F2F;font-weight:bold;font-size:14px;');
+  console.log('%cOBR build: top-productos-cat-fix ✓','color:#D32F2F;font-weight:bold;font-size:14px;');
   const c = localStorage.getItem('ottos_cr');
   const sid = localStorage.getItem('ottos_sid');
   if (c && sid) {
@@ -3863,6 +3863,14 @@ async function loadAllVentas() {
   return allVentas;
 }
 
+// Lifters y Plaquitas son la misma categoría (nombres históricos distintos)
+function matchCat(itCat, targetCat) {
+  if (itCat === targetCat) return true;
+  if (targetCat === 'Lifters' && itCat === 'Plaquitas') return true;
+  if (targetCat === 'Plaquitas' && itCat === 'Lifters') return true;
+  return false;
+}
+
 async function rbal() {
   const dol = D.cfg.dol;
   const de   = document.getElementById('bal-de')?.value||'';
@@ -3875,6 +3883,23 @@ async function rbal() {
   // Load all years
   document.getElementById('bal-ing').textContent = '...';
   const allVentas = await loadAllVentas();
+
+  // Sanitizar categorías en itemsDetail contra D.productos (corrige datos mal guardados)
+  // Los lifters se guardan con nombre compuesto "5mm Salomon — Freza", buscar también por nombre base
+  const prodCatMap = {};
+  D.productos.forEach(p => { prodCatMap[p.n] = p.c; });
+  allVentas.forEach(v => {
+    if (!v.itemsDetail) return;
+    v.itemsDetail = v.itemsDetail.map(it => {
+      // Buscar nombre exacto primero, luego nombre base (sin sufijo " — Xxx")
+      const baseName = it.n.replace(/ — (Suelta|Recambio|Freza)$/, '').trim();
+      const correctCat = prodCatMap[it.n] || prodCatMap[baseName];
+      if (correctCat && !matchCat(correctCat, it.cat)) {
+        return {...it, cat: correctCat};
+      }
+      return it;
+    });
+  });
 
   // Filter
   let ventas = allVentas;
@@ -3925,11 +3950,11 @@ async function rbal() {
       ventas = ventas.filter(v => {
         // Use itemsDetail if available (new ventas)
         if (v.itemsDetail) {
-          return v.itemsDetail.some(it => it.cat === targetCat);
+          return v.itemsDetail.some(it => matchCat(it.cat, targetCat));
         }
-        // Fallback for old ventas: exact product name match
+        // Fallback for old ventas: match by name or base name (sin sufijo — Suelta/Recambio/Freza)
         const prodNames = D.productos
-          .filter(p => p.c === targetCat)
+          .filter(p => matchCat(p.c, targetCat))
           .map(p => p.n.toLowerCase().trim());
         const botaMarcas = targetCat === 'Botas'
           ? [...new Set(D.botas.map(b => b.marca.toLowerCase()))]
@@ -3938,7 +3963,8 @@ async function rbal() {
         return v.items.split(',').some(raw => {
           const m = raw.trim().match(/^(\d+)x\s+(.+)$/i);
           const name = (m ? m[2] : raw.trim()).toLowerCase().trim();
-          return prodNames.some(pn => pn === name) ||
+          const baseName = name.replace(/ — (suelta|recambio|freza)$/, '').trim();
+          return prodNames.some(pn => pn === name || pn === baseName) ||
                  botaMarcas.some(bm => name.includes(bm));
         });
       });
@@ -3972,7 +3998,7 @@ async function rbal() {
       const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
       const targetCat = catMap[itemF];
       if (targetCat) {
-        return v.itemsDetail.filter(it => it.cat === targetCat).reduce((a,it) => a + it.real, 0);
+        return v.itemsDetail.filter(it => matchCat(it.cat, targetCat)).reduce((a,it) => a + it.real, 0);
       } else if (itemF === 'servicio') {
         return v.itemsDetail.filter(it => it.cat === 'Servicios').reduce((a,it) => a + it.real, 0);
       } else {
@@ -4040,7 +4066,7 @@ async function rbal() {
       const relevantItems = itemF ? (() => {
         const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
         const tc = catMap[itemF];
-        return tc ? v.itemsDetail.filter(it => it.cat === tc)
+        return tc ? v.itemsDetail.filter(it => matchCat(it.cat, tc))
                   : v.itemsDetail.filter(it => it.cat === 'Servicios' && it.n.toLowerCase().includes(itemF));
       })() : v.itemsDetail;
       return a + relevantItems.reduce((s, it) => {
@@ -4128,7 +4154,7 @@ async function rbal() {
       const targetCat = catMap[itemF];
       const relevant = itemF
         ? (targetCat
-            ? v.itemsDetail.filter(it => it.cat === targetCat)
+            ? v.itemsDetail.filter(it => matchCat(it.cat, targetCat))
             : itemF === 'servicio'
               ? v.itemsDetail.filter(it => it.cat === 'Servicios')
               : v.itemsDetail.filter(it => it.cat === 'Servicios' && it.n.toLowerCase().includes(itemF)))
@@ -4138,12 +4164,21 @@ async function rbal() {
         itemUsd[it.n]   = (itemUsd[it.n]||0) + it.real;
       });
     } else {
-      // Fallback for old ventas
+      // Fallback for old ventas — filtrar por categoría si hay filtro activo
+      const catMap2 = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
+      const targetCat2 = catMap2[itemF];
+      const allowedNames = targetCat2
+        ? new Set(D.productos.filter(p => matchCat(p.c, targetCat2)).map(p => p.n.toLowerCase().trim()))
+        : null;
       v.items.split(',').forEach(raw => {
         const match = raw.trim().match(/^(\d+x\s+)?(.+)$/);
         if (!match) return;
         const qty = parseInt(match[1])||1;
         const name = match[2].trim();
+        const nameLow = name.toLowerCase().trim();
+        const baseLow = nameLow.replace(/ — (suelta|recambio|freza)$/, '').trim();
+        // Si hay filtro de categoría, solo incluir items que pertenecen a esa categoría
+        if (allowedNames && !allowedNames.has(nameLow) && !allowedNames.has(baseLow)) return;
         itemCount[name] = (itemCount[name]||0) + qty;
         itemUsd[name] = (itemUsd[name]||0) + (v.tusd>0 ? (v.tusd/((v.items.split(',').length)||1)) : 0);
       });
@@ -4177,7 +4212,7 @@ function balResetFiltros() {
 
 function rAfip(allVentas) {
   const mpJua   = ['Macro jua','MP JUA'];
-  const mpCoco  = ['Santander','MP COCO','Macro Coco arg'];
+  const mpCoco  = ['Santander','MP COCO','Macro Coco arg','Macro Coco usd'];
   const dol = D.cfg.dol || 1400;
 
   // Parse a venta into AFIP-relevant "entries" (handles mixto by splitting)
@@ -4258,7 +4293,7 @@ function rAfip(allVentas) {
     try { const j=JSON.parse(v.fact||'{}'); factJua=!!j.Jua; factCoco=!!j.Coco; }
     catch(e) { factJua=v.fact==='✓'; factCoco=v.fact==='✓'; }
     const fact = quien==='Jua' ? factJua : factCoco;
-    const arsStr = arsAmount > 0 ? '$'+Math.round(arsAmount).toLocaleString('es-AR') : '—';
+    const arsStr = arsAmount > 0 ? '$'+Math.round(arsAmount).toLocaleString('es-AR')+(mp==='Macro Coco usd'&&usdAmount>0?'<span style="font-size:10px;color:var(--txt3);margin-left:4px;">(u$s '+Math.round(usdAmount)+')</span>':'') : '—';
     return `<tr style="${fact?'opacity:0.55':''}">
       <td style="width:32px;text-align:center;">
         <span style="font-size:16px;cursor:pointer;" onclick="toggleFacturado(${v._r},'2026',this,'${quien}')" title="${fact?'Marcar como NO facturado':'Marcar como facturado'}">${fact?'✅':'⬜'}</span>
