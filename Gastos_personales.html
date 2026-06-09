@@ -3924,7 +3924,7 @@ function rAfip(){
             const usdMatch=part.match(/u\$s\s*([\d.,]+)\s*\/\s*(.+)/i);
             const arsMatch=part.match(/([\d.,]+)\s*(?:ARS|\$|pesos)?\s*\/\s*(.+)/i);
             if(usdMatch){monto=parseFloat(usdMatch[1].replace(',','.'))||0;isusd=true;med=usdMatch[2].trim();}
-            else if(arsMatch){monto=parseFloat(arsMatch[1].replace(',','.'))||0;med=arsMatch[2].trim();}
+            else if(arsMatch){monto=parseFloat(arsMatch[1].replace(/\./g,'').replace(',','.'))||0;med=arsMatch[2].trim();}
             if(med&&monto>0&&medios.some(m=>med.toLowerCase().includes(m))){
               montoAfip+=isusd?monto*dolar:monto;
             }
