@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: orden-botas-desde-sheet ✓');
+  console.log('OBR build: gp-sync+filtro+afip-coco-usd ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -2796,55 +2796,54 @@ async function loadGPTaller() {
   if (!D.cr) return;
   try {
     const t = await getT();
-    const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('CONFIG!A1:B2')}`, {headers:{Authorization:`Bearer ${t}`}});
-    const d = await r.json();
-    const vals = d.values || [];
-    const dataRow = vals.find(r => r[0] === 'data');
-    if (!dataRow || !dataRow[1]) return;
-    const gpData = JSON.parse(dataRow[1]);
-    // Extraer todos los gastos de categoría Taller de todos los meses
+    const yr = new Date().getFullYear();
     const all = [];
-    // Gastos variables Taller
-    Object.entries(gpData.vars || {}).forEach(([mes, gastos]) => {
+
+    // --- Gastos variables (pestaña VARS) ---
+    // Filas: mes | JSON-array-de-gastos
+    const rVars = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('VARS!A1:B200')}`, {headers:{Authorization:`Bearer ${t}`}});
+    const dVars = await rVars.json();
+    (dVars.values || []).forEach(row => {
+      if (!row[1]) return;
+      let gastos;
+      try { gastos = JSON.parse(row[1]); } catch(e) { return; }
       (gastos || []).filter(g => g.c === 'Taller').forEach(g => {
-        // sub field distinguishes Inversión vs Temporada; default to Obra/Infraestructura
         const cat = g.sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
-        all.push({
-          f: g.f || '',
-          n: g.d || '',
-          c: cat,
-          p: g.m || 0,
-          u: 0,
-          m: 'Gastos Personales',
-          det: '',
-          src: 'gp',
-          id: g.id
-        });
+        all.push({ f: g.f || '', n: g.d || '', c: cat, p: g.m || 0, u: 0,
+                   m: 'Gastos Personales', det: '', src: 'gp', id: g.id });
       });
     });
-    // Gastos fijos Taller — cada mes con monto > 0
-    const yr = new Date().getFullYear();
-    const fijosYear = gpData.fijosYears ? Math.max(...gpData.fijosYears) : yr;
-    (gpData.fijos?.[fijosYear] || gpData.fijos || [])
-      .filter(f => f.cat === 'Taller' && f.tipo !== 'anual')
-      .forEach(f => {
-        Object.entries(f.m || {}).forEach(([mesNum, monto]) => {
+
+    // --- Gastos fijos (pestaña FIJOS) ---
+    // Filas: id | nombre | cat | tipo | m1..m12 (columnas E-P) | ...
+    const rFijos = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('FIJOS!A1:P200')}`, {headers:{Authorization:`Bearer ${t}`}});
+    const dFijos = await rFijos.json();
+    const fijoRows = dFijos.values || [];
+    if (fijoRows.length > 1) {
+      const header = fijoRows[0].map(h => (h||'').toLowerCase().trim());
+      const iId   = header.indexOf('id');
+      const iNom  = header.indexOf('nombre') !== -1 ? header.indexOf('nombre') : header.indexOf('n');
+      const iCat  = header.indexOf('cat');
+      const iTipo = header.indexOf('tipo');
+      // month columns: m1..m12
+      const mCols = Array.from({length:12}, (_,i) => header.indexOf(`m${i+1}`));
+      fijoRows.slice(1).forEach(row => {
+        const cat  = row[iCat] || '';
+        const tipo = row[iTipo] || '';
+        if (cat !== 'Taller' || tipo === 'anual') return;
+        const nom = row[iNom] || '';
+        const id  = row[iId]  || '';
+        mCols.forEach((col, idx) => {
+          if (col === -1) return;
+          const monto = parseFloat(row[col]) || 0;
           if (!monto) return;
-          const mm = String(mesNum).padStart(2,'0');
-          const fecha = `${fijosYear}-${mm}-01`;
-          all.push({
-            f: fecha,
-            n: f.n || '',
-            c: 'Gasto Fijo',
-            p: monto,
-            u: 0,
-            m: 'Gastos Personales (fijo)',
-            det: '',
-            src: 'gp-fijo',
-            id: `fijo-${f.id}-${mesNum}`
-          });
+          const mm = String(idx + 1).padStart(2, '0');
+          all.push({ f: `${yr}-${mm}-01`, n: nom, c: 'Gasto Fijo', p: monto, u: 0,
+                     m: 'Gastos Personales (fijo)', det: '', src: 'gp-fijo', id: `fijo-${id}-${idx+1}` });
         });
       });
+    }
+
     _gpTaller = all.sort((a,b) => b.f.localeCompare(a.f));
   } catch(e) {
     console.warn('loadGPTaller error:', e);
@@ -4142,12 +4141,31 @@ async function rbal() {
         itemUsd[it.n]   = (itemUsd[it.n]||0) + it.real;
       });
     } else {
-      // Fallback for old ventas
+      // Fallback for old ventas — filter by category using product list
+      const catMap2 = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
+      const targetCat2 = catMap2[itemF];
+      const prodNames2 = targetCat2
+        ? D.productos.filter(p => p.c === targetCat2).map(p => p.n.toLowerCase().trim())
+        : null;
+      const botaMarcas2 = targetCat2 === 'Botas'
+        ? [...new Set(D.botas.map(b => b.marca.toLowerCase()))]
+        : [];
       v.items.split(',').forEach(raw => {
         const match = raw.trim().match(/^(\d+x\s+)?(.+)$/);
         if (!match) return;
         const qty = parseInt(match[1])||1;
         const name = match[2].trim();
+        const nameLow = name.toLowerCase().trim();
+        // If category filter active, only count items matching that category
+        if (targetCat2) {
+          const inCat = prodNames2.some(pn => pn === nameLow) ||
+                        botaMarcas2.some(bm => nameLow.includes(bm));
+          if (!inCat) return;
+        } else if (itemF === 'servicio') {
+          // services keyword filter for old ventas — skip non-service items
+          const servNames = D.servicios ? D.servicios.map(s => s.n.toLowerCase().trim()) : [];
+          if (!servNames.some(sn => nameLow.includes(sn))) return;
+        }
         itemCount[name] = (itemCount[name]||0) + qty;
         itemUsd[name] = (itemUsd[name]||0) + (v.tusd>0 ? (v.tusd/((v.items.split(',').length)||1)) : 0);
       });
@@ -4181,7 +4199,7 @@ function balResetFiltros() {
 
 function rAfip(allVentas) {
   const mpJua   = ['Macro jua','MP JUA'];
-  const mpCoco  = ['Santander','MP COCO','Macro Coco arg'];
+  const mpCoco  = ['Santander','MP COCO','Macro Coco arg','Macro Coco usd'];
   const dol = D.cfg.dol || 1400;
 
   // Parse a venta into AFIP-relevant "entries" (handles mixto by splitting)
