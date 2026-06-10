@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: regalos-como-gasto ✓');
+  console.log('OBR build: regalos-costo-real ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -4100,18 +4100,18 @@ async function rbal() {
 
   // Regalos — costo real de los productos regalados (desde itemsDetail + D.productos)
   // Servicios regalados tienen costo 0 (solo tiempo)
+  function costoDeItem(it) {
+    if (it.cat === 'Servicios') return 0;
+    // Strip suffixes like "— Recambio", "— Freza", "— Suelta" to find base product
+    const baseName = it.n.replace(/\s*[—–-]+\s*(Recambio|Freza|Suelta)\s*$/i, '').trim();
+    const prod = D.productos.find(p => p.n === it.n || p.n === baseName);
+    const bota = !prod ? D.botas.find(b => it.n.includes(b.mod)) : null;
+    return (prod?.cu || bota?.cu || 0) * (it.q || 1);
+  }
   const regLoss = regalos.reduce((a, v) => {
     if (v.itemsDetail && v.itemsDetail.length) {
-      const costo = v.itemsDetail.reduce((s, it) => {
-        if (it.cat === 'Servicios') return s; // servicio regalado = sin costo de insumo
-        const prod = D.productos.find(p => p.n === it.n);
-        const bota = !prod ? D.botas.find(b => it.n.includes(b.mod)) : null;
-        const cu = (prod?.cu || bota?.cu || 0) * (it.q || 1);
-        return s + cu;
-      }, 0);
-      return a + costo;
+      return a + v.itemsDetail.reduce((s, it) => s + costoDeItem(it), 0);
     }
-    // Fallback: si no tiene itemsDetail usar tusd como aproximación
     return a + Math.abs(v.tusd || 0);
   }, 0);
   const regCount = regalos.length;
@@ -4597,12 +4597,8 @@ async function saveVenta() {
   } else {
     iStr = D.sel.map(i => (i.q>1?i.q+'x ':'')+i.n).join(', ');
     if (esRegalo) {
-      const costoTotal = D.sel.reduce((a,i) => {
-        const prod = D.productos.find(p=>p._r===i._r);
-        const bota = D.botas.find(b=>b._r===i._r);
-        return a + (prod?.cu || bota?.cu || 0) * i.q;
-      }, 0);
-      pp = 0; up = 0; tusd = -costoTotal;
+      // tusd=0 para regalos; el costo se calcula desde itemsDetail al mostrar el balance
+      pp = 0; up = 0; tusd = 0;
     } else if (hasMontoOverride) {
       // Use manually entered amounts
       pp   = moneda.pp;
@@ -4633,15 +4629,15 @@ async function saveVenta() {
 
   // Build items detail JSON for column N (proportional pricing)
   let itemsJson = '';
-  if (D.sel.length && !esRegalo) {
+  if (D.sel.length) {
     const listaTotal = D.sel.reduce((a,i) => a + i.price * i.q, 0);
-    const factor = listaTotal > 0 ? tusd / listaTotal : 1;
+    const factor = (!esRegalo && listaTotal > 0) ? tusd / listaTotal : 0;
     const itemsDetail = D.sel.map(i => ({
       n: i.n,
       cat: i.cat,
       q: i.q,
       lista: +(i.price * i.q).toFixed(2),
-      real: +(i.price * i.q * factor).toFixed(2)
+      real: esRegalo ? 0 : +(i.price * i.q * factor).toFixed(2)
     }));
     itemsJson = JSON.stringify(itemsDetail);
   }
