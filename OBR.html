@@ -3360,13 +3360,26 @@ function rprod() {
     // Dentro de cada marca: por año de importación ascendente (vacíos al final), luego alfabético por modelo
     // Orden fijo Lange = mismo orden que lista de precios
     const LANGE_ORDER = [
-      'ZA 2011','RX 110 W','RX Heritage Pink','RX Heritage Purple',
-      'World Cup RP ZJ+','World Cup ZA+','LX 100 HV GW','RS 120 SC','RS 130','RS 130 LTD',
-      'RX 110 W 2026','RX 130 LV (LBI2010)','RX 130 LV (LBI2030)',
-      'WORLD CUP RP ZA+','WORLD CUP RS Z SOFT+',
-      'WORLD CUP ZA (LBH9260)','WORLD CUP ZA (LBI9260)',
-      'WORLD CUP ZA (LBJ9260) 25.5','WORLD CUP ZA (LBJ9260)28.5',
-      'WORLD CUP ZA+','WORLD CUP ZJ +',
+      'ZA 2011',
+      'RX 110 W LV',
+      'RX Heritage Pink',
+      'RX Heritage Purple',
+      'World Cup RP ZJ+',
+      'World Cup ZA+',
+      'LX 100 HV GW',
+      'RS 120 SC',
+      'RS 130',
+      'RS 130 LTD',
+      'RX 130 LV (LBI2010)',
+      'RX 130 LV (LBI2030)',
+      'WORLD CUP RP ZA+',
+      'WORLD CUP RS Z SOFT+',
+      'WORLD CUP ZA (LBH9260)',
+      'WORLD CUP ZA (LBI9260)',
+      'WORLD CUP ZA (LBJ9260) 25.5',
+      'WORLD CUP ZA (LBJ9260)28.5',
+      'WORLD CUP ZA+',
+      'WORLD CUP ZJ +',
     ];
     const _langePosicion = mod => { const i = LANGE_ORDER.findIndex(o => o.toLowerCase()===mod.toLowerCase()); return i===-1?999:i; };
     const _ordBotas = arr => arr.sort((a,b) => a.mod.localeCompare(b.mod,'es',{sensitivity:'base'}));
