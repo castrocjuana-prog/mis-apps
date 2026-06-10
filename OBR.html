@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: orden-botas-lista-precios ✓');
+  console.log('OBR build: orden-botas-desde-sheet ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -3359,34 +3359,10 @@ function rprod() {
     // Agrupar por marca: Lange primero, Atomic segundo, resto después
     // Dentro de cada marca: por año de importación ascendente (vacíos al final), luego alfabético por modelo
     // Orden fijo Lange = mismo orden que lista de precios
-    const LANGE_ORDER = [
-      'ZA 2011',
-      'RX 110 W LV',
-      'RX Heritage Pink',
-      'RX Heritage Purple',
-      'World Cup RP ZJ+',
-      'World Cup ZA+',
-      'LX 100 HV GW',
-      'RS 120 SC',
-      'RS 130',
-      'RS 130 LTD',
-      'RX 130 LV (LBI2010)',
-      'RX 130 LV (LBI2030)',
-      'WORLD CUP RP ZA+',
-      'WORLD CUP RS Z SOFT+',
-      'WORLD CUP ZA (LBH9260)',
-      'WORLD CUP ZA (LBI9260)',
-      'WORLD CUP ZA (LBJ9260) 25.5',
-      'WORLD CUP ZA (LBJ9260)28.5',
-      'WORLD CUP ZA+',
-      'WORLD CUP ZJ +',
-    ];
-    const _langePosicion = mod => { const i = LANGE_ORDER.findIndex(o => o.toLowerCase()===mod.toLowerCase()); return i===-1?999:i; };
-    const _ordBotas = arr => arr.sort((a,b) => a.mod.localeCompare(b.mod,'es',{sensitivity:'base'}));
-    const _ordLange = arr => arr.sort((a,b) => (_langePosicion(a.mod)-_langePosicion(b.mod)) || a.mod.localeCompare(b.mod,'es',{sensitivity:'base'}));
+    // Orden según filas del Sheet — no se reordena, se respeta el orden de carga
     const allModels = Object.values(botaMap);
-    const langeMods  = _ordLange(allModels.filter(b => b.marca.toLowerCase() === 'lange'));
-    const atomicMods = _ordBotas(allModels.filter(b => b.marca.toLowerCase() === 'atomic'));
+    const langeMods  = allModels.filter(b => b.marca.toLowerCase() === 'lange');
+    const atomicMods = allModels.filter(b => b.marca.toLowerCase() === 'atomic');
     const reboleoMods = allModels.filter(b => b.marca.toLowerCase() !== 'lange' && b.marca.toLowerCase() !== 'atomic');
 
     html += botaSection('LANGE', langeMods);
@@ -3395,7 +3371,7 @@ function rprod() {
     if (reboleoMods.length) {
       const rebMarcas = [...new Set(reboleoMods.map(b => b.marca))];
       rebMarcas.forEach(m => {
-        html += botaSection(m.toUpperCase(), _ordBotas(reboleoMods.filter(b => b.marca===m)));
+        html += botaSection(m.toUpperCase(), reboleoMods.filter(b => b.marca===m));
       });
     } else {
       html += `<div style="grid-column:1/-1;margin-bottom:16px;">
