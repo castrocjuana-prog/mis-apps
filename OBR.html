@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: gp-sync+filtro+afip-coco-usd ✓');
+  console.log('OBR build: gp-fijos-headers+fechas-bal+afip-dol ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -2815,22 +2815,26 @@ async function loadGPTaller() {
     });
 
     // --- Gastos fijos (pestaña FIJOS) ---
-    // Filas: id | nombre | cat | tipo | m1..m12 (columnas E-P) | ...
-    const rFijos = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('FIJOS!A1:P200')}`, {headers:{Authorization:`Bearer ${t}`}});
+    // Headers: anio | id | nombre | cat | tipo | nota | m1..m12 | f1..f5
+    // Cols:      A  |  B |   C    |  D  |  E   |  F   | G..R    | S..W
+    const rFijos = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('FIJOS!A1:W500')}`, {headers:{Authorization:`Bearer ${t}`}});
     const dFijos = await rFijos.json();
     const fijoRows = dFijos.values || [];
     if (fijoRows.length > 1) {
       const header = fijoRows[0].map(h => (h||'').toLowerCase().trim());
-      const iId   = header.indexOf('id');
-      const iNom  = header.indexOf('nombre') !== -1 ? header.indexOf('nombre') : header.indexOf('n');
+      const iAnio = header.indexOf('anio');
+      const iNom  = header.indexOf('nombre');
       const iCat  = header.indexOf('cat');
       const iTipo = header.indexOf('tipo');
-      // month columns: m1..m12
+      const iId   = header.indexOf('id');
+      // month columns m1..m12
       const mCols = Array.from({length:12}, (_,i) => header.indexOf(`m${i+1}`));
       fijoRows.slice(1).forEach(row => {
-        const cat  = row[iCat] || '';
+        const cat  = row[iCat]  || '';
         const tipo = row[iTipo] || '';
+        const anio = parseInt(row[iAnio]) || yr;
         if (cat !== 'Taller' || tipo === 'anual') return;
+        if (anio !== yr) return; // solo el año actual
         const nom = row[iNom] || '';
         const id  = row[iId]  || '';
         mCols.forEach((col, idx) => {
@@ -4188,8 +4192,9 @@ async function rbal() {
 }
 
 function balResetFiltros() {
-  document.getElementById('bal-de').value = '2026-01-01';
-  document.getElementById('bal-ha').value = '2026-12-31';
+  const yr = new Date().getFullYear();
+  document.getElementById('bal-de').value = `${yr}-01-01`;
+  document.getElementById('bal-ha').value = `${yr}-12-31`;
   document.getElementById('bal-tipo').value = '';
   document.getElementById('bal-item').value = '';
   document.getElementById('bal-mp').value = '';
@@ -4223,7 +4228,7 @@ function rAfip(allVentas) {
         if (isUSD) {
           const numMatch = part.match(/u\$s\s*([\d.]+)/);
           usdAmt = numMatch ? parseFloat(numMatch[1]) : 0;
-          arsAmt = usdAmt * dol;
+          arsAmt = usdAmt * (v.dol || dol);
         } else {
           const numMatch = part.match(/([\d.,]+)\s*ARS/);
           arsAmt = numMatch ? parseFloat(numMatch[1].replace(/\./g,'').replace(',','.')) : 0;
@@ -5325,8 +5330,9 @@ function sv(name, btn) {
   if (name==='balance') {
     const de = document.getElementById('bal-de');
     const ha = document.getElementById('bal-ha');
-    if (de && !de.value) de.value = '2026-01-01';
-    if (ha && !ha.value) ha.value = '2026-12-31';
+    const yr = new Date().getFullYear();
+    if (de && !de.value) de.value = `${yr}-01-01`;
+    if (ha && !ha.value) ha.value = `${yr}-12-31`;
     rbal();
   }
 }
