@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: regalos-costo-real ✓');
+  console.log('OBR build: fijos-fechas-reales ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -2850,20 +2850,27 @@ async function loadGPTaller() {
       const iId   = header.indexOf('id');
       // month columns m1..m12
       const mCols = Array.from({length:12}, (_,i) => header.indexOf(`m${i+1}`));
+      // f1..f5 columns: fechas reales de débito de cada pago (en orden cronológico)
+      const fCols = Array.from({length:5}, (_,i) => header.indexOf(`f${i+1}`));
       fijoRows.slice(1).forEach(row => {
         const cat  = row[iCat]  || '';
         const tipo = row[iTipo] || '';
         const anio = parseInt(row[iAnio]) || yr;
         if (cat !== 'Taller' || tipo === 'anual') return;
-        if (anio !== yr) return; // solo el año actual
+        if (anio !== yr) return;
         const nom = row[iNom] || '';
         const id  = row[iId]  || '';
+        // Collect months with monto > 0, in order, and pair with f1..f5
+        let pagoIdx = 0;
         mCols.forEach((col, idx) => {
           if (col === -1) return;
           const monto = parseFloat(row[col]) || 0;
           if (!monto) return;
-          const mm = String(idx + 1).padStart(2, '0');
-          all.push({ f: `${yr}-${mm}-01`, n: nom, c: 'Gasto Fijo', p: monto, u: 0,
+          // Use real date from fN column if available, else fallback to first of month
+          const fCol = fCols[pagoIdx] !== undefined ? fCols[pagoIdx] : -1;
+          const fecha = (fCol !== -1 && row[fCol]) ? row[fCol] : `${yr}-${String(idx+1).padStart(2,'0')}-01`;
+          pagoIdx++;
+          all.push({ f: fecha, n: nom, c: 'Gasto Fijo', p: monto, u: 0,
                      m: 'Gastos Personales (fijo)', det: '', src: 'gp-fijo', id: `fijo-${id}-${idx+1}` });
         });
       });
