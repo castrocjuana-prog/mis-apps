@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: gp-fijos-headers+fechas-bal+afip-dol ✓');
+  console.log('OBR build: gp-vars-rows+fijos+fechas+afip ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -2800,19 +2800,40 @@ async function loadGPTaller() {
     const all = [];
 
     // --- Gastos variables (pestaña VARS) ---
-    // Filas: mes | JSON-array-de-gastos
-    const rVars = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('VARS!A1:B200')}`, {headers:{Authorization:`Bearer ${t}`}});
+    // Headers: anio | mes | id | fecha | desc | cat | monto | sub
+    // Cols:      A  |  B  |  C |   D   |  E   |  F  |   G   |  H
+    const rVars = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('VARS!A1:H5000')}`, {headers:{Authorization:`Bearer ${t}`}});
     const dVars = await rVars.json();
-    (dVars.values || []).forEach(row => {
-      if (!row[1]) return;
-      let gastos;
-      try { gastos = JSON.parse(row[1]); } catch(e) { return; }
-      (gastos || []).filter(g => g.c === 'Taller').forEach(g => {
-        const cat = g.sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
-        all.push({ f: g.f || '', n: g.d || '', c: cat, p: g.m || 0, u: 0,
-                   m: 'Gastos Personales', det: '', src: 'gp', id: g.id });
+    const varRows = dVars.values || [];
+    if (varRows.length > 1) {
+      const vHeader = varRows[0].map(h => (h||'').toLowerCase().trim());
+      const viAnio  = vHeader.indexOf('anio');
+      const viFecha = vHeader.indexOf('fecha');
+      const viDesc  = vHeader.indexOf('desc');
+      const viCat   = vHeader.indexOf('cat');
+      const viMonto = vHeader.indexOf('monto');
+      const viSub   = vHeader.indexOf('sub');
+      const viId    = vHeader.indexOf('id');
+      varRows.slice(1).forEach(row => {
+        const cat  = row[viCat]  || '';
+        const anio = parseInt(row[viAnio]) || yr;
+        if (cat !== 'Taller') return;
+        if (anio !== yr) return;
+        const sub = (row[viSub] || '').trim();
+        const obCat = sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
+        all.push({
+          f: row[viFecha] || '',
+          n: row[viDesc]  || '',
+          c: obCat,
+          p: parseFloat(row[viMonto]) || 0,
+          u: 0,
+          m: 'Gastos Personales',
+          det: '',
+          src: 'gp',
+          id: row[viId] || ''
+        });
       });
-    });
+    }
 
     // --- Gastos fijos (pestaña FIJOS) ---
     // Headers: anio | id | nombre | cat | tipo | nota | m1..m12 | f1..f5
