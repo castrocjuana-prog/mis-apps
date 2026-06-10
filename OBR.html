@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: gp-vars-rows+fijos+fechas+afip ✓');
+  console.log('OBR build: regalos-como-gasto ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -4098,15 +4098,30 @@ async function rbal() {
     return a + (matched ? v.tusd - costTotal : v.tusd);
   }, 0);
 
-  // Regalos pérdida
-  const regLoss = regalos.reduce((a,v) => a + Math.abs(v.tusd||0), 0);
+  // Regalos — costo real de los productos regalados (desde itemsDetail + D.productos)
+  // Servicios regalados tienen costo 0 (solo tiempo)
+  const regLoss = regalos.reduce((a, v) => {
+    if (v.itemsDetail && v.itemsDetail.length) {
+      const costo = v.itemsDetail.reduce((s, it) => {
+        if (it.cat === 'Servicios') return s; // servicio regalado = sin costo de insumo
+        const prod = D.productos.find(p => p.n === it.n);
+        const bota = !prod ? D.botas.find(b => it.n.includes(b.mod)) : null;
+        const cu = (prod?.cu || bota?.cu || 0) * (it.q || 1);
+        return s + cu;
+      }, 0);
+      return a + costo;
+    }
+    // Fallback: si no tiene itemsDetail usar tusd como aproximación
+    return a + Math.abs(v.tusd || 0);
+  }, 0);
   const regCount = regalos.length;
 
-  const netaUsd = ingUsd - gasUsd;
+  // Regalos se suman a gastos de temporada (opción B)
+  const netaUsd = ingUsd - gasUsd - regLoss;
 
   document.getElementById('bal-ing').textContent   = 'u$s '+ingUsd.toFixed(0);
   document.getElementById('bal-ing-sub').textContent = `$${(ingPesos/1000).toFixed(0)}k ARS · ${ventasSinRegalo.length} ventas`;
-  document.getElementById('bal-gas').textContent   = 'u$s '+gasUsd.toFixed(0);
+  document.getElementById('bal-gas').textContent   = 'u$s '+(gasUsd+regLoss).toFixed(0);
   document.getElementById('bal-bruta').textContent = 'u$s '+brutaUsd.toFixed(0);
   const netaEl = document.getElementById('bal-neta');
   netaEl.textContent = 'u$s '+netaUsd.toFixed(0);
