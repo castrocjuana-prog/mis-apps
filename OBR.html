@@ -4032,15 +4032,16 @@ async function rbal() {
   if (ha) { gastosAll = gastosAll.filter(g => g.f <= ha); }
   const gpGastosFilt = gpAll.filter(g => (!de||g.f>=de)&&(!ha||g.f<=ha));
 
-  // Temporada: cat=Temporada (OBR) + gp-fijo
+  // Temporada: cat=Temporada (OBR) + gp-fijo + gp variables con cat Temporada
   const gastosTemp = [
     ...gastosAll.filter(g => g.c === 'Temporada'),
-    ...gpGastosFilt.filter(g => g.src === 'gp-fijo')
+    ...gpGastosFilt.filter(g => g.src === 'gp-fijo'),
+    ...gpGastosFilt.filter(g => g.src === 'gp' && g.c === 'Temporada')
   ];
-  // Inversión: todo lo demás (OBR no-Temporada + gp variables)
+  // Inversión: todo lo demás (OBR no-Temporada + gp variables no-Temporada)
   const gastosInv = [
     ...gastosAll.filter(g => g.c !== 'Temporada'),
-    ...gpGastosFilt.filter(g => g.src === 'gp')
+    ...gpGastosFilt.filter(g => g.src === 'gp' && g.c !== 'Temporada')
   ];
 
   const gasUsd     = gastosTemp.reduce((a,g) => a + (g.u || (g.p ? g.p/dol : 0)), 0);
