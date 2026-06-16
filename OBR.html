@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: fijos-fechas-reales ✓');
+  console.log('OBR build: sync-dedup ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -2814,6 +2814,8 @@ async function loadGPTaller() {
       const viMonto = vHeader.indexOf('monto');
       const viSub   = vHeader.indexOf('sub');
       const viId    = vHeader.indexOf('id');
+      // Construir set de claves de gastos ya guardados en OBR (fecha+nombre) para deduplicar
+      const obrKeys = new Set((D.gastos || []).map(g => `${g.f}|${(g.n||'').trim().toLowerCase()}`));
       varRows.slice(1).forEach(row => {
         const cat  = row[viCat]  || '';
         const anio = parseInt(row[viAnio]) || yr;
@@ -2821,9 +2823,12 @@ async function loadGPTaller() {
         if (anio !== yr) return;
         const sub = (row[viSub] || '').trim();
         const obCat = sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
+        const f = row[viFecha] || '';
+        const n = row[viDesc]  || '';
+        // Si ya existe en OBR con misma fecha+nombre, no duplicar
+        if (obrKeys.has(`${f}|${n.trim().toLowerCase()}`)) return;
         all.push({
-          f: row[viFecha] || '',
-          n: row[viDesc]  || '',
+          f, n,
           c: obCat,
           p: parseFloat(row[viMonto]) || 0,
           u: 0,
@@ -2870,6 +2875,8 @@ async function loadGPTaller() {
           const fCol = fCols[pagoIdx] !== undefined ? fCols[pagoIdx] : -1;
           const fecha = (fCol !== -1 && row[fCol]) ? row[fCol] : `${yr}-${String(idx+1).padStart(2,'0')}-01`;
           pagoIdx++;
+          // Si ya existe en OBR con misma fecha+nombre, no duplicar
+          if (obrKeys.has(`${fecha}|${nom.trim().toLowerCase()}`)) { pagoIdx++; return; }
           all.push({ f: fecha, n: nom, c: 'Gasto Fijo', p: monto, u: 0,
                      m: 'Gastos Personales (fijo)', det: '', src: 'gp-fijo', id: `fijo-${id}-${idx+1}` });
         });
