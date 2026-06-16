@@ -2805,6 +2805,8 @@ async function loadGPTaller() {
     const rVars = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('VARS!A1:H5000')}`, {headers:{Authorization:`Bearer ${t}`}});
     const dVars = await rVars.json();
     const varRows = dVars.values || [];
+    // Set de claves OBR para deduplicar (accesible en varRows Y fijoRows)
+    const obrKeys = new Set((D.gastos || []).map(g => `${g.f}|${(g.n||'').trim().toLowerCase()}`));
     if (varRows.length > 1) {
       const vHeader = varRows[0].map(h => (h||'').toLowerCase().trim());
       const viAnio  = vHeader.indexOf('anio');
@@ -2814,8 +2816,6 @@ async function loadGPTaller() {
       const viMonto = vHeader.indexOf('monto');
       const viSub   = vHeader.indexOf('sub');
       const viId    = vHeader.indexOf('id');
-      // Construir set de claves de gastos ya guardados en OBR (fecha+nombre) para deduplicar
-      const obrKeys = new Set((D.gastos || []).map(g => `${g.f}|${(g.n||'').trim().toLowerCase()}`));
       varRows.slice(1).forEach(row => {
         const cat  = row[viCat]  || '';
         const anio = parseInt(row[viAnio]) || yr;
