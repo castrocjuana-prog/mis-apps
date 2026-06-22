@@ -3551,14 +3551,6 @@ function rpr() {
   // ── Lifters: una fila por lifter (precios Suelta / Recambio / Freza)
   const lifters = D.productos.filter(p => p.c === 'Lifters' || p.c === 'Plaquitas').sort((a,b)=>a._r-b._r);
 
-  // ── Botas: una fila por modelo con talles disponibles
-  const botaMap = {};
-  D.botas.forEach(b => {
-    const k = b.marca+'|'+b.mod;
-    if (!botaMap[k]) botaMap[k] = {marca:b.marca, mod:b.mod, cu:b.cu, vu:b.vu, fechaImp:b.fechaImp||'', talles:[]};
-    if (b.act > 0) botaMap[k].talles.push(b.talle);
-  });
-
   // ── Servicios: agrupar por precio igual
   const servGroups = {};
   D.servicios.forEach(s => {
@@ -3636,32 +3628,7 @@ function rpr() {
     .sort((a,b) => (catOrder[a.cat]||8)-(catOrder[b.cat]||8) || a._r-b._r)
     .forEach(g => { html += prodGroupRow(g); });
 
-  // ── Render botas — mismo orden que Productos: marca (Lange, Atomic, resto), año de importación, luego alfabético
-  const cc = catColor('Botas');
-  const _mOrd = m => { m=(m||'').toLowerCase(); return m==='lange'?0:m==='atomic'?1:2; };
-  const _yImp = b => { const y = parseInt(b.fechaImp); return isNaN(y) ? Infinity : y; };
-  Object.values(botaMap).sort((a,b)=>
-    _mOrd(a.marca)-_mOrd(b.marca) ||
-    _yImp(a)-_yImp(b) ||
-    a.mod.localeCompare(b.mod,'es',{sensitivity:'base'})
-  ).forEach(b => {
-    const tallesStr = b.talles.length
-      ? b.talles.sort((a,b)=>parseFloat(a)-parseFloat(b)).join(' · ')
-      : '<span style="color:var(--txt3)">sin stock</span>';
-    html += `<tr style="border-left:3px solid ${cc.c};" class="pr-edit-bota-row" data-marca="${e(b.marca)}" data-mod="${e(b.mod)}">
-      <td><span class="bx bx-x" style="font-size:10px;">Bota</span></td>
-      <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:${cc.bg};color:${cc.c};padding:2px 8px;border-radius:20px;">Botas</span></td>
-      <td><strong>${e(b.marca)} ${e(b.mod)}</strong><br><span style="font-size:11px;color:var(--txt3);">Talles: ${tallesStr}</span></td>
-      <td style="font-family:var(--fm);color:var(--txt3);">${b.cu?'u$s '+(+b.cu.toFixed(2)):'—'}</td>
-      <td style="font-family:var(--fm);color:var(--profe);">${fmtU(b.vu)}</td>
-      <td style="font-family:var(--fm);color:var(--turista);">—</td>
-      <td style="font-family:var(--fm);color:var(--profe);font-weight:500;">${fmt(b.vu,dol)}</td>
-      <td style="font-family:var(--fm);color:var(--turista);font-weight:500;">—</td>
-      <td><button class="btn btn-s btn-sm btn-ic pr-edit-bota" data-marca="${e(b.marca)}" data-mod="${e(b.mod)}" title="Editar">✏️</button></td>
-    </tr>`;
-  });
-
-  // ── Render servicios agrupados
+  // ── Render servicios agrupados (ANTES que botas)
   const allServRows = Object.values(servGroups).sort((a,b)=>(catOrder[a.cat]||8)-(catOrder[b.cat]||8)||a._r-b._r);
   allServRows.forEach(s => {
     const cc2 = catColor('Servicios');
@@ -3677,6 +3644,30 @@ function rpr() {
       <td style="font-family:var(--fm);color:var(--profe);font-weight:500;">${fmt(s.pu,dol)}</td>
       <td style="font-family:var(--fm);color:var(--turista);font-weight:500;">${fmt(s.tu,dol)}</td>
       <td>—</td>
+    </tr>`;
+  });
+
+  // ── Render botas — 1 fila por talle (no por modelo). Orden: talle ascendente, y dentro del
+  // mismo talle: Angosta → Media → Ancha. Lange y Atomic mezcladas entre sí (misma lógica que el PDF para Coco).
+  const cc = catColor('Botas');
+  const _anchoOrd = a => a==='Angosta'?0 : a==='Media'?1 : a==='Ancha'?2 : 3;
+  const botasConStock = D.botas.filter(b => b.act > 0);
+  botasConStock.sort((a,b) =>
+    (parseFloat(a.talle)||0) - (parseFloat(b.talle)||0) ||
+    _anchoOrd(a.ancho) - _anchoOrd(b.ancho) ||
+    a.marca.localeCompare(b.marca,'es',{sensitivity:'base'}) ||
+    a.mod.localeCompare(b.mod,'es',{sensitivity:'base'})
+  ).forEach(b => {
+    html += `<tr style="border-left:3px solid ${cc.c};" class="pr-edit-bota-row" data-marca="${e(b.marca)}" data-mod="${e(b.mod)}">
+      <td><span class="bx bx-x" style="font-size:10px;">Bota</span></td>
+      <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:${cc.bg};color:${cc.c};padding:2px 8px;border-radius:20px;">Botas</span></td>
+      <td><strong>${e(b.marca)} ${e(b.mod)}</strong><br><span style="font-size:11px;color:var(--txt3);">Talle ${e(b.talle)}${b.ancho?' · '+e(b.ancho):''} · stock ${b.act}</span></td>
+      <td style="font-family:var(--fm);color:var(--txt3);">${b.cu?'u$s '+(+b.cu.toFixed(2)):'—'}</td>
+      <td style="font-family:var(--fm);color:var(--profe);">${fmtU(b.vu)}</td>
+      <td style="font-family:var(--fm);color:var(--turista);">—</td>
+      <td style="font-family:var(--fm);color:var(--profe);font-weight:500;">${fmt(b.vu,dol)}</td>
+      <td style="font-family:var(--fm);color:var(--turista);font-weight:500;">—</td>
+      <td><button class="btn btn-s btn-sm btn-ic pr-edit-bota" data-marca="${e(b.marca)}" data-mod="${e(b.mod)}" title="Editar">✏️</button></td>
     </tr>`;
   });
 
