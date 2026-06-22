@@ -1293,16 +1293,20 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
       <div class="tot-row" id="pat-total"></div>
     </div>
     <div class="card">
-      <div class="clbl" style="margin-bottom:12px">Te deben — USD</div>
+      <div class="clbl" style="margin-bottom:12px">Te deben</div>
       <div id="lista-deudas"></div>
       <div class="tot-row" id="deudas-total"></div>
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <button class="btn" onclick="toggleF(&#39;form-deuda&#39;)">+ Agregar deuda</button>
         <div id="form-deuda" class="fb" style="display:none;margin-top:8px">
           <div style="font-size:11px;color:var(--t3);margin-bottom:6px" id="deuda-edit-lbl"></div>
-          <div class="fg fg2" style="margin-bottom:8px">
-            <input id="deuda-nom" placeholder="Nombre"><input id="deuda-m" type="number" placeholder="USD">
+          <div class="fg fg3" style="margin-bottom:8px">
+            <input id="deuda-nom" placeholder="Nombre"><input id="deuda-m" type="number" placeholder="Monto">
+            <select id="deuda-mon"><option value="USD">USD</option><option value="ARS">ARS</option><option value="EUR">EUR</option></select>
           </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2);margin-bottom:8px;cursor:pointer">
+            <input type="checkbox" id="deuda-pagado" style="width:15px;height:15px;cursor:pointer"> Ya se pagó/cobró
+          </label>
           <div style="display:flex;gap:8px">
             <button class="btn bp" onclick="guardarDeuda()">Guardar</button>
             <button class="btn" id="deuda-cancel-btn" onclick="cancelEditDeuda()" style="display:none">Cancelar</button>
@@ -2060,6 +2064,8 @@ const _savedCr=localStorage.getItem('mm5264_cr');
 if(_savedCr){try{CR=JSON.parse(_savedCr);setShOn(true);tst('Sheet conectado ✓','ok');}catch(e){}}
 
 const fmt=n=>'$\u202f'+Math.round(n).toLocaleString('es-AR');
+const MON_SYM={USD:'USD\u202f',ARS:'$\u202f',EUR:'€\u202f'};
+const fMon=(n,mon)=>(MON_SYM[mon]||'USD\u202f')+Math.round(n).toLocaleString('es-AR');
 const fU=n=>'USD\u202f'+Math.round(n).toLocaleString('es-AR');
 const hoy=()=>new Date().toISOString().split('T')[0];
 const gV=m=>{
@@ -3431,6 +3437,8 @@ function editDeuda(id){
   _editDeudaId=id;
   document.getElementById('deuda-nom').value=d.n;
   document.getElementById('deuda-m').value=d.m;
+  document.getElementById('deuda-mon').value=d.mon||'USD';
+  document.getElementById('deuda-pagado').checked=!!d.pagado;
   document.getElementById('deuda-edit-lbl').textContent='Editando: '+d.n;
   document.getElementById('deuda-cancel-btn').style.display='';
   document.getElementById('form-deuda').style.display='block';
@@ -3439,6 +3447,8 @@ function cancelEditDeuda(){
   _editDeudaId=null;
   document.getElementById('deuda-nom').value='';
   document.getElementById('deuda-m').value='';
+  document.getElementById('deuda-mon').value='USD';
+  document.getElementById('deuda-pagado').checked=false;
   document.getElementById('deuda-edit-lbl').textContent='';
   document.getElementById('deuda-cancel-btn').style.display='none';
   document.getElementById('form-deuda').style.display='none';
@@ -3446,26 +3456,37 @@ function cancelEditDeuda(){
 function guardarDeuda(){
   const n=document.getElementById('deuda-nom').value.trim();
   const m=parseFloat(document.getElementById('deuda-m').value)||0;
+  const mon=document.getElementById('deuda-mon').value||'USD';
+  const pagado=document.getElementById('deuda-pagado').checked;
   if(!n||!m)return;
   if(_editDeudaId){
     const d=D.deudas.find(x=>x.id===_editDeudaId);
-    if(d){d.n=n;d.m=m;}
+    if(d){d.n=n;d.m=m;d.mon=mon;d.pagado=pagado;}
     _editDeudaId=null;
     document.getElementById('deuda-cancel-btn').style.display='none';
     document.getElementById('deuda-edit-lbl').textContent='';
   } else {
-    D.deudas.push({id:Date.now(),n,m});
+    D.deudas.push({id:Date.now(),n,m,mon,pagado});
   }
   save();rPat();
   document.getElementById('deuda-nom').value='';
   document.getElementById('deuda-m').value='';
+  document.getElementById('deuda-mon').value='USD';
+  document.getElementById('deuda-pagado').checked=false;
   document.getElementById('form-deuda').style.display='none';
+}
+function toggleDeudaPagado(id){
+  const d=D.deudas.find(x=>x.id===id);if(!d)return;
+  d.pagado=!d.pagado;
+  save();rPat();
 }
 
 // ── PATRIMONIO ──
 function rPat(){
   const tp=D.pat.reduce((s,p)=>s+p.monto,0);
-  const td=D.deudas.reduce((s,d)=>s+d.m,0);
+  const totDeuPorMon={USD:0,ARS:0,EUR:0};
+  D.deudas.forEach(d=>{const mon=d.mon||'USD';totDeuPorMon[mon]=(totDeuPorMon[mon]||0)+(Number(d.m)||0);});
+  const td=totDeuPorMon.USD; // banner usa USD (compatibilidad histórica)
   // cuentas
   document.getElementById('pat-list').innerHTML=D.pat.map(p=>{
     if(p.tipo==='cash'&&p.desglose){const d=p.desglose;
@@ -3477,15 +3498,23 @@ function rPat(){
   document.getElementById('pat-total').innerHTML=`<span>Total cuentas</span><span>${fU(tp)}</span>`;
   // deudas con edit
   document.getElementById('lista-deudas').innerHTML=D.deudas.length?D.deudas.map(d=>`
-    <div class="row">
-      <div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px">${d.n}</span><span class="tag tdeb">te deben</span></div>
+    <div class="row" style="${d.pagado?'opacity:.55':''}">
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" ${d.pagado?'checked':''} onchange="toggleDeudaPagado(${d.id})" style="width:15px;height:15px;cursor:pointer;flex-shrink:0" title="Marcar como pagado/cobrado">
+        <span style="font-size:13px;${d.pagado?'text-decoration:line-through':''}">${d.n}</span>
+        <span class="tag tdeb">te deben</span>
+      </div>
       <div class="rr">
-        <span class="amt">${fU(d.m)}</span>
+        <span class="amt" style="${d.pagado?'text-decoration:line-through':''}">${fMon(d.m,d.mon||'USD')}</span>
         <button class="btn" style="font-size:11px;padding:2px 7px" onclick="editDeuda(${d.id})">✏️</button>
         <button class="btn bd" onclick="elimDeu(${d.id})">×</button>
       </div>
     </div>`).join(''):'<span style="font-size:12px;color:var(--t3)">Sin deudas a favor</span>';
-  document.getElementById('deudas-total').innerHTML=`<span>Total a favor</span><span>${fU(td)}</span>`;
+  const totPartesDeu=[];
+  if(totDeuPorMon.USD)totPartesDeu.push(fMon(totDeuPorMon.USD,'USD'));
+  if(totDeuPorMon.ARS)totPartesDeu.push(fMon(totDeuPorMon.ARS,'ARS'));
+  if(totDeuPorMon.EUR)totPartesDeu.push(fMon(totDeuPorMon.EUR,'EUR'));
+  document.getElementById('deudas-total').innerHTML=`<span>Total a favor</span><span>${totPartesDeu.join(' + ')||fU(0)}</span>`;
   // banner
   const nv=document.getElementById('net-val');
   const nd=document.getElementById('net-deben');
