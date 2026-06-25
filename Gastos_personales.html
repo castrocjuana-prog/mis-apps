@@ -310,6 +310,10 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
         <div id="sh-dot" style="width: 5px; height: 5px; border-radius: 50%; background: var(--acc); flex-shrink: 0;"></div>
         <span id="sh-lbl">conectado · auto-save</span>
       </div>
+      <button onclick="loadFromSheet()" title="Traer cambios hechos desde otro dispositivo (celular/compu)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px;flex-shrink:0"><path d="M13.5 8a5.5 5.5 0 1 1-1.5-3.8M13.5 2v3.2h-3.2"></path></svg>
+        <span>🔄 Recargar del Sheet</span>
+      </button>
       <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;display:flex;flex-direction:column;gap:5px">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:2px">Backup datos</div>
         <button onclick="exportarDatos()" title="Exportar backup JSON">
@@ -1960,6 +1964,7 @@ async function save(){
 
 // ── LOAD — lee desde pestañas (con migración automática si es estructura vieja) ──
 async function loadFromSheet(){
+  if(!CR){tst('Conectá el Sheet primero (botón arriba)','err');return;}
   setSyncing(true);
   try{
     const isNew=await _isNewStructure();
