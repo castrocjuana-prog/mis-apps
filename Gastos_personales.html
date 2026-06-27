@@ -2888,16 +2888,16 @@ function rIng(){
   }
   // Jua: clasesJua + changas where quien=jua
   const jARS2=D.clasesJua.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const jUSD=D.clasesJua.reduce((s,i)=>s+(i.mon==='USD'?i.monto:0)+(i.mon2==='USD'?i.monto2:0),0);
+  const jUSD=D.clasesJua.reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.mon2==='USD'?i.monto2:toUsd(i.monto,i.mon,i.tc))),0);
   const chJuaARS=(D.changas||[]).filter(i=>i.quien==='jua').reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const chJuaUSD=(D.changas||[]).filter(i=>i.quien==='jua'&&i.mon==='USD').reduce((s,i)=>s+i.monto,0);
+  const chJuaUSD=(D.changas||[]).filter(i=>i.quien==='jua').reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
   const juaTotalARS=jARS2+chJuaARS;
   const juaTotalUSD=jUSD+chJuaUSD;
   // Coco: clasesCoco + changas where quien=coco
   const cARS2=D.clasesCoco.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const cUSD=D.clasesCoco.reduce((s,i)=>s+(i.mon==='USD'?i.monto:0)+(i.mon2==='USD'?i.monto2:0),0);
+  const cUSD=D.clasesCoco.reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.mon2==='USD'?i.monto2:toUsd(i.monto,i.mon,i.tc))),0);
   const chCocoARS=(D.changas||[]).filter(i=>i.quien==='coco').reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const chCocoUSD=(D.changas||[]).filter(i=>i.quien==='coco'&&i.mon==='USD').reduce((s,i)=>s+i.monto,0);
+  const chCocoUSD=(D.changas||[]).filter(i=>i.quien==='coco').reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
   const cocoTotalARS=cARS2+chCocoARS;
   const cocoTotalUSD=cUSD+chCocoUSD;
   // Airbnb
