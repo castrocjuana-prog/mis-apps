@@ -2922,7 +2922,7 @@ function rIng(){
   let obrMesUSD=0;
   if(_obrAfipData){
     _obrAfipData.filter(r=>r[0]&&r[0].startsWith('2026-'+mStr2)).forEach(r=>{
-      obrMesUSD+=((parseFloat(r[5])||0)+(parseFloat(r[7])||0))/tcMes+(parseFloat(r[9])||0);
+      obrMesUSD+=(parseFloat(r[9])||0);
     });
   }
   const airbnbMesUSD=(D.airbnb||[]).filter(i=>i.entrada&&i.entrada.startsWith('2026-'+mStr2))
@@ -4265,8 +4265,7 @@ function rBalance(){
     let ingOBRUSD=0;
     if(_obrAfipData){
       _obrAfipData.filter(r=>r[0]&&r[0].startsWith('2026-'+mStr)).forEach(r=>{
-        const arsObr=(parseFloat(r[5])||0)+(parseFloat(r[7])||0);
-        ingOBRUSD+=arsObr/tc+(parseFloat(r[9])||0);
+        ingOBRUSD+=(parseFloat(r[9])||0);
       });
     }
     const ingTotalUSD=ingJuaUSD+ingCocoUSD+ingChUSD+ingOBRUSD+ingAirbnbUSD;
