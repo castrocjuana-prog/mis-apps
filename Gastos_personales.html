@@ -91,6 +91,9 @@ nav{padding:10px 8px;flex:1;overflow-y:auto}
 .metric-dark .mv{color:#fff}
 .mv-sub{font-size:11px;margin-top:5px;font-family:var(--mono);color:rgba(0,0,0,.35);font-weight:500}
 .metric-dark .mv-sub{color:rgba(255,255,255,.38)}
+.mv-mes{font-size:11px;margin-top:7px;padding-top:7px;border-top:1px solid rgba(0,0,0,.08);font-family:var(--mono);color:rgba(0,0,0,.5);font-weight:600}
+.metric-dark .mv-mes{color:rgba(255,255,255,.55);border-top-color:rgba(255,255,255,.15)}
+.metric-plain .mv-mes{color:var(--t2)}
 .green{color:#1a7a40}.red{color:var(--dan)}
 
 /* ── ROWS ── */
@@ -1078,11 +1081,11 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
 
   <!-- Resumen métricas -->
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px" id="ing-metrics">
-    <div class="metric metric-purple"><div class="mlb">Juana</div><div class="mv" id="im-jua-usd">— USD</div><div class="mv-sub" id="im-jua-ars"></div></div>
-    <div class="metric metric-blue"><div class="mlb">Coco</div><div class="mv" id="im-coco-usd">— USD</div><div class="mv-sub" id="im-coco-ars"></div></div>
-    <div class="metric metric-red"><div class="mlb">Otto's Boot Room</div><div class="mv" id="im-obr-usd">— USD</div><div class="mv-sub" id="im-obr-ars"></div></div>
-    <div class="metric metric-yellow"><div class="mlb">Airbnb El Faldeo</div><div class="mv" id="im-airbnb-usd">— USD</div><div class="mv-sub" id="im-airbnb-ars"></div></div>
-    <div class="metric metric-plain"><div class="mlb">Total</div><div class="mv" id="im-tot-usd">— USD</div><div class="mv-sub" id="im-tot-ars"></div></div>
+    <div class="metric metric-purple"><div class="mlb">Juana</div><div class="mv" id="im-jua-usd">— USD</div><div class="mv-sub" id="im-jua-ars"></div><div class="mv-mes" id="im-jua-mes"></div></div>
+    <div class="metric metric-blue"><div class="mlb">Coco</div><div class="mv" id="im-coco-usd">— USD</div><div class="mv-sub" id="im-coco-ars"></div><div class="mv-mes" id="im-coco-mes"></div></div>
+    <div class="metric metric-red"><div class="mlb">Otto's Boot Room</div><div class="mv" id="im-obr-usd">— USD</div><div class="mv-sub" id="im-obr-ars"></div><div class="mv-mes" id="im-obr-mes"></div></div>
+    <div class="metric metric-yellow"><div class="mlb">Airbnb El Faldeo</div><div class="mv" id="im-airbnb-usd">— USD</div><div class="mv-sub" id="im-airbnb-ars"></div><div class="mv-mes" id="im-airbnb-mes"></div></div>
+    <div class="metric metric-plain"><div class="mlb">Total</div><div class="mv" id="im-tot-usd">— USD</div><div class="mv-sub" id="im-tot-ars"></div><div class="mv-mes" id="im-tot-mes"></div></div>
   </div>
   <div class="card">
     <div class="chd">
@@ -2906,8 +2909,35 @@ function rIng(){
   // Totals
   const totalARS=juaTotalARS+cocoTotalARS+obrARS+airbnbARS;
   const totalUSD=juaTotalUSD+cocoTotalUSD+obrUSD+airbnbUSD;
+
+  // ── Mes activo (solo lo que cae en el mes seleccionado) ──
+  const tcMes=D.tc[mes]||1400;
+  const mStr2=String(mes).padStart(2,'0');
+  const juaMesUSD=D.clasesJua.filter(i=>i.f&&i.f.startsWith('2026-'+mStr2))
+    .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.mon2==='USD'?i.monto2:toUsd(i.monto,i.mon,i.tc))),0)
+    +(D.changas||[]).filter(i=>i.quien==='jua'&&i.f&&i.f.startsWith('2026-'+mStr2)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
+  const cocoMesUSD=D.clasesCoco.filter(i=>i.f&&i.f.startsWith('2026-'+mStr2))
+    .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.mon2==='USD'?i.monto2:toUsd(i.monto,i.mon,i.tc))),0)
+    +(D.changas||[]).filter(i=>i.quien==='coco'&&i.f&&i.f.startsWith('2026-'+mStr2)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
+  let obrMesUSD=0;
+  if(_obrAfipData){
+    _obrAfipData.filter(r=>r[0]&&r[0].startsWith('2026-'+mStr2)).forEach(r=>{
+      obrMesUSD+=((parseFloat(r[5])||0)+(parseFloat(r[7])||0))/tcMes+(parseFloat(r[9])||0);
+    });
+  }
+  const airbnbMesUSD=(D.airbnb||[]).filter(i=>i.entrada&&i.entrada.startsWith('2026-'+mStr2))
+    .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.arsEquiv||0)/tcMes),0);
+  const totalMesUSD=juaMesUSD+cocoMesUSD+obrMesUSD+airbnbMesUSD;
+  const nombreMes=ML[mes]||'';
+
   // Update metric cards
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  const setMes=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val>0?nombreMes+': '+fU(Math.round(val))+' USD':nombreMes+': —';};
+  setMes('im-jua-mes', juaMesUSD);
+  setMes('im-coco-mes', cocoMesUSD);
+  setMes('im-obr-mes', obrMesUSD);
+  setMes('im-airbnb-mes', airbnbMesUSD);
+  setMes('im-tot-mes', totalMesUSD);
   set('im-jua-usd', juaTotalUSD>0?fU(juaTotalUSD)+' USD':'— USD');
   set('im-jua-ars', juaTotalARS>0?'≈ '+fmt(juaTotalARS):'');
   set('im-coco-usd', cocoTotalUSD>0?fU(cocoTotalUSD)+' USD':'— USD');
