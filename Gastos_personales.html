@@ -2850,6 +2850,8 @@ function rIng(){
                 : (item.mon==='USD'?fU(item.monto):fmt(item.monto))}</div>
               ${(item.mon==='USD'||item.mon2==='USD')&&item.arsEquiv
                 ? `<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:1px">≈ ${fmt(item.arsEquiv)}</div>` : ''}
+              ${item.mon==='ARS'&&item.tipoPago!=='mixto'&&(item.tc||D.tc[mes])
+                ? `<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:1px">≈ ${fU(toUsd(item.monto,item.mon,item.tc))}</div>` : ''}
             </div>
             ${section.editFn ? `<button class="btn" style="font-size:11px;padding:2px 7px" onclick="${section.editFn}('${section.quien||''}',${item.id})">✏️</button>` : ''}
             <button class="btn bd" onclick="${section.fn}(${item.id})">×</button>
@@ -3886,6 +3888,13 @@ function toggleTcCh(){
 function toArs(monto,mon,tc){
   if(!monto)return 0;
   return mon==='USD'?(monto*(tc||D.tc[mes]||1400)):monto;
+}
+// Helper: get USD equivalent from monto+mon+tc (inverso de toArs)
+function toUsd(monto,mon,tc){
+  if(!monto)return 0;
+  if(mon==='USD')return monto;
+  const t=tc||D.tc[mes]||1400;
+  return t?monto/t:0;
 }
 
 // ── MIXTO TOGGLE ──
