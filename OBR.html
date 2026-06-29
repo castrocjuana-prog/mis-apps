@@ -149,7 +149,7 @@ tbody tr:hover td{background:var(--s2)}
 /* SELECTED ITEMS */
 .si-wrap{min-height:52px;border:1px solid var(--bd);border-radius:var(--r);background:var(--s2);padding:8px;margin-bottom:12px}
 .si-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--txt3);margin-bottom:6px}
-.si-row{display:flex;align-items:center;background:#fff;border:1px solid var(--bd);border-radius:6px;padding:6px 10px;gap:8px;margin-bottom:4px}
+.si-row{display:flex;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--bd);border-radius:6px;padding:6px 10px;gap:8px;margin-bottom:4px}
 .si-row:last-child{margin-bottom:0}
 .si-name{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .si-q{display:flex;align-items:center;gap:5px;flex-shrink:0}
@@ -2722,7 +2722,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: sync-dedup ✓');
+  console.log('OBR build: descuento-10pct ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -4488,9 +4488,12 @@ function addItById(id) {
   if (!item) return;
   const existing = D.sel.find(i => i.id === id);
   if (existing) { existing.q++; }
-  else { D.sel.push({...item, q:1}); }
+  else { D.sel.push({...item, q:1, disc:false}); }
   rSel();
 }
+
+// Precio efectivo de un item seleccionado, aplicando el 10% off si está marcado
+function effPrice(it) { return it.disc ? +(it.price * 0.9).toFixed(2) : it.price; }
 
 function rSel() {
   const list    = document.getElementById('si-list');
@@ -4509,11 +4512,12 @@ function rSel() {
 
   let totalUsd = 0, totalPesos = 0;
   list.innerHTML = D.sel.map((it, i) => {
-    const u = it.price * it.q;
+    const u = effPrice(it) * it.q;
     const p = u * dol;
     totalUsd += u; totalPesos += p;
+    const discBadge = it.disc ? `<span style="font-size:10px;color:var(--ok);margin-left:4px;">(−10%)</span>` : '';
     return `<div class="si-row">
-      <div class="si-name">${e(it.n)}</div>
+      <div class="si-name">${e(it.n)}${discBadge}</div>
       <div class="si-q">
         <div class="qb" data-idx="${i}" data-delta="-1">−</div>
         <div class="qv">${it.q}</div>
@@ -4521,6 +4525,9 @@ function rSel() {
       </div>
       <div class="si-price">u$s ${u.toFixed(0)}</div>
       <div class="si-del" data-idx="${i}">✕</div>
+      <label style="flex-basis:100%;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:500;color:var(--txt2);cursor:pointer;">
+        <input type="checkbox" class="si-disc" data-idx="${i}" ${it.disc?'checked':''} style="margin:0;width:14px;height:14px;cursor:pointer;"> 💸 10% off
+      </label>
     </div>`;
   }).join('');
 
@@ -4537,6 +4544,13 @@ function rSel() {
   list.querySelectorAll('.si-del').forEach(b => {
     b.addEventListener('click', function() {
       D.sel.splice(parseInt(this.dataset.idx), 1);
+      rSel();
+    });
+  });
+  list.querySelectorAll('.si-disc').forEach(b => {
+    b.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      D.sel[parseInt(this.dataset.idx)].disc = this.checked;
       rSel();
     });
   });
@@ -4611,9 +4625,9 @@ async function saveVenta() {
       up   = moneda.usd;
       tusd = moneda.usd;
     } else {
-      // Use items total (prices from catalog)
-      pp   = D.sel.reduce((a,i) => a + i.price*i.q*dol, 0);
-      up   = D.sel.reduce((a,i) => a + i.price*i.q, 0);
+      // Use items total (prices from catalog, applying per-item 10% off)
+      pp   = D.sel.reduce((a,i) => a + effPrice(i)*i.q*dol, 0);
+      up   = D.sel.reduce((a,i) => a + effPrice(i)*i.q, 0);
       tusd = up;
     }
   }
@@ -4643,7 +4657,7 @@ async function saveVenta() {
       cat: i.cat,
       q: i.q,
       lista: +(i.price * i.q).toFixed(2),
-      real: esRegalo ? 0 : +(i.price * i.q * factor).toFixed(2)
+      real: esRegalo ? 0 : (hasMontoOverride ? +(i.price * i.q * factor).toFixed(2) : +(effPrice(i) * i.q).toFixed(2))
     }));
     itemsJson = JSON.stringify(itemsDetail);
   }
