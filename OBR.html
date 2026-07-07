@@ -6466,7 +6466,7 @@ async function guardarListaHoy() {
   const hoy = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const snap = {
     productos: D.productos.map(p => ({c:p.c,n:p.n,pu:p.pu,tu:p.tu,cu:p.cu,ps:p.ps,pr:p.pr,pf:p.pf,marca:p.marca||''})),
-    botas:     D.botas.map(b => ({marca:b.marca,mod:b.mod,cu:b.cu,vu:b.vu,act:b.act,talle:b.talle})),
+    botas:     D.botas.map(b => ({marca:b.marca,mod:b.mod,cu:b.cu,vu:b.vu,act:b.act,talle:b.talle,ancho:b.ancho,canting:b.canting})),
     servicios: D.servicios.map(s => ({n:s.n,c:s.c,pu:s.pu,tu:s.tu})),
   };
   const nItems = snap.productos.filter(p=>p.pu||p.tu||p.ps||p.pr||p.pf).length
@@ -6592,7 +6592,7 @@ function imprimirPrecios() {
   imprimirPreciosCore(D.productos, D.botas, D.servicios, dol, hoy);
 }
 function imprimirPreciosCore(P, B, S, dol, hoy) {
-  const catOrder = {'Plantillas':1,'Boosters':2,'Lifters':3,'Medias':4,'Botas':5,'Servicios':6,'Otros':7};
+  const catOrder = {'Botas':1,'Plantillas':2,'Boosters':3,'Lifters':4,'Medias':5,'Servicios':6,'Otros':7};
   const fmt = n => n ? '$'+Math.round(n*dol).toLocaleString('es-AR') : '\u2014';
   const fmtU = n => n ? 'u$s '+n : '\u2014';
   // Productos agrupados por precio (Boosters y Lifters van aparte)
@@ -6610,18 +6610,16 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
   // Lifters: una fila por lifter (Suelta / Recambio / Freza)
   const lifterRows = P.filter(p => p.c==='Lifters' || p.c==='Plaquitas').sort((a,b)=>a._r-b._r)
     .map(p => ({cat:'Lifters',tipo:'lifter',name:p.n,marca:p.marca||'',ps:p.ps,pr:p.pr,pf:p.pf,_r:p._r}));
-  // Botas por modelo con talles en stock — mismo orden que la app: marca (Lange, Atomic, resto), luego año de importación, luego alfabético
-  const botaMap = {};
-  const marcaOrd = m => { m=(m||'').toLowerCase(); return m==='lange'?0:m==='atomic'?1:2; };
-  const yrImp = bm => { const y = parseInt(bm.fechaImp); return isNaN(y) ? Infinity : y; };
-  B.forEach(b => {
-    const k = b.marca+'|'+b.mod;
-    if (!botaMap[k]) botaMap[k] = {cat:'Botas',marca:b.marca,mod:b.mod,cu:b.cu,pu:b.vu,tu:null,talles:[],_r:0,fechaImp:b.fechaImp||'',tipo:'bota'};
-    if (b.act > 0) botaMap[k].talles.push(b.talle);
-  });
-  const botaArr = Object.values(botaMap).sort((a,b) =>
-    marcaOrd(a.marca)-marcaOrd(b.marca) ||
-    yrImp(a)-yrImp(b) ||
+  // Botas: una fila por bota en stock — orden talle ascendente, luego ancho (Angosta → Media → Ancha), luego marca/modelo
+  const anchoOrd = a => { const x=(a||'').toLowerCase(); return x==='angosta'?0:x==='media'?1:x==='ancha'?2:3; };
+  const botaArr = B.filter(b => b.act > 0).map(b => ({
+    cat:'Botas', tipo:'bota', marca:b.marca||'', mod:b.mod||'', cu:b.cu, vu:b.vu, act:b.act,
+    talle:b.talle||'', ancho:b.ancho||'', canting:b.canting||'', _r:0
+  }));
+  botaArr.sort((a,b) =>
+    (parseFloat(a.talle)||0)-(parseFloat(b.talle)||0) ||
+    anchoOrd(a.ancho)-anchoOrd(b.ancho) ||
+    a.marca.localeCompare(b.marca,'es',{sensitivity:'base'}) ||
     a.mod.localeCompare(b.mod,'es',{sensitivity:'base'})
   );
   botaArr.forEach((bm,i) => { bm._r = i; });
@@ -6640,7 +6638,33 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
   let tableRows = '';
   Object.entries(cats).forEach(([cat, items]) => {
     tableRows += '<tr class="cat-row"><td colspan="5">'+cat+'</td></tr>';
+    if (cat === 'Botas') {
+      tableRows += '<tr class="sub-head-row"><td></td>'
+        + '<td class="num" style="color:#1565c0;">Lista u$s</td><td class="num" style="color:#1565c0;">Lista $ARS</td>'
+        + '<td class="num" style="color:#2e7d32;">Efectivo u$s</td><td class="num" style="color:#2e7d32;">Efectivo $ARS</td></tr>';
+    }
+    let lastTalle = null;
     items.forEach(r => {
+      // Botas: separador por talle, precio de lista + precio efectivo (10% off en efectivo)
+      if (r.tipo === 'bota') {
+        if (r.talle !== lastTalle) {
+          lastTalle = r.talle;
+          tableRows += '<tr class="talle-row"><td colspan="5">Talle '+r.talle+'</td></tr>';
+        }
+        const efUsd = Math.round(r.vu*0.9);
+        const subParts = [];
+        if (r.ancho) subParts.push(r.ancho);
+        subParts.push('stock '+r.act);
+        if (r.canting) subParts.push('Canting '+r.canting);
+        let sub = subParts.join(' \u00b7 ');
+        if (r.cu) sub += ' \u00b7 Costo u$s '+r.cu;
+        const nombre = '<span class="name">'+r.marca+' '+r.mod+'</span><br><span class="sub">'+sub+'</span>';
+        tableRows += '<tr><td>'+nombre+'</td>'
+          + '<td class="usd profe">'+fmtU(r.vu)+'</td><td class="ars profe">'+fmt(r.vu)+'</td>'
+          + '<td class="usd" style="color:#2e7d32;">'+fmtU(efUsd)+'</td>'
+          + '<td class="ars" style="color:#2e7d32;font-weight:600;">'+fmt(efUsd)+'</td></tr>';
+        return;
+      }
       // Boosters: una fila con las 4 variantes apiladas
       if (r.tipo==='boosters') {
         const stk = arr => arr.map(x=>'<div style="line-height:1.6;">'+x+'</div>').join('');
@@ -6659,25 +6683,15 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
         return;
       }
       let nombre;
-      if (r.tipo==='bota') {
-        const ts = r.talles.length ? r.talles.sort((a,b)=>parseFloat(a)-parseFloat(b)).join(' \u00b7 ') : 'sin stock';
-        nombre = '<span class="name">'+r.marca+' '+r.mod+'</span><br><span class="sub">Talles: '+ts+'</span>';
-      } else if (r.names.length===1) {
+      if (r.names.length===1) {
         nombre = '<span class="name">'+r.names[0]+'</span>';
       } else {
         const base = r.names[0].replace(/ (XS|S|M|L|XL)$/,'');
         const sizes = r.names.map(n=>n.match(/(XS|S|M|L|XL)$/)?.[0]||n).join(' \u00b7 ');
         nombre = '<span class="name">'+base+'</span> <span class="sub">'+sizes+'</span>';
       }
-      let altaUsd, altaArs;
-      if (r.tipo==='bota') {
-        // Botas: una sola venta, sin precio Alta → usamos el espacio para el costo (referencia interna)
-        altaUsd = '<td class="usd" style="color:#888;">'+(r.cu?'Costo u$s '+r.cu:'—')+'</td>';
-        altaArs = '<td class="ars" style="color:#888;font-weight:400;">—</td>';
-      } else {
-        altaUsd = '<td class="usd turista">'+fmtU(r.tu)+'</td>';
-        altaArs = '<td class="ars turista">'+fmt(r.tu)+'</td>';
-      }
+      const altaUsd = '<td class="usd turista">'+fmtU(r.tu)+'</td>';
+      const altaArs = '<td class="ars turista">'+fmt(r.tu)+'</td>';
       tableRows += '<tr><td>'+nombre+'</td><td class="usd profe">'+fmtU(r.pu)+'</td><td class="ars profe">'+fmt(r.pu)+'</td>'+altaUsd+altaArs+'</tr>';
     });
   });
@@ -6709,6 +6723,8 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
   + 'td.usd{font-family:\'DM Mono\',monospace;font-size:10px;text-align:right;}td.ars{font-family:\'DM Mono\',monospace;font-size:11px;font-weight:600;text-align:right;}'
   + 'td.profe{color:#1565c0;}td.turista{color:#e65100;}td.usd.profe{color:#1565c080;}td.usd.turista{color:#e6510080;}'
   + 'tr.cat-row td{background:#f6f6f6;font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;color:#333;padding:6px 8px;border-bottom:none;border-top:4px solid #fff;}'
+  + 'tr.sub-head-row td{font-size:8px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;padding:2px 8px 4px;border-bottom:1px solid #eee;}'
+  + 'tr.talle-row td{font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;color:#D32F2F;background:#fdfaf9;padding:4px 8px;border-bottom:1px solid #f0e0e0;border-top:2px solid #fff;}'
   + '.legend{display:flex;gap:16px;margin-top:14px;padding-top:8px;border-top:1px solid #e2e2e2;font-size:9px;color:#888;}.legend span{display:flex;align-items:center;gap:4px;}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}'
   + '.pagos{margin-top:16px;padding-top:10px;border-top:1.5px solid #D32F2F;}'
   + '.pagos-t{font-family:\'Barlow Condensed\',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#333;margin-bottom:8px;}'
