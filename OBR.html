@@ -6592,7 +6592,6 @@ function imprimirPrecios() {
   imprimirPreciosCore(D.productos, D.botas, D.servicios, dol, hoy);
 }
 function imprimirPreciosCore(P, B, S, dol, hoy) {
-  const catOrder = {'Botas':1,'Plantillas':2,'Boosters':3,'Lifters':4,'Medias':5,'Servicios':6,'Otros':7};
   const fmt = n => n ? '$'+Math.round(n*dol).toLocaleString('es-AR') : '\u2014';
   const fmtU = n => n ? 'u$s '+n : '\u2014';
   // Productos agrupados por precio (Boosters y Lifters van aparte)
@@ -6631,40 +6630,38 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
     if (!servGroups[key]) servGroups[key] = {cat:'Servicios',sub:s.c,pu:s.pu,tu:s.tu,names:[],_r:s._r,tipo:'serv'};
     servGroups[key].names.push(s.n);
   });
-  const allRows = [...Object.values(prodGroups),...boosterRows,...lifterRows,...botaArr,...Object.values(servGroups)]
-    .sort((a,b)=>(catOrder[a.cat]||8)-(catOrder[b.cat]||8)||(a._r||0)-(b._r||0));
+
+  // ── Tabla de BOTAS (aparte, 5 columnas de precio: Costo · Lista u$s/ARS · Efectivo u$s/ARS) ──
+  let botaRows = '';
+  let lastTalle = null;
+  botaArr.forEach(r => {
+    if (r.talle !== lastTalle) {
+      lastTalle = r.talle;
+      botaRows += '<tr class="talle-row"><td colspan="6">Talle '+r.talle+'</td></tr>';
+    }
+    const efUsd = Math.round(r.vu*0.9);
+    const subParts = [];
+    if (r.ancho) subParts.push(r.ancho);
+    subParts.push('stock '+r.act);
+    if (r.canting) subParts.push('Canting '+r.canting);
+    const nombre = '<span class="name">'+r.marca+' '+r.mod+'</span><br><span class="sub">'+subParts.join(' \u00b7 ')+'</span>';
+    botaRows += '<tr><td>'+nombre+'</td>'
+      + '<td class="usd" style="color:#bbb;">'+(r.cu?fmtU(r.cu):'\u2014')+'</td>'
+      + '<td class="usd profe">'+fmtU(r.vu)+'</td><td class="ars profe">'+fmt(r.vu)+'</td>'
+      + '<td class="usd" style="color:#2e7d32;">'+fmtU(efUsd)+'</td>'
+      + '<td class="ars" style="color:#2e7d32;font-weight:600;">'+fmt(efUsd)+'</td></tr>';
+  });
+
+  // ── Tabla del resto de productos y servicios (5 columnas: nombre + Baja/Alta u$s+ARS) ──
+  const restCatOrder = {'Plantillas':1,'Boosters':2,'Lifters':3,'Medias':4,'Servicios':5,'Otros':6};
+  const allRows = [...Object.values(prodGroups),...boosterRows,...lifterRows,...Object.values(servGroups)]
+    .sort((a,b)=>(restCatOrder[a.cat]||7)-(restCatOrder[b.cat]||7)||(a._r||0)-(b._r||0));
   const cats = {};
   allRows.forEach(r=>{ if(!cats[r.cat])cats[r.cat]=[]; cats[r.cat].push(r); });
   let tableRows = '';
   Object.entries(cats).forEach(([cat, items]) => {
     tableRows += '<tr class="cat-row"><td colspan="5">'+cat+'</td></tr>';
-    if (cat === 'Botas') {
-      tableRows += '<tr class="sub-head-row"><td></td>'
-        + '<td class="num" style="color:#1565c0;">Lista u$s</td><td class="num" style="color:#1565c0;">Lista $ARS</td>'
-        + '<td class="num" style="color:#2e7d32;">Efectivo u$s</td><td class="num" style="color:#2e7d32;">Efectivo $ARS</td></tr>';
-    }
-    let lastTalle = null;
     items.forEach(r => {
-      // Botas: separador por talle, precio de lista + precio efectivo (10% off en efectivo)
-      if (r.tipo === 'bota') {
-        if (r.talle !== lastTalle) {
-          lastTalle = r.talle;
-          tableRows += '<tr class="talle-row"><td colspan="5">Talle '+r.talle+'</td></tr>';
-        }
-        const efUsd = Math.round(r.vu*0.9);
-        const subParts = [];
-        if (r.ancho) subParts.push(r.ancho);
-        subParts.push('stock '+r.act);
-        if (r.canting) subParts.push('Canting '+r.canting);
-        let sub = subParts.join(' \u00b7 ');
-        if (r.cu) sub += ' \u00b7 Costo u$s '+r.cu;
-        const nombre = '<span class="name">'+r.marca+' '+r.mod+'</span><br><span class="sub">'+sub+'</span>';
-        tableRows += '<tr><td>'+nombre+'</td>'
-          + '<td class="usd profe">'+fmtU(r.vu)+'</td><td class="ars profe">'+fmt(r.vu)+'</td>'
-          + '<td class="usd" style="color:#2e7d32;">'+fmtU(efUsd)+'</td>'
-          + '<td class="ars" style="color:#2e7d32;font-weight:600;">'+fmt(efUsd)+'</td></tr>';
-        return;
-      }
       // Boosters: una fila con las 4 variantes apiladas
       if (r.tipo==='boosters') {
         const stk = arr => arr.map(x=>'<div style="line-height:1.6;">'+x+'</div>').join('');
@@ -6735,7 +6732,10 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
   + '<\/style><\/head><body>'
   + '<div class="header"><div class="logo-wrap"><div class="logo-circle"><\/div><div class="brand"><div class="brand-name">OTTO\'S BOOT ROOM<\/div><div class="brand-sub">Bariloche \u00b7 Argentina<\/div><\/div><\/div>'
   + '<div class="header-right"><div class="fecha">Lista de precios \u00b7 '+hoy+'<\/div><div class="dolar">D\u00f3lar $'+dol.toLocaleString('es-AR')+'<\/div><\/div><\/div>'
-  + '<table><thead><tr><th>Producto \/ Servicio<\/th><th class="num" style="color:#1565c0;">Baja u$s<\/th><th class="num" style="color:#1565c0;">Baja $ARS<\/th><th class="num" style="color:#e65100;">Alta u$s<\/th><th class="num" style="color:#e65100;">Alta $ARS<\/th><\/tr><\/thead>'
+  + '<table><thead><tr><th>Botas<\/th><th class="num" style="color:#999;">Costo<\/th><th class="num" style="color:#1565c0;">Lista u$s<\/th><th class="num" style="color:#1565c0;">Lista $ARS<\/th><th class="num" style="color:#2e7d32;">Efectivo u$s<\/th><th class="num" style="color:#2e7d32;">Efectivo $ARS<\/th><\/tr><\/thead>'
+  + '<tbody>'+botaRows+'<\/tbody><\/table>'
+  + (botaRows ? '<div class="legend"><span><span class="dot" style="background:#999;"><\/span> Costo<\/span><span><span class="dot" style="background:#1565c0;"><\/span> Precio de Lista<\/span><span><span class="dot" style="background:#2e7d32;"><\/span> Efectivo (10% off)<\/span><\/div>' : '')
+  + '<table style="margin-top:18px;"><thead><tr><th>Producto \/ Servicio<\/th><th class="num" style="color:#1565c0;">Baja u$s<\/th><th class="num" style="color:#1565c0;">Baja $ARS<\/th><th class="num" style="color:#e65100;">Alta u$s<\/th><th class="num" style="color:#e65100;">Alta $ARS<\/th><\/tr><\/thead>'
   + '<tbody>'+tableRows+'<\/tbody><\/table>'
   + '<div class="legend"><span><span class="dot" style="background:#1565c0;"><\/span> Precio Baja<\/span><span><span class="dot" style="background:#e65100;"><\/span> Precio Alta<\/span><\/div>'
   + pagosHtml
