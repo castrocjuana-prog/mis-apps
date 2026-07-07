@@ -2805,8 +2805,12 @@ async function loadGPTaller() {
     const rVars = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${GP_SID}/values/${encodeURIComponent('VARS!A1:H5000')}`, {headers:{Authorization:`Bearer ${t}`}});
     const dVars = await rVars.json();
     const varRows = dVars.values || [];
+    // Normaliza texto para comparar: saca tildes, colapsa espacios, trim, minúsculas
+    const norm = s => (s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toLowerCase();
     // Set de claves OBR para deduplicar (accesible en varRows Y fijoRows)
-    const obrKeys = new Set((D.gastos || []).map(g => `${g.f}|${(g.n||'').trim().toLowerCase()}`));
+    const obrKeys = new Set((D.gastos || []).map(g => `${g.f}|${norm(g.n)}`));
+    // Respaldo: fecha + monto en pesos (por si el nombre quedó levemente distinto)
+    const obrKeysAmt = new Set((D.gastos || []).map(g => `${g.f}|${Math.round(g.p)}`));
     if (varRows.length > 1) {
       const vHeader = varRows[0].map(h => (h||'').toLowerCase().trim());
       const viAnio  = vHeader.indexOf('anio');
@@ -2825,8 +2829,9 @@ async function loadGPTaller() {
         const obCat = sub === 'Temporada' ? 'Temporada' : 'Obra/Infraestructura';
         const f = row[viFecha] || '';
         const n = row[viDesc]  || '';
-        // Si ya existe en OBR con misma fecha+nombre, no duplicar
-        if (obrKeys.has(`${f}|${n.trim().toLowerCase()}`)) return;
+        const monto = parseFloat(row[viMonto]) || 0;
+        // Si ya existe en OBR con misma fecha+nombre (normalizado), o misma fecha+monto, no duplicar
+        if (obrKeys.has(`${f}|${norm(n)}`) || obrKeysAmt.has(`${f}|${Math.round(monto)}`)) return;
         all.push({
           f, n,
           c: obCat,
@@ -2875,8 +2880,8 @@ async function loadGPTaller() {
           const fCol = fCols[pagoIdx] !== undefined ? fCols[pagoIdx] : -1;
           const fecha = (fCol !== -1 && row[fCol]) ? row[fCol] : `${yr}-${String(idx+1).padStart(2,'0')}-01`;
           pagoIdx++;
-          // Si ya existe en OBR con misma fecha+nombre, no duplicar
-          if (obrKeys.has(`${fecha}|${nom.trim().toLowerCase()}`)) { pagoIdx++; return; }
+          // Si ya existe en OBR con misma fecha+nombre (normalizado), o misma fecha+monto, no duplicar
+          if (obrKeys.has(`${fecha}|${norm(nom)}`) || obrKeysAmt.has(`${fecha}|${Math.round(monto)}`)) { pagoIdx++; return; }
           all.push({ f: fecha, n: nom, c: 'Gasto Fijo', p: monto, u: 0,
                      m: 'Gastos Personales (fijo)', det: '', src: 'gp-fijo', id: `fijo-${id}-${idx+1}` });
         });
