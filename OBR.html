@@ -438,10 +438,8 @@ body.ready #app{display:block}
         <input type="number" id="epf-i" value="7" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--red);display:block;margin-bottom:4px;">Costo USD</label>
         <input type="number" id="epf-cu" value="45" style="width:100%;padding:8px 10px;border:2px solid var(--red);border-radius:8px;font-size:13px;font-weight:600;box-sizing:border-box;"></div>
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--profe);display:block;margin-bottom:4px;">Precio profe USD</label>
+      <div style="grid-column:1/-1;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--profe);display:block;margin-bottom:4px;">Precio Efectivo USD</label>
         <input type="number" id="epf-pu" value="130" style="width:100%;padding:8px 10px;border:1px solid var(--profe);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--turista);display:block;margin-bottom:4px;">Precio turista USD</label>
-        <input type="number" id="epf-tu" value="150" style="width:100%;padding:8px 10px;border:1px solid var(--turista);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
     </div>
     <div style="display:flex;gap:8px;">
       <button id="epf-save" style="flex:1;background:var(--red);color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Guardar</button>
@@ -918,7 +916,7 @@ body.ready #app{display:block}
   </div>
   <p style="font-size:12px;color:var(--txt2);margin-bottom:12px;">Referencia rápida. Cambiá el dólar arriba para ver precios actualizados. Hacé click en ✏️ para editar un precio.</p>
   <div class="tw"><div class="ts"><table>
-    <thead><tr><th>Tipo</th><th>Cat.</th><th>Nombre</th><th>Costo USD</th><th>Baja USD</th><th>Alta USD</th><th>Baja $ARS</th><th>Alta $ARS</th><th></th></tr></thead>
+    <thead><tr><th>Tipo</th><th>Cat.</th><th>Nombre</th><th>Costo USD</th><th>Efectivo USD</th><th>Electrónico USD</th><th>Efectivo $ARS</th><th>Electrónico $ARS</th><th></th></tr></thead>
     <tbody id="pr-tbody"><tr style="border-left:3px solid var(--cat-plantillas);">
     <td><span class="bx bx-x" style="font-size:10px;">Producto</span></td>
     <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;background:var(--cat-plantillas-bg);color:var(--cat-plantillas);padding:2px 8px;border-radius:20px;">Plantillas</span></td>
@@ -1762,8 +1760,8 @@ x2 gramaje 60</div>
 
   <!-- Toggle profe/turista -->
   <div class="pt-toggle">
-    <button class="pt-btn" id="pt-turista" onclick="setPT('turista')" style="color:var(--turista)">Precio Alta</button>
-    <button class="pt-btn on" id="pt-profe" onclick="setPT('profe')" style="color:var(--profe)">Precio Baja</button>
+    <button class="pt-btn" id="pt-turista" onclick="setPT('turista')" style="color:var(--turista)">💳 Electrónico</button>
+    <button class="pt-btn on" id="pt-profe" onclick="setPT('profe')" style="color:var(--profe)">💵 Efectivo</button>
   </div>
 
   <!-- Item picker -->
@@ -2219,10 +2217,10 @@ x2 gramaje 60</div>
     <div class="fi"><label>Stock inicial (temporada)</label><input type="number" id="pd-i" placeholder="0"></div>
     <div class="fi"><label>Costo USD (c/u)</label><input type="number" id="pd-cu" placeholder="0" oninput="calcGain()"></div>
     <!-- Campos normales (Baja/Alta) -->
-    <div class="fi pd-normal"><label>Precio Baja USD</label><input type="number" id="pd-pu" placeholder="0" oninput="calcGain()"></div>
-    <div class="fi pd-normal"><label>Precio Alta USD</label><input type="number" id="pd-tu" placeholder="0" oninput="calcGain()"></div>
-    <div class="fi pd-normal"><label>Ganancia Baja</label><input type="number" id="pd-gp" readonly="" style="background:var(--ok-bg);color:var(--ok);"></div>
-    <div class="fi pd-normal"><label>Ganancia Alta</label><input type="number" id="pd-gt" readonly="" style="background:var(--ok-bg);color:var(--ok);"></div>
+    <div class="fi pd-normal" style="grid-column:1/-1;"><label>Precio Efectivo USD</label><input type="number" id="pd-pu" placeholder="0" oninput="calcGain()"></div>
+    <input type="hidden" id="pd-tu" value="0">
+    <div class="fi pd-normal"><label>Ganancia Efectivo</label><input type="number" id="pd-gp" readonly="" style="background:var(--ok-bg);color:var(--ok);"></div>
+    <div class="fi pd-normal"><label>Electrónico (+20%)</label><input type="number" id="pd-gt" readonly="" style="background:var(--info-bg);color:var(--info);"></div>
     <!-- Subtipo plaquita (solo visible si cat=Plaquitas) -->
     <div class="fi pd-plaq" style="display:none;grid-column:1/-1;"><label>Tipo de plaquita</label>
       <select id="pd-subplaq" style="width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:var(--r);font-size:13px;">
@@ -2281,8 +2279,8 @@ x2 gramaje 60</div>
     <div class="fi"><label>Categoría</label>
       <select id="sv-c"><option>Frezada</option><option>Expansión</option><option>Punch</option><option>Horneado</option><option>Canting</option><option>Plantilla</option><option>Otro</option></select>
     </div>
-    <div class="fi"><label>Precio profe USD</label><input type="number" id="sv-pu" placeholder="0"></div>
-    <div class="fi"><label>Precio turista USD</label><input type="number" id="sv-tu" placeholder="0"></div>
+    <div class="fi" style="grid-column:1/-1;"><label>Precio Efectivo USD</label><input type="number" id="sv-pu" placeholder="0"></div>
+    <input type="hidden" id="sv-tu" value="0">
   </div>
   <div style="margin-top:16px;display:flex;gap:10px;">
     <button class="btn btn-p" style="flex:1;justify-content:center;" onclick="saveServ()">Guardar</button>
@@ -2758,7 +2756,7 @@ async function lProd() {
   D.productos = (d.values||[]).map((r,i) => {
     const cu = fN(r[6]);
     const pu = fN(r[7]);
-    const tu = fN(r[8]);
+    const tu = pu ? Math.round(pu * 1.2) : 0;
     return {
       _r:i+2, n:r[0]||'', marca:r[1]||'', c:r[2]||'', fc:r[3]||'',
       ini:parseInt(r[4])||0, act:parseInt(r[5])||0,
@@ -2783,9 +2781,10 @@ async function lBotas() {
 }
 async function lServ() {
   const d = await sG('SERVICIOS!A2:D200');
-  D.servicios = (d.values||[]).map((r,i) => ({
-    _r:i+2, n:r[0]||'', c:r[1]||'', pu:parseFloat(r[2])||0, tu:parseFloat(r[3])||0
-  })).filter(s => s.n);
+  D.servicios = (d.values||[]).map((r,i) => {
+    const pu = parseFloat(r[2])||0;
+    return { _r:i+2, n:r[0]||'', c:r[1]||'', pu, tu: pu ? Math.round(pu * 1.2) : 0 };
+  }).filter(s => s.n);
   rserv();
 }
 // ── SYNC GASTOS PERSONALES → OBR ──
@@ -3095,8 +3094,8 @@ function rprod() {
         </div>
         <div class="bloque-privado">
         <div class="pkc-row"><span class="pkc-lbl">Costo</span><span class="pkc-val">${p.cu?'u$s '+(+p.cu.toFixed(2)):'—'}</span></div>
-        <div class="pkc-row"><span class="pkc-lbl">Baja</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
-        <div class="pkc-row"><span class="pkc-lbl">Alta</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
+        <div class="pkc-row"><span class="pkc-lbl">Efectivo</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
+        <div class="pkc-row"><span class="pkc-lbl">Electrónico</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
         ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Gan. Baja</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
         ${p.gt?`<div class="pkc-row"><span class="pkc-lbl">Gan. Alta</span><span class="gain-tag c-turista">+u$s ${p.gt}</span></div>`:''}
         </div>
@@ -4421,7 +4420,7 @@ function buildCatalog() {
   });
   D.botas.forEach(b => {
     if (b.act > 0) {
-      const price = b.vu;
+      const price = isProfe ? b.vu : Math.round(b.vu * 1.2);
       const anchoStr = b.ancho ? ` (${b.ancho})` : '';
       items.push({
         id: 'b'+b._r, n: `${b.marca} ${b.mod} ${b.talle}${anchoStr}`, cat: 'Botas',
@@ -4833,10 +4832,8 @@ function editProd(rowNum) {
       <div style="grid-column:1/-1;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--turista);display:block;margin-bottom:4px;">Precio Freza USD</label>
         <input type="number" id="epf-pf" value="${p.pf||''}" placeholder="0" style="width:100%;padding:8px 10px;border:1px solid var(--turista);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       ` : `
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--profe);display:block;margin-bottom:4px;">Precio Baja USD</label>
+      <div style="grid-column:1/-1;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--profe);display:block;margin-bottom:4px;">Precio Efectivo USD</label>
         <input type="number" id="epf-pu" value="${p.pu||''}" style="width:100%;padding:8px 10px;border:1px solid var(--profe);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
-      <div><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--turista);display:block;margin-bottom:4px;">Precio Alta USD</label>
-        <input type="number" id="epf-tu" value="${p.tu||''}" style="width:100%;padding:8px 10px;border:1px solid var(--turista);border-radius:8px;font-size:13px;box-sizing:border-box;"></div>
       `}
     </div>
     <div style="margin-bottom:10px;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--gray2);display:block;margin-bottom:4px;">Notas</label>
@@ -4887,7 +4884,7 @@ function editProd(rowNum) {
       subplaq = document.getElementById('epf-subplaq')?.value||'Lifter';
     } else {
       const puRaw = document.getElementById('epf-pu').value;
-      const tuRaw = document.getElementById('epf-tu').value;
+      const tuRaw = '';
       pu = puRaw === '' ? 0 : Number(puRaw);
       tu = tuRaw === '' ? 0 : Number(tuRaw);
       gp = pu ? +(pu-cu).toFixed(2) : '';
@@ -4916,7 +4913,6 @@ function editServ(rowNum) {
   const catEl = document.getElementById('sv-c');
   for (let i=0; i<catEl.options.length; i++) { if(catEl.options[i].value===s.c){catEl.selectedIndex=i;break;} }
   document.getElementById('sv-pu').value = s.pu||'';
-  document.getElementById('sv-tu').value = s.tu||'';
   document.querySelector('#m-serv .mt').textContent = 'EDITAR SERVICIO';
   openM('m-serv');
 }
@@ -4931,9 +4927,8 @@ function clrV() {
 function calcGain() {
   const cu = parseFloat(document.getElementById('pd-cu').value)||0;
   const pu = parseFloat(document.getElementById('pd-pu').value)||0;
-  const tu = parseFloat(document.getElementById('pd-tu').value)||0;
   document.getElementById('pd-gp').value = pu ? +(pu-cu).toFixed(2) : '';
-  document.getElementById('pd-gt').value = tu ? +(tu-cu).toFixed(2) : '';
+  document.getElementById('pd-gt').value = pu ? Math.round(pu * 1.2) : '';
 }
 function calcBotaGain() {
   const cu = parseFloat(document.getElementById('bt-cu').value)||0;
@@ -4962,7 +4957,7 @@ async function saveProd() {
     subplaq = document.getElementById('pd-subplaq')?.value||'Lifter';
   } else {
     pu = parseFloat(document.getElementById('pd-pu').value)||0;
-    tu = parseFloat(document.getElementById('pd-tu').value)||0;
+    tu = pu ? Math.round(pu * 1.2) : 0;
     gp = pu ? +(pu-cu).toFixed(2) : '';
     gt = tu ? +(tu-cu).toFixed(2) : '';
   }
@@ -5049,8 +5044,9 @@ async function saveBota() {
 async function saveServ() {
   const n = document.getElementById('sv-n').value.trim();
   if (!n) return tst('Nombre obligatorio','err');
-  const row = [n, document.getElementById('sv-c').value,
-    document.getElementById('sv-pu').value||0, document.getElementById('sv-tu').value||0];
+  const svPu = parseFloat(document.getElementById('sv-pu').value)||0;
+  const svTu = svPu ? Math.round(svPu * 1.2) : 0;
+  const row = [n, document.getElementById('sv-c').value, svPu, svTu];
   try {
     if (D.editServ) {
       await sU(`SERVICIOS!A${D.editServ}:D${D.editServ}`, [row]);
@@ -6692,9 +6688,9 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
         const sizes = r.names.map(n=>n.match(/(XS|S|M|L|XL)$/)?.[0]||n).join(' \u00b7 ');
         nombre = '<span class="name">'+base+'</span> <span class="sub">'+sizes+'</span>';
       }
-      const altaUsd = '<td class="usd turista">'+fmtU(r.tu)+'</td>';
-      const altaArs = '<td class="ars turista">'+fmt(r.tu)+'</td>';
-      tableRows += '<tr><td>'+nombre+'</td><td class="usd profe">'+fmtU(r.pu)+'</td><td class="ars profe">'+fmt(r.pu)+'</td>'+altaUsd+altaArs+'</tr>';
+      const electroUsd = '<td class="usd turista">'+fmtU(r.tu)+'</td>';
+      const electroArs = '<td class="ars turista">'+fmt(r.tu)+'</td>';
+      tableRows += '<tr><td>'+nombre+'</td><td class="usd profe">'+fmtU(r.pu)+'</td><td class="ars profe">'+fmt(r.pu)+'</td>'+electroUsd+electroArs+'</tr>';
     });
   });
   // Bloque de alias / formas de pago
