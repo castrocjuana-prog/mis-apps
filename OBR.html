@@ -1632,8 +1632,8 @@ x2 gramaje 60</div>
         <label style="font-size:11px;color:var(--txt3);">Tipo de cliente</label>
         <select id="bal-tipo" class="fin2" style="padding:6px 10px;" onchange="rbal()">
           <option value="">Todos</option>
-          <option value="profe">Solo precio Baja</option>
-          <option value="turista">Solo precio Alta</option>
+          <option value="profe">Solo precio Efectivo</option>
+          <option value="turista">Solo precio Electrónico</option>
         </select>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;">
@@ -2959,7 +2959,7 @@ function rv() {
       ${chk}
       <td style="color:var(--txt2);font-size:12px;white-space:nowrap;">${fd(x.fecha)}</td>
       <td><strong>${e(x.cli)}</strong></td>
-      <td><span class="${x.tipo==='profe'?'bg-profe':'bg-turista'}">${x.tipo==='profe'?'Baja':x.tipo==='turista'?'Alta':(x.tipo||'—')}</span></td>
+      <td><span class="${x.tipo==='profe'?'bg-profe':'bg-turista'}">${x.tipo==='profe'?'Efectivo':x.tipo==='turista'?'Electrónico':(x.tipo||'—')}</span></td>
       <td style="max-width:200px;white-space:normal;font-size:12px;line-height:1.5;">${e(x.items)}</td>
       <td style="font-family:var(--fm);">${tp?'$'+tp.toLocaleString('es-AR'):'—'}</td>
       <td style="font-family:var(--fm);">${(x.up+x.uex)?'u$s '+(x.up+x.uex):'—'}</td>
@@ -3096,8 +3096,8 @@ function rprod() {
         <div class="pkc-row"><span class="pkc-lbl">Costo</span><span class="pkc-val">${p.cu?'u$s '+(+p.cu.toFixed(2)):'—'}</span></div>
         <div class="pkc-row"><span class="pkc-lbl">Efectivo</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
         <div class="pkc-row"><span class="pkc-lbl">Electrónico</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
-        ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Gan. Baja</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
-        ${p.gt?`<div class="pkc-row"><span class="pkc-lbl">Gan. Alta</span><span class="gain-tag c-turista">+u$s ${p.gt}</span></div>`:''}
+        ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Ganancia</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
+        ${p.gt?`<div class="pkc-row"><span class="pkc-lbl">Elec. (+20%)</span><span class="gain-tag c-turista">+u$s ${p.gt}</span></div>`:''}
         </div>
       </div>
     </div>`;
@@ -3144,9 +3144,9 @@ function rprod() {
             <div><div class="sk-v" style="color:var(--red);">${p.act}</div><div class="sk-l">Actual</div></div>
           </div>
           <div class="bloque-privado">
-          <div class="pkc-row"><span class="pkc-lbl">Baja</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
-          <div class="pkc-row"><span class="pkc-lbl">Alta</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
-          ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Gan. Baja</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
+          <div class="pkc-row"><span class="pkc-lbl">Efectivo</span><span class="pkc-val c-profe">${p.pu?'u$s '+p.pu+' · $'+(p.pu*dol/1000).toFixed(0)+'k':'—'}</span></div>
+          <div class="pkc-row"><span class="pkc-lbl">Electrónico</span><span class="pkc-val c-turista">${p.tu?'u$s '+p.tu+' · $'+(p.tu*dol/1000).toFixed(0)+'k':'—'}</span></div>
+          ${p.gp?`<div class="pkc-row"><span class="pkc-lbl">Ganancia</span><span class="gain-tag c-profe">+u$s ${p.gp}</span></div>`:''}
           </div>
         </div>
       </div>`;
@@ -6736,9 +6736,9 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
   + '<table><thead><tr><th>Botas<\/th><th class="num" style="color:#999;">Costo<\/th><th class="num" style="color:#1565c0;">Lista u$s<\/th><th class="num" style="color:#1565c0;">Lista $ARS<\/th><th class="num" style="color:#2e7d32;">Efectivo u$s<\/th><th class="num" style="color:#2e7d32;">Efectivo $ARS<\/th><\/tr><\/thead>'
   + '<tbody>'+botaRows+'<\/tbody><\/table>'
   + (botaRows ? '<div class="legend"><span><span class="dot" style="background:#999;"><\/span> Costo<\/span><span><span class="dot" style="background:#1565c0;"><\/span> Precio de Lista<\/span><span><span class="dot" style="background:#2e7d32;"><\/span> Efectivo (10% off)<\/span><\/div>' : '')
-  + '<table style="margin-top:18px;"><thead><tr><th>Producto \/ Servicio<\/th><th class="num" style="color:#1565c0;">Baja u$s<\/th><th class="num" style="color:#1565c0;">Baja $ARS<\/th><th class="num" style="color:#e65100;">Alta u$s<\/th><th class="num" style="color:#e65100;">Alta $ARS<\/th><\/tr><\/thead>'
+  + '<table style="margin-top:18px;"><thead><tr><th>Producto \/ Servicio<\/th><th class="num" style="color:#1565c0;">Efectivo u$s<\/th><th class="num" style="color:#1565c0;">Efectivo $ARS<\/th><th class="num" style="color:#e65100;">Electrónico u$s<\/th><th class="num" style="color:#e65100;">Electrónico $ARS<\/th><\/tr><\/thead>'
   + '<tbody>'+tableRows+'<\/tbody><\/table>'
-  + '<div class="legend"><span><span class="dot" style="background:#1565c0;"><\/span> Precio Baja<\/span><span><span class="dot" style="background:#e65100;"><\/span> Precio Alta<\/span><\/div>'
+  + '<div class="legend"><span><span class="dot" style="background:#1565c0;"><\/span> Precio Efectivo<\/span><span><span class="dot" style="background:#e65100;"><\/span> Precio Electrónico<\/span><\/div>'
   + pagosHtml
   + '<script>window.onload=function(){window.print();}<\/script><\/body><\/html>');
   win.document.close();
