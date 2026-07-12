@@ -6640,7 +6640,8 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
       lastTalle = r.talle;
       botaRows += '<tr class="talle-row"><td colspan="6">Talle '+r.talle+'</td></tr>';
     }
-    const efUsd = Math.round(r.vu*0.9);
+    const listaUsd = Math.round(r.vu*1.2);
+    const efUsd = r.vu;
     const subParts = [];
     if (r.ancho) subParts.push(r.ancho);
     subParts.push('stock '+r.act);
@@ -6648,8 +6649,8 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
     const nombre = '<span class="name">'+r.marca+' '+r.mod+'</span><br><span class="sub">'+subParts.join(' \u00b7 ')+'</span>';
     botaRows += '<tr><td>'+nombre+'</td>'
       + '<td class="usd" style="color:#bbb;">'+(r.cu?fmtU(r.cu):'\u2014')+'</td>'
-      + '<td class="usd profe">'+fmtU(r.vu)+'</td><td class="ars profe">'+fmt(r.vu)+'</td>'
-      + '<td class="usd" style="color:#2e7d32;">'+fmtU(efUsd)+'</td>'
+      + '<td class="usd profe">'+fmtU(listaUsd)+'</td><td class="ars profe">'+fmt(listaUsd)+'</td>'
+      + '<td class="usd" style="color:#2e7d32;">'+fmtU(r.vu)+'</td>'
       + '<td class="ars" style="color:#2e7d32;font-weight:600;">'+fmt(efUsd)+'</td></tr>';
   });
 
@@ -6735,7 +6736,7 @@ function imprimirPreciosCore(P, B, S, dol, hoy) {
   + '<div class="header-right"><div class="fecha">Lista de precios \u00b7 '+hoy+'<\/div><div class="dolar">D\u00f3lar $'+dol.toLocaleString('es-AR')+'<\/div><\/div><\/div>'
   + '<table><thead><tr><th>Botas<\/th><th class="num" style="color:#999;">Costo<\/th><th class="num" style="color:#1565c0;">Lista u$s<\/th><th class="num" style="color:#1565c0;">Lista $ARS<\/th><th class="num" style="color:#2e7d32;">Efectivo u$s<\/th><th class="num" style="color:#2e7d32;">Efectivo $ARS<\/th><\/tr><\/thead>'
   + '<tbody>'+botaRows+'<\/tbody><\/table>'
-  + (botaRows ? '<div class="legend"><span><span class="dot" style="background:#999;"><\/span> Costo<\/span><span><span class="dot" style="background:#1565c0;"><\/span> Precio de Lista<\/span><span><span class="dot" style="background:#2e7d32;"><\/span> Efectivo (10% off)<\/span><\/div>' : '')
+  + (botaRows ? '<div class="legend"><span><span class="dot" style="background:#999;"><\/span> Costo<\/span><span><span class="dot" style="background:#1565c0;"><\/span> Precio de Lista<\/span><span><span class="dot" style="background:#2e7d32;"><\/span> Efectivo<\/span><\/div>' : '')
   + '<table style="margin-top:18px;"><thead><tr><th>Producto \/ Servicio<\/th><th class="num" style="color:#1565c0;">Efectivo u$s<\/th><th class="num" style="color:#1565c0;">Efectivo $ARS<\/th><th class="num" style="color:#e65100;">Electrónico u$s<\/th><th class="num" style="color:#e65100;">Electrónico $ARS<\/th><\/tr><\/thead>'
   + '<tbody>'+tableRows+'<\/tbody><\/table>'
   + '<div class="legend"><span><span class="dot" style="background:#1565c0;"><\/span> Precio Efectivo<\/span><span><span class="dot" style="background:#e65100;"><\/span> Precio Electrónico<\/span><\/div>'
