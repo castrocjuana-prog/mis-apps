@@ -1077,7 +1077,13 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
 
 <!-- INGRESOS -->
 <div id="page-ingresos" class="page">
-  <div class="ptitle">Ingresos</div>
+  <div class="chd" style="margin-bottom:20px">
+    <div class="ptitle" style="margin-bottom:0">Ingresos</div>
+    <select id="ing-tipo" onchange="rIng()" style="width:auto;padding:4px 10px;font-size:12px">
+      <option value="anual">Anual 2026</option>
+      <option value="mes">Mensual</option>
+    </select>
+  </div>
 
   <!-- Resumen métricas -->
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px" id="ing-metrics">
@@ -2885,17 +2891,11 @@ function rIng(){
   });
 
   // métricas resumen
-  const allARS=[...D.clasesJua,...D.clasesCoco,...D.changas].filter(i=>i.mon==='ARS').reduce((s,i)=>s+i.monto,0);
-  const allUSD=[...D.clasesJua,...D.clasesCoco,...D.changas].filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
-  const jARS=D.clasesJua.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const cARS=D.clasesCoco.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const ottosARS=0; // now from OBR live
-  const ottosUSD=0;
   // Render OBR list
   rObrIngList();
   // Render Airbnb list
   rAirbnbList();
-  // OBR live data
+  // OBR live data — anual (todo 2026)
   let obrARS=0,obrUSD=0;
   if(_obrAfipData){
     (_obrAfipData||[]).forEach(r=>{
@@ -2904,65 +2904,73 @@ function rIng(){
       obrUSD+=parseFloat(r[9])||0;
     });
   }
-  // Jua: clasesJua + changas where quien=jua
+  // Jua: clasesJua + changas where quien=jua — anual
   const jARS2=D.clasesJua.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const jUSD=D.clasesJua.reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.mon2==='USD'?i.monto2:toUsd(i.monto,i.mon,i.tc))),0);
+  const jUSD=D.clasesJua.reduce((s,i)=>s+itemUsdEquiv(i),0);
   const chJuaARS=(D.changas||[]).filter(i=>i.quien==='jua').reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
   const chJuaUSD=(D.changas||[]).filter(i=>i.quien==='jua').reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
   const juaTotalARS=jARS2+chJuaARS;
   const juaTotalUSD=jUSD+chJuaUSD;
-  // Coco: clasesCoco + changas where quien=coco
+  // Coco: clasesCoco + changas where quien=coco — anual
   const cARS2=D.clasesCoco.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const cUSD=D.clasesCoco.reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.mon2==='USD'?i.monto2:toUsd(i.monto,i.mon,i.tc))),0);
+  const cUSD=D.clasesCoco.reduce((s,i)=>s+itemUsdEquiv(i),0);
   const chCocoARS=(D.changas||[]).filter(i=>i.quien==='coco').reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
   const chCocoUSD=(D.changas||[]).filter(i=>i.quien==='coco').reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
   const cocoTotalARS=cARS2+chCocoARS;
   const cocoTotalUSD=cUSD+chCocoUSD;
-  // Airbnb
+  // Airbnb — anual
   const airbnbARS=(D.airbnb||[]).reduce((s,i)=>s+(i.arsEquiv||0),0);
   const airbnbUSD=(D.airbnb||[]).filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
-  // Totals
+  // Totals — anual
   const totalARS=juaTotalARS+cocoTotalARS+obrARS+airbnbARS;
   const totalUSD=juaTotalUSD+cocoTotalUSD+obrUSD+airbnbUSD;
 
   // ── Mes activo (solo lo que cae en el mes seleccionado) ──
   const tcMes=D.tc[mes]||1400;
   const mStr2=String(mes).padStart(2,'0');
-  const juaMesUSD=D.clasesJua.filter(i=>i.f&&i.f.startsWith('2026-'+mStr2))
-    .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.mon2==='USD'?i.monto2:toUsd(i.monto,i.mon,i.tc))),0)
-    +(D.changas||[]).filter(i=>i.quien==='jua'&&i.f&&i.f.startsWith('2026-'+mStr2)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
-  const cocoMesUSD=D.clasesCoco.filter(i=>i.f&&i.f.startsWith('2026-'+mStr2))
-    .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.mon2==='USD'?i.monto2:toUsd(i.monto,i.mon,i.tc))),0)
-    +(D.changas||[]).filter(i=>i.quien==='coco'&&i.f&&i.f.startsWith('2026-'+mStr2)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
-  let obrMesUSD=0;
+  const enMes=f=>f&&f.startsWith('2026-'+mStr2);
+  const juaMesUSD=D.clasesJua.filter(i=>enMes(i.f)).reduce((s,i)=>s+itemUsdEquiv(i),0)
+    +(D.changas||[]).filter(i=>i.quien==='jua'&&enMes(i.f)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
+  const juaMesARS=D.clasesJua.filter(i=>enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0)
+    +(D.changas||[]).filter(i=>i.quien==='jua'&&enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
+  const cocoMesUSD=D.clasesCoco.filter(i=>enMes(i.f)).reduce((s,i)=>s+itemUsdEquiv(i),0)
+    +(D.changas||[]).filter(i=>i.quien==='coco'&&enMes(i.f)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
+  const cocoMesARS=D.clasesCoco.filter(i=>enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0)
+    +(D.changas||[]).filter(i=>i.quien==='coco'&&enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
+  let obrMesUSD=0,obrMesARS=0;
   if(_obrAfipData){
     _obrAfipData.filter(r=>r[0]&&r[0].startsWith('2026-'+mStr2)).forEach(r=>{
       obrMesUSD+=(parseFloat(r[9])||0);
+      obrMesARS+=(parseFloat(r[5])||0)+(parseFloat(r[7])||0);
     });
   }
-  const airbnbMesUSD=(D.airbnb||[]).filter(i=>i.entrada&&i.entrada.startsWith('2026-'+mStr2))
+  const airbnbMesUSD=(D.airbnb||[]).filter(i=>enMes(i.entrada))
     .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.arsEquiv||0)/tcMes),0);
+  const airbnbMesARS=(D.airbnb||[]).filter(i=>enMes(i.entrada)).reduce((s,i)=>s+(i.arsEquiv||0),0);
   const totalMesUSD=juaMesUSD+cocoMesUSD+obrMesUSD+airbnbMesUSD;
+  const totalMesARS=juaMesARS+cocoMesARS+obrMesARS+airbnbMesARS;
   const nombreMes=ML[mes]||'';
+
+  // ── Elegir período según el selector Mensual/Anual ──
+  const modo=document.getElementById('ing-tipo')?.value||'anual';
+  const per=modo==='mes'
+    ? {jUSD:juaMesUSD,jARS:juaMesARS,cUSD:cocoMesUSD,cARS:cocoMesARS,oUSD:obrMesUSD,oARS:obrMesARS,aUSD:airbnbMesUSD,aARS:airbnbMesARS,tUSD:totalMesUSD,tARS:totalMesARS,label:nombreMes+' 2026'}
+    : {jUSD:juaTotalUSD,jARS:juaTotalARS,cUSD:cocoTotalUSD,cARS:cocoTotalARS,oUSD:obrUSD,oARS:obrARS,aUSD:airbnbUSD,aARS:airbnbARS,tUSD:totalUSD,tARS:totalARS,label:'Anual 2026'};
 
   // Update metric cards
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
-  const setMes=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val>0?nombreMes+': '+fU(Math.round(val))+' USD':nombreMes+': —';};
-  setMes('im-jua-mes', juaMesUSD);
-  setMes('im-coco-mes', cocoMesUSD);
-  setMes('im-obr-mes', obrMesUSD);
-  setMes('im-airbnb-mes', airbnbMesUSD);
-  setMes('im-tot-mes', totalMesUSD);
-  set('im-jua-usd', juaTotalUSD>0?fU(juaTotalUSD)+' USD':'— USD');
-  set('im-jua-ars', juaTotalARS>0?'≈ '+fmt(juaTotalARS):'');
-  set('im-coco-usd', cocoTotalUSD>0?fU(cocoTotalUSD)+' USD':'— USD');
-  set('im-coco-ars', cocoTotalARS>0?'≈ '+fmt(cocoTotalARS):'');
-  set('im-obr-usd', obrUSD>0?fU(obrUSD)+' USD':'— USD');
-  set('im-obr-ars', obrARS>0?'≈ '+fmt(obrARS):'');
-  set('im-airbnb-usd', airbnbUSD>0?fU(airbnbUSD)+' USD':'— USD');
-  set('im-airbnb-ars', airbnbARS>0?'≈ '+fmt(airbnbARS):'');
-  set('im-tot-usd', totalUSD>0?fU(totalUSD)+' USD':'— USD');
-  set('im-tot-ars', totalARS>0?'≈ '+fmt(totalARS):'');
+  const setLbl=id=>{const el=document.getElementById(id);if(el)el.textContent=per.label;};
+  set('im-jua-usd', per.jUSD>0?fU(per.jUSD)+' USD':'— USD');
+  set('im-jua-ars', per.jARS>0?'≈ '+fmt(per.jARS):'');
+  set('im-coco-usd', per.cUSD>0?fU(per.cUSD)+' USD':'— USD');
+  set('im-coco-ars', per.cARS>0?'≈ '+fmt(per.cARS):'');
+  set('im-obr-usd', per.oUSD>0?fU(per.oUSD)+' USD':'— USD');
+  set('im-obr-ars', per.oARS>0?'≈ '+fmt(per.oARS):'');
+  set('im-airbnb-usd', per.aUSD>0?fU(per.aUSD)+' USD':'— USD');
+  set('im-airbnb-ars', per.aARS>0?'≈ '+fmt(per.aARS):'');
+  set('im-tot-usd', per.tUSD>0?fU(per.tUSD)+' USD':'— USD');
+  set('im-tot-ars', per.tARS>0?'≈ '+fmt(per.tARS):'');
+  setLbl('im-jua-mes');setLbl('im-coco-mes');setLbl('im-obr-mes');setLbl('im-airbnb-mes');setLbl('im-tot-mes');
   // Render OBR list
   rObrIngList();
 }
@@ -3941,6 +3949,11 @@ function toUsd(monto,mon,tc){
   if(mon==='USD')return monto;
   const t=tc||D.tc[mes]||1400;
   return t?monto/t:0;
+}
+// Helper: USD equivalent of an ingreso item, sumando AMBAS partes si es pago mixto
+function itemUsdEquiv(i){
+  if(i.tipoPago==='mixto')return toUsd(i.monto,i.mon,i.tc)+toUsd(i.monto2,i.mon2,i.tc2);
+  return toUsd(i.monto,i.mon,i.tc);
 }
 
 // ── MIXTO TOGGLE ──
