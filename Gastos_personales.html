@@ -1128,7 +1128,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
           <select id="cj-mon2" onchange="toggleTcJua(&#39;m2&#39;)"><option value="ARS">ARS</option><option value="USD">USD</option></select>
           <input id="cj-tc2" type="number" placeholder="TC" style="display:none">
           <select id="cj-fp2"><option value="efectivo">Efectivo</option><option value="macro">Macro (Jua)</option><option value="mpjua">MP Jua</option><option value="santander">Santander (Coco)</option><option value="mpcoco">MP Coco</option><option value="pix">Pix</option><option value="zelle">Zelle</option></select>
-          <input id="cj-nota" placeholder="Nota">
+          <input id="cj-nota2" placeholder="Nota">
         </div>
       </div>
       <button class="btn bp" onclick="agregarClase(&#39;jua&#39;)">Guardar</button>
@@ -1180,7 +1180,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
           <select id="cc-mon2" onchange="toggleTcCoco(&#39;m2&#39;)"><option value="ARS">ARS</option><option value="USD">USD</option></select>
           <input id="cc-tc2" type="number" placeholder="TC" style="display:none">
           <select id="cc-fp2"><option value="efectivo">Efectivo</option><option value="macro">Macro (Jua)</option><option value="mpjua">MP Jua</option><option value="santander">Santander (Coco)</option><option value="mpcoco">MP Coco</option><option value="pix">Pix</option><option value="zelle">Zelle</option></select>
-          <input id="cc-nota" placeholder="Nota">
+          <input id="cc-nota2" placeholder="Nota">
         </div>
       </div>
       <button class="btn bp" onclick="agregarClase(&#39;coco&#39;)">Guardar</button>
@@ -3085,6 +3085,7 @@ function editClase(quien,id){
     document.getElementById(`${p}-fpago`).value=item.fpago||'efectivo';
   }
   document.getElementById(`${p}-nota`).value=item.nota||'';
+  const notaEl2=document.getElementById(`${p}-nota2`);if(notaEl2)notaEl2.value=item.nota||'';
   // Remove old item and open form
   arr.splice(arr.indexOf(item),1);
   save();rIng();
@@ -3956,7 +3957,7 @@ agregarClase=function(quien){
     entry.mon2=document.getElementById(`${p}-mon2`).value;
     entry.tc2=parseFloat(document.getElementById(`${p}-tc2`)?.value)||0;
     entry.fpago2=document.getElementById(`${p}-fp2`).value;
-    entry.nota=document.getElementById(`${p}-nota`).value.trim();
+    entry.nota=document.getElementById(`${p}-nota2`).value.trim();
     entry.arsEquiv=toArs(entry.monto,entry.mon,entry.tc)+toArs(entry.monto2,entry.mon2,entry.tc2);
   } else {
     entry.monto=parseFloat(document.getElementById(`${p}-monto`).value)||0;
@@ -3968,7 +3969,7 @@ agregarClase=function(quien){
   }
   arr.push(entry);
   save();rIng();
-  [`${p}-cliente`,`${p}-monto`,`${p}-m1`,`${p}-m2`,`${p}-tc`,`${p}-tc1`,`${p}-tc2`,`${p}-contacto`,`${p}-nota`].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  [`${p}-cliente`,`${p}-monto`,`${p}-m1`,`${p}-m2`,`${p}-tc`,`${p}-tc1`,`${p}-tc2`,`${p}-contacto`,`${p}-nota`,`${p}-nota2`].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
 };
 
 // Overrride rIng to show mixto properly
