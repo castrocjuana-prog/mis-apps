@@ -2960,15 +2960,15 @@ function rIng(){
   // Update metric cards
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
   const setLbl=id=>{const el=document.getElementById(id);if(el)el.textContent=per.label;};
-  set('im-jua-usd', per.jUSD>0?fU(per.jUSD)+' USD':'— USD');
+  set('im-jua-usd', per.jUSD>0?fU(per.jUSD):'— USD');
   set('im-jua-ars', per.jARS>0?'≈ '+fmt(per.jARS):'');
-  set('im-coco-usd', per.cUSD>0?fU(per.cUSD)+' USD':'— USD');
+  set('im-coco-usd', per.cUSD>0?fU(per.cUSD):'— USD');
   set('im-coco-ars', per.cARS>0?'≈ '+fmt(per.cARS):'');
-  set('im-obr-usd', per.oUSD>0?fU(per.oUSD)+' USD':'— USD');
+  set('im-obr-usd', per.oUSD>0?fU(per.oUSD):'— USD');
   set('im-obr-ars', per.oARS>0?'≈ '+fmt(per.oARS):'');
-  set('im-airbnb-usd', per.aUSD>0?fU(per.aUSD)+' USD':'— USD');
+  set('im-airbnb-usd', per.aUSD>0?fU(per.aUSD):'— USD');
   set('im-airbnb-ars', per.aARS>0?'≈ '+fmt(per.aARS):'');
-  set('im-tot-usd', per.tUSD>0?fU(per.tUSD)+' USD':'— USD');
+  set('im-tot-usd', per.tUSD>0?fU(per.tUSD):'— USD');
   set('im-tot-ars', per.tARS>0?'≈ '+fmt(per.tARS):'');
   setLbl('im-jua-mes');setLbl('im-coco-mes');setLbl('im-obr-mes');setLbl('im-airbnb-mes');setLbl('im-tot-mes');
   // Render OBR list
