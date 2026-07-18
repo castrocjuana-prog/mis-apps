@@ -2803,8 +2803,13 @@ function ingRow(item,deleteFn){
 function totIngSection(items,listId,totId){
   const el=document.getElementById(listId),tot=document.getElementById(totId);
   el.innerHTML=items.length?items.map(i=>ingRow(i,listId.replace('lista-','elim_').replace('-','_'))).join(''):'<span style="font-size:12px;color:var(--t3)">Sin registros</span>';
-  const tARS=items.filter(i=>i.mon==='ARS').reduce((s,i)=>s+i.monto,0);
-  const tUSD=items.filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
+  let tARS=0,tUSD=0;
+  items.forEach(i=>{
+    if(i.mon==='ARS')tARS+=i.monto||0; else if(i.mon==='USD')tUSD+=i.monto||0;
+    if(i.tipoPago==='mixto'){
+      if(i.mon2==='ARS')tARS+=i.monto2||0; else if(i.mon2==='USD')tUSD+=i.monto2||0;
+    }
+  });
   if(tARS||tUSD){
     tot.style.display='flex';
     const priARS=tARS>0;
@@ -2863,9 +2868,19 @@ function rIng(){
       :'<span style="font-size:12px;color:var(--t3)">Sin registros</span>';
     const totId=id.replace('lista-','tot-');
     const totEl=document.getElementById(totId);
-    const tA=section.data.filter(i=>i.mon==='ARS').reduce((s,i)=>s+i.monto,0);
-    const tU=section.data.filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
-    if(tA||tU){totEl.style.display='flex';totEl.innerHTML=`<span>Total</span><div style="text-align:right"><div style="font-family:var(--mono);font-weight:500">${tA?fmt(tA)+' ARS':fU(tU)+' USD'}</div>${tA&&tU?`<div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:1px">≈ ${fU(tU)}</div>`:''}</div>`;}
+    let tA=0,tU=0;
+    section.data.forEach(i=>{
+      if(i.mon==='ARS')tA+=i.monto||0; else if(i.mon==='USD')tU+=i.monto||0;
+      if(i.tipoPago==='mixto'){
+        if(i.mon2==='ARS')tA+=i.monto2||0; else if(i.mon2==='USD')tU+=i.monto2||0;
+      }
+    });
+    if(tA||tU){
+      totEl.style.display='flex';
+      const usdEq=tU+(tA?toUsd(tA,'ARS',D.tc[mes]):0);
+      const arsEq=tA+(tU?toArs(tU,'USD',D.tc[mes]):0);
+      totEl.innerHTML=`<span>Total</span><div style="text-align:right"><div style="font-family:var(--mono);font-weight:500">${tA?fmt(tA)+' ARS':fU(tU)+' USD'}</div><div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:1px">≈ ${tA?fU(usdEq):fmt(arsEq)}</div></div>`;
+    }
     else totEl.style.display='none';
   });
 
