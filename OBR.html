@@ -365,6 +365,7 @@ body.ready #app{display:block}
       <button class="btn btn-s btn-sm" onclick="resetStock()" id="btn-reset-stock">🔄 Resetear stock</button>
       <button class="btn btn-s btn-sm" onclick="seedLange()" id="btn-lange" style="display:none;">📦 Cargar stock Lange</button>
       <button class="btn btn-s btn-sm" onclick="openBotaInline()">+ Bota con talles</button>
+      <button class="btn btn-s btn-sm" onclick="bulkPriceIncrease()" title="Sube el precio efectivo un % a todas las botas de una marca">🔺 Subir % precio marca</button>
       <button class="btn btn-p" onclick="
         const cf=document.getElementById('f-cat')?.value;
         const sel=document.getElementById('pd-c');
@@ -2720,7 +2721,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: electronico-div-0.88-12pct ✓');
+  console.log('OBR build: bulk-price-increase-marca ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -5060,6 +5061,28 @@ async function saveServ() {
       tst('Servicio guardado ✓','ok');
     }
     closeM('m-serv'); await lServ();
+  } catch(ex) { tst('Error: '+ex.message,'err'); }
+}
+
+async function bulkPriceIncrease() {
+  const marca = prompt('¿Qué marca de botas querés aumentar? (ej: Atomic, Lange)');
+  if (!marca) return;
+  const marcaN = marca.trim().toLowerCase();
+  const rows = D.botas.filter(b => (b.marca||'').toLowerCase() === marcaN);
+  if (!rows.length) return tst(`No se encontraron botas de la marca "${marca}"`, 'err');
+  const pctStr = prompt(`Se encontraron ${rows.length} talles de "${marca}".\n\n¿Qué % querés subir el precio EFECTIVO (venta)?`, '20');
+  const pct = parseFloat((pctStr||'').replace(',','.'));
+  if (!pct) return;
+  if (!confirm(`¿Confirmás subir un ${pct}% el precio efectivo a las ${rows.length} botas de "${marca}"?\n\nEl precio electrónico (-12% = efectivo) se recalcula solo, no hace falta tocarlo.\n\nEsto escribe directo en el Sheet.`)) return;
+  tst('Actualizando precios...');
+  try {
+    for (const b of rows) {
+      const newVu = Math.round(b.vu * (1 + pct/100));
+      const newGu = +(newVu - b.cu).toFixed(2);
+      await sU(`BOTAS!H${b._r}:I${b._r}`, [[newVu, newGu]]);
+    }
+    await lBotas();
+    tst(`${rows.length} botas "${marca}" actualizadas ✓ (+${pct}%)`, 'ok');
   } catch(ex) { tst('Error: '+ex.message,'err'); }
 }
 
