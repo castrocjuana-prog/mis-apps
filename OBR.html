@@ -4617,7 +4617,7 @@ async function saveVenta() {
     const prev = D.ventas.find(x => x._r === D.editVenta);
     iStr = prev?.items||'';
     pp   = esRegalo ? 0 : (hasMontoOverride ? moneda.pp : (prev?.pp||0));
-    up   = prev?.up||0;
+    up   = esRegalo ? 0 : (hasMontoOverride ? moneda.usd : (prev?.up||0));
     tusd = esRegalo ? 0 : (hasMontoOverride ? moneda.usd : (prev?.tusd||0));
   } else {
     iStr = D.sel.map(i => (i.q>1?i.q+'x ':'')+i.n).join(', ');
