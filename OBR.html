@@ -331,7 +331,7 @@ body.ready #app{display:block}
     <select class="fin2" id="f-mp" onchange="rv()">
       <option value="">Todos los medios</option>
       <option>Efectivo</option><option>Santander</option><option>MP JUA</option>
-      <option>MP COCO</option><option>Zelle</option><option>Macro jua</option>
+      <option>MP COCO</option><option>Clover</option><option>Zelle</option><option>Macro jua</option>
       <option>Macro Coco arg</option><option>Macro Coco usd</option>
     </select>
   </div>
@@ -1671,6 +1671,7 @@ x2 gramaje 60</div>
           <option value="Macro jua">Macro jua</option>
           <option value="Macro Coco arg">Macro Coco arg</option>
           <option value="Macro Coco usd">Macro Coco usd</option>
+          <option value="Clover">Clover</option>
           <option value="Zelle">Zelle</option>
           <option value="Regalo">Regalo</option>
           <option value="Otro">Otro</option>
@@ -2154,11 +2155,13 @@ x2 gramaje 60</div>
     </div>
     <div id="campo-pesos" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div class="fi" style="margin:0;"><label>Monto en Pesos ARS</label><input type="number" id="v-monto-pesos" placeholder="ej: 182000" oninput="rSel()"></div>
-      <div class="fi" style="margin:0;"><label>Medio de pago</label><select id="v-mp"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Regalo</option><option>Otro</option></select></div>
+      <div class="fi" style="margin:0;"><label>Medio de pago</label><select id="v-mp" onchange="onMpSelChange('v-mp')"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Clover</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Regalo</option><option>Otro</option></select></div>
+      <div class="fi" id="v-mp-cuotas-wrap" style="display:none;margin:0;grid-column:1/-1;"><label>Cuotas (Clover)</label><select id="v-mp-cuotas"><option value="1">1 cuota</option><option value="2">2 cuotas</option><option value="3">3 cuotas</option></select></div>
     </div>
     <div id="campo-usd" style="display:none;grid-template-columns:1fr 1fr;gap:8px;">
       <div class="fi" style="margin:0;"><label>Monto en USD</label><input type="number" id="v-monto-usd" placeholder="ej: 130" oninput="rSel()"></div>
-      <div class="fi" style="margin:0;"><label>Medio de pago</label><select id="v-mp-usd"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco usd</option><option>Otro</option></select></div>
+      <div class="fi" style="margin:0;"><label>Medio de pago</label><select id="v-mp-usd" onchange="onMpSelChange('v-mp-usd')"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Clover</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco usd</option><option>Otro</option></select></div>
+      <div class="fi" id="v-mp-usd-cuotas-wrap" style="display:none;margin:0;grid-column:1/-1;"><label>Cuotas (Clover)</label><select id="v-mp-usd-cuotas"><option value="1">1 cuota</option><option value="2">2 cuotas</option><option value="3">3 cuotas</option></select></div>
     </div>
     <div id="campo-mixto" style="display: block;">
       <!-- Parte 1 -->
@@ -2174,9 +2177,10 @@ x2 gramaje 60</div>
           </div>
           <div class="fi" style="margin:0;"><label>Monto</label><input type="number" id="v-mixto-monto1" placeholder="ej: 90000" oninput="rSel()"></div>
           <div class="fi" style="margin:0;"><label>Medio de pago</label>
-            <select id="v-mixto-mp1"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select>
+            <select id="v-mixto-mp1" onchange="onMpSelChange('v-mixto-mp1')"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Clover</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select>
           </div>
         </div>
+        <div class="fi" id="v-mixto-mp1-cuotas-wrap" style="display:none;margin-top:8px;"><label>Cuotas (Clover)</label><select id="v-mixto-mp1-cuotas"><option value="1">1 cuota</option><option value="2">2 cuotas</option><option value="3">3 cuotas</option></select></div>
       </div>
       <!-- Parte 2 -->
       <div style="border:1px solid var(--bd);border-radius:8px;padding:10px;background:var(--s2);">
@@ -2191,9 +2195,10 @@ x2 gramaje 60</div>
           </div>
           <div class="fi" style="margin:0;"><label>Monto</label><input type="number" id="v-mixto-monto2" placeholder="ej: 65" oninput="rSel()"></div>
           <div class="fi" style="margin:0;"><label>Medio de pago</label>
-            <select id="v-mixto-mp2"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select>
+            <select id="v-mixto-mp2" onchange="onMpSelChange('v-mixto-mp2')"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Clover</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select>
           </div>
         </div>
+        <div class="fi" id="v-mixto-mp2-cuotas-wrap" style="display:none;margin-top:8px;"><label>Cuotas (Clover)</label><select id="v-mixto-mp2-cuotas"><option value="1">1 cuota</option><option value="2">2 cuotas</option><option value="3">3 cuotas</option></select></div>
       </div>
     </div>
 
@@ -2948,7 +2953,7 @@ function rv() {
   if (cl) v = v.filter(x => x.cli.toLowerCase().includes(cl)||x.items.toLowerCase().includes(cl));
   if (de) v = v.filter(x => x.fecha >= de);
   if (ha) v = v.filter(x => x.fecha <= ha);
-  if (mp) v = v.filter(x => x.mp === mp);
+  if (mp) v = v.filter(x => x.mp === mp || x.mp.startsWith(mp+' '));
   if (!v.length) {
     tb.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-i">🎿</div><p>${D.year===2026?'Sin ventas. La temporada 2026 arranca en Mayo!':'Sin ventas cargadas para '+D.year+'. Usá "↑ Importar histórico" para cargar los datos.'}</p></div></td></tr>`;
     updSt([]); return;
@@ -4252,6 +4257,7 @@ function balResetFiltros() {
 function rAfip(allVentas) {
   const mpJua   = ['Macro jua','MP JUA'];
   const mpCoco  = ['Santander','MP COCO','Macro Coco arg','Macro Coco usd'];
+  const esClover = mp => !!mp && mp.startsWith('Clover'); // Clover (una o varias cuotas) → siempre factura Coco
   const dol = D.cfg.dol || 1400;
 
   // Parse a venta into AFIP-relevant "entries" (handles mixto by splitting)
@@ -4268,7 +4274,7 @@ function rAfip(allVentas) {
         const mpMatch = part.match(/\/\s*(.+)$/);
         const mp = mpMatch ? mpMatch[1].trim() : '';
         const isJua  = mpJua.some(m => mp.includes(m));
-        const isCoco = mpCoco.some(m => mp.includes(m));
+        const isCoco = mpCoco.some(m => mp.includes(m)) || esClover(mp);
         if (!isJua && !isCoco) return; // not a declarable account
         const isUSD = part.includes('u$s');
         let arsAmt = 0, usdAmt = 0;
@@ -4287,7 +4293,7 @@ function rAfip(allVentas) {
     }
     // Normal (non-mixto) venta
     const isJua  = mpJua.includes(v.mp);
-    const isCoco = mpCoco.includes(v.mp);
+    const isCoco = mpCoco.includes(v.mp) || esClover(v.mp);
     if (!isJua && !isCoco) return [];
     const arsAmt = v.pp > 0 ? v.pp : (v.tusd || 0) * dol;
     return [{ v, quien: isJua ? 'Jua' : 'Coco', mp: v.mp, arsAmount: arsAmt, usdAmount: v.tusd || arsAmt/dol, isMixto: false }];
@@ -4740,10 +4746,6 @@ function editVenta(rowNum) {
   document.getElementById('v-cli').value   = v.cli;
   document.getElementById('v-dol').value   = v.dol;
   document.getElementById('v-obs').value   = v.obs;
-  const mpEl = document.getElementById('v-mp');
-  for (let i=0; i<mpEl.options.length; i++) {
-    if (mpEl.options[i].value === v.mp) { mpEl.selectedIndex=i; break; }
-  }
   setPT(v.tipo==='profe'?'profe':'turista');
   // Show previous items as info
   const siEmpty = document.getElementById('si-empty');
@@ -4751,13 +4753,20 @@ function editVenta(rowNum) {
   siEmpty.style.display = 'block';
   document.getElementById('si-list').innerHTML = '';
   document.getElementById('tot-prev').style.display = 'none';
-  const savedMp=v.mp||'';
+  const savedMpParsed = parseMpCuotas(v.mp||'');
   if(v.obs&&v.obs.includes('Mixto:')){
     D_moneda='mixto'; setMoneda('mixto',document.getElementById('mb-mixto'));
   } else {
     D_moneda='pesos'; setMoneda('pesos',document.getElementById('mb-pesos'));
     const mpEl=document.getElementById('v-mp');
-    if(mpEl) for(let i=0;i<mpEl.options.length;i++){if(mpEl.options[i].value===savedMp){mpEl.selectedIndex=i;break;}}
+    if(mpEl) for(let i=0;i<mpEl.options.length;i++){if(mpEl.options[i].value===savedMpParsed.mp){mpEl.selectedIndex=i;break;}}
+    if (savedMpParsed.mp==='Clover') {
+      onMpSelChange('v-mp');
+      const cEl = document.getElementById('v-mp-cuotas');
+      if (cEl) cEl.value = String(savedMpParsed.cuotas);
+    } else {
+      onMpSelChange('v-mp');
+    }
   }
   if (v.pp) document.getElementById('v-monto-pesos').value = v.pp;
   if (v.up) document.getElementById('v-monto-usd').value   = v.up;
@@ -5313,11 +5322,33 @@ function setMixtoMoneda(part, mon) {
   usdBtn.style.color      = mon==='usd' ? '#fff'       : 'var(--txt2)';
   rSel();
 }
+// Clover: muestra/oculta el selector de cuotas según el medio de pago elegido
+function onMpSelChange(selId) {
+  const el = document.getElementById(selId);
+  const wrap = document.getElementById(selId+'-cuotas-wrap');
+  if (wrap) wrap.style.display = (el && el.value==='Clover') ? 'block' : 'none';
+}
+// Arma el string final del medio de pago, agregando las cuotas si es Clover
+function mpConCuotas(selId) {
+  const v = document.getElementById(selId)?.value || 'Efectivo';
+  if (v === 'Clover') {
+    const c = document.getElementById(selId+'-cuotas')?.value || '1';
+    return c==='1' ? 'Clover' : `Clover (${c} cuotas)`;
+  }
+  return v;
+}
+// Separa "Clover (2 cuotas)" en {mp:'Clover', cuotas:2} para restaurar el form al editar
+function parseMpCuotas(raw) {
+  if (!raw) return {mp:raw, cuotas:1};
+  const m = raw.match(/^Clover(?:\s*\((\d)\s*cuotas\))?$/);
+  if (m) return {mp:'Clover', cuotas: m[1]?parseInt(m[1]):1};
+  return {mp:raw, cuotas:1};
+}
 function getMpValue() {
-  if (D_moneda==='pesos')  return document.getElementById('v-mp')?.value     || 'Efectivo';
-  if (D_moneda==='usd')    return document.getElementById('v-mp-usd')?.value || 'Efectivo';
-  const mp1=document.getElementById('v-mixto-mp1')?.value||'Efectivo';
-  const mp2=document.getElementById('v-mixto-mp2')?.value||'Efectivo';
+  if (D_moneda==='pesos')  return mpConCuotas('v-mp');
+  if (D_moneda==='usd')    return mpConCuotas('v-mp-usd');
+  const mp1=mpConCuotas('v-mixto-mp1');
+  const mp2=mpConCuotas('v-mixto-mp2');
   return mp1===mp2 ? mp1 : mp1+' + '+mp2;
 }
 function setMoneda(mode, btn) {
@@ -5478,6 +5509,7 @@ function openVenta() {
   document.getElementById('v-mixto-monto2').value = '';
   D_mixto.m1='ars'; D_mixto.m2='usd'; setMixtoMoneda(1,'ars'); setMixtoMoneda(2,'usd');
   const mpElO=document.getElementById('v-mp'); if(mpElO) mpElO.selectedIndex=0;
+  ['v-mp-cuotas-wrap','v-mp-usd-cuotas-wrap','v-mixto-mp1-cuotas-wrap','v-mixto-mp2-cuotas-wrap'].forEach(id=>{const w=document.getElementById(id); if(w) w.style.display='none';});
   document.getElementById('ip-q').value = '';
   document.querySelectorAll('#ip-cats .cp').forEach((p,i) => p.classList.toggle('on',i===0));
   D.ic = '';
