@@ -4419,7 +4419,7 @@ function buildCatalog() {
       items.push({
         id: 'b'+b._r, n: `${b.marca} ${b.mod} ${b.talle}${anchoStr}`, cat: 'Botas',
         price: price, pu: price, tu: price,
-        stock: b.act, tipo: 'bota', _r: b._r
+        stock: b.act, tipo: 'bota', _r: b._r, codigo: b.codigo||'', talle: b.talle
       });
     }
   });
@@ -4655,7 +4655,10 @@ async function saveVenta() {
       cat: i.cat,
       q: i.q,
       lista: +(i.price * i.q).toFixed(2),
-      real: esRegalo ? 0 : (hasMontoOverride ? +(i.price * i.q * factor).toFixed(2) : +(effPrice(i) * i.q).toFixed(2))
+      real: esRegalo ? 0 : (hasMontoOverride ? +(i.price * i.q * factor).toFixed(2) : +(effPrice(i) * i.q).toFixed(2)),
+      tipo: i.tipo||'',
+      codigo: i.codigo||'',
+      talle: i.talle||''
     }));
     itemsJson = JSON.stringify(itemsDetail);
   }
@@ -4702,17 +4705,44 @@ function nameMatchesBota(itemName, marca, mod, talle) {
   return new RegExp('(?:^|[\\s,])'+t+'(?:$|[\\s,])','i').test(itemName);
 }
 async function recalcStockFromVentas() {
-  const soldByName = {};
-  D.ventas.forEach(v => parseItemsFromVenta(v.items).forEach(({name,qty}) => { soldByName[name]=(soldByName[name]||0)+qty; }));
+  const soldByName = {};      // fallback: nombre en minúscula -> cantidad (ventas viejas sin itemsDetail, o items sin código)
+  const soldByCodTalle = {};  // preferido: "código|talle" -> cantidad (el código solo NO alcanza, se repite entre talles del mismo modelo)
+  D.ventas.forEach(v => {
+    if (v.itemsDetail && v.itemsDetail.length) {
+      v.itemsDetail.forEach(it => {
+        const nm = (it.n||'').toLowerCase().trim();
+        if (nm) soldByName[nm] = (soldByName[nm]||0) + it.q; // siempre se guarda también por nombre, como red de seguridad
+        if (it.tipo === 'bota' && it.codigo && it.talle) {
+          const key = it.codigo + '|' + it.talle;
+          soldByCodTalle[key] = (soldByCodTalle[key]||0) + it.q;
+        }
+      });
+    } else {
+      // Venta vieja, sin JSON de detalle — usar el texto plano como antes
+      parseItemsFromVenta(v.items).forEach(({name,qty}) => { soldByName[name]=(soldByName[name]||0)+qty; });
+    }
+  });
   const updates = [];
   for (const p of D.productos) {
     const pn=p.n.toLowerCase().trim(); let sold=0;
     for (const [k,q] of Object.entries(soldByName)) if(nameMatchesProduct(k,pn)) sold+=q;
     const na=Math.max(0,p.ini-sold); if(na!==p.act){updates.push(sU(`PRODUCTOS!F${p._r}:F${p._r}`,[[na]]));p.act=na;}
   }
+  // Si dos botas distintas comparten el mismo código+talle (error de carga), ese código
+  // no es confiable para diferenciarlas — se descarta para esas filas.
+  const keyCounts = {};
+  D.botas.forEach(b => { if (b.codigo) { const k=b.codigo+'|'+b.talle; keyCounts[k]=(keyCounts[k]||0)+1; } });
   for (const b of D.botas) {
-    let sold=0;
-    for (const [k,q] of Object.entries(soldByName)) if(nameMatchesBota(k,b.marca,b.mod,b.talle)) sold+=q;
+    // Por nombre: cuenta TODAS las ventas (viejas y nuevas), igual que siempre — nunca deja de contar nada.
+    let soldPorNombre=0;
+    for (const [k,q] of Object.entries(soldByName)) if(nameMatchesBota(k,b.marca,b.mod,b.talle)) soldPorNombre+=q;
+    // Por código+talle: solo cuenta ventas nuevas que ya guardan el código (no existía antes de hoy).
+    const key = b.codigo ? (b.codigo+'|'+b.talle) : null;
+    const soldPorCodigo = (key && keyCounts[key]===1 && soldByCodTalle[key]!==undefined) ? soldByCodTalle[key] : 0;
+    // Usamos el MAYOR de los dos: así nunca contamos menos ventas de las que el sistema
+    // viejo ya contaba (cero riesgo de bajar de más el stock), y si en el futuro se
+    // renombra la bota, el conteo por código sigue sumando ventas nuevas sin perderse.
+    const sold = Math.max(soldPorNombre, soldPorCodigo);
     const na=Math.max(0,b.ini-sold); if(na!==b.act){updates.push(sU(`BOTAS!E${b._r}:E${b._r}`,[[na]]));b.act=na;}
   }
   if (updates.length) {
