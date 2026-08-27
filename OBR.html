@@ -363,7 +363,6 @@ body.ready #app{display:block}
     <div class="st">PRODUCTOS</div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-s btn-sm" onclick="resetStock()" id="btn-reset-stock">🔄 Resetear stock</button>
-      <button class="btn btn-s btn-sm" onclick="seedLange()" id="btn-lange" style="display:none;">📦 Cargar stock Lange</button>
       <button class="btn btn-s btn-sm" onclick="openBotaInline()">+ Bota con talles</button>
       <button class="btn btn-s btn-sm" onclick="bulkPriceIncrease()" title="Sube el precio efectivo un % a todas las botas de una marca">🔺 Subir % precio marca</button>
       <button class="btn btn-p" onclick="
@@ -1462,7 +1461,6 @@ body.ready #app{display:block}
     <div class="st">GASTOS TALLER</div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-s btn-sm" id="btn-sync-gp" onclick="syncGPTaller()">🏠 Sync Gastos Personales</button>
-      <button class="btn btn-s btn-sm" id="btn-seed-viajes" onclick="seedViajes()">🌎 Cargar viajes</button>
       <button class="btn btn-p" onclick="openGasto()">+ Gasto</button>
     </div>
   </div>
@@ -2484,7 +2482,7 @@ function doSetup() {
   if (!jj.private_key || !jj.client_email) return tst('JSON incompleto','err');
   localStorage.setItem('ottos_cr', j); localStorage.setItem('ottos_sid', sid);
   D.cr = jj; D.sid = sid; document.body.classList.add('ready');
-  initSheet().then(() => loadAll());
+  loadAll();
 }
 function resetCfg() {
   if (!confirm('¿Borrar credenciales?')) return;
@@ -3180,12 +3178,6 @@ function rprod() {
     if (others.length) html += others.map(p => fullCard(p)).join('');
   }
 
-  // Hide lange button if not showing botas
-  if (cf && cf !== 'Botas') {
-    const btn = document.getElementById('btn-lange');
-    if (btn) btn.style.display = 'none';
-  }
-
   // OTRAS CATEGORÍAS — Boosters, Medias, Otros como cards normales
   const otherCats = ['Boosters','Medias','Otros'];
   const showOthers = !cf || otherCats.includes(cf);
@@ -3277,11 +3269,6 @@ function rprod() {
 
   // BOTAS — 3 columnas por marca: Lange | Atomic | Reboleo
   if (!cf || cf==='Botas') {
-    // Show seed button only if no Lange botas yet
-    const hasLange = D.botas.some(b => b.marca.toLowerCase() === 'lange');
-    const btn = document.getElementById('btn-lange');
-    if (btn) btn.style.display = (!cf || cf==='Botas') && !hasLange ? '' : 'none';
-
     const fTalle = document.getElementById('f-btalle')?.value||'';
     const fAncho = document.getElementById('f-bancho')?.value||'';
 
@@ -4998,22 +4985,6 @@ function calcSoldUnits(prodName) {
   return sold;
 }
 
-async function seedViajes() {
-  if (!confirm('¿Cargar los gastos de los viajes a USA (dic 2024) y Europa (mar 2025)? Solo hacerlo una vez.')) return;
-  tst('Cargando gastos...');
-  const detalleUSA = 'Ski care $645 · Montana $600 · Sidas $450 · Stickers $464 · Lifters $782 · Epoxi $26 · Tijeras $33 · Pegamento · Freza · Foredom $82 | Plantillas Race XS×3 S×9 M×47 L×4 @$54 | Custom XS×1 S×8 M×15 L×18 XL×1 @$45 | Lifter 5mm×28 @$32 | Boosters Kids×2 Interme×2 Expert×5 WC×9 | BootHorn×10';
-  const detalleEU  = 'Medias Lorpen XS×6 S×32 M×42 L×21 | Suelas ISO 5355: Fischer×6 $33 K2×1 $46 Tecnica×5 $27 Salomon×5 $28 | Plaquitas Nordica 4mm×15 $23 · Nordica 5mm×9 $23 · Head 3mm×25 $10';
-  try {
-    await sA('GASTOS', [
-      ['2024-12-01','Viaje USA — Insumos y plantillas','Insumos','','3082','Efectivo USD',detalleUSA],
-      ['2025-03-01','Viaje Europa — Medias y plaquitas','Insumos','','2156','Efectivo USD',detalleEU],
-    ]);
-    document.getElementById('btn-seed-viajes').style.display = 'none';
-    await lG();
-    tst('Viajes cargados ✓','ok');
-  } catch(ex) { tst('Error: '+ex.message,'err'); }
-}
-
 function addTalle() {
   const n = document.getElementById('bt-tn').value.trim();
   const s = parseInt(document.getElementById('bt-ts').value)||1;
@@ -5174,37 +5145,6 @@ async function borrarYReimportar() {
   fill.style.background = '#2e7d32';
   fill.style.width = '100%';
   await lV();
-}
-
-async function seedLange() {
-  if (!confirm('¿Cargar las 18 botas Lange al Sheet? (stock 2025)')) return;
-  tst('Cargando botas Lange...');
-  const rows = [
-    ['Lange','RX 110 W LV','22.5','1','0','2025-05-22','250','',''],
-    ['Lange','RX 110 W LV','23.5','4','4','2025-05-22','250','',''],
-    ['Lange','RX 110 W LV','24.5','4','3','2025-05-22','250','',''],
-    ['Lange','RX Heritage','24.5','1','1','2025-05-22','350','',''],
-    ['Lange','RX Heritage','26.5','2','2','2025-05-22','350','',''],
-    ['Lange','RX Heritage','27.5','3','2','2025-05-22','350','',''],
-    ['Lange','RX Heritage','28.5','1','0','2025-05-22','350','',''],
-    ['Lange','RX Heritage Pink','28.5','3','3','2025-05-22','350','',''],
-    ['Lange','World Cup RP ZJ+','24.5','4','3','2025-05-22','300','',''],
-    ['Lange','World Cup RP ZJ+','25.5','3','1','2025-05-22','300','',''],
-    ['Lange','World Cup RP ZJ+','26.5','1','1','2025-05-22','300','',''],
-    ['Lange','World Cup ZA+','27.5','2','0','2025-05-22','400','',''],
-    ['Lange','World Cup ZA','27.5','1','1','2025-05-22','400','',''],
-    ['Lange','World Cup RP ZA','28.5','1','0','2025-05-22','300','',''],
-    ['Lange','ZJ+ 2024','23.5','2','0','2025-05-22','300','',''],
-    ['Lange','ZA 2015','26.5','1','0','2025-05-22','300','',''],
-    ['Lange','ZA 2011','23.5','1','1','2025-05-22','200','',''],
-    ['Lange','ZB','25.5','1','1','2025-05-22','300','',''],
-  ];
-  try {
-    await sAraw('BOTAS', rows);
-    await lBotas();
-    tst('18 botas Lange cargadas ✓','ok');
-    document.getElementById('btn-lange').style.display = 'none';
-  } catch(ex) { tst('Error: '+ex.message,'err'); }
 }
 
 function calcGastoUsd() {
