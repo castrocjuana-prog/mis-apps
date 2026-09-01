@@ -1468,8 +1468,8 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
         <div id="afip-jua-bar" style="height:100%;border-radius:4px;background:var(--acc);transition:width .5s ease;width:0%"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);font-family:var(--mono)">
-        <span>Cat A: $10,277,988</span>
-        <span>Cat B: $15,058,448</span>
+        <span id="afip-jua-catlow">Cat A: $ —</span>
+        <span id="afip-jua-cathigh">Cat B: $ —</span>
       </div>
     </div>
     <div class="card">
@@ -1487,8 +1487,8 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
         <div id="afip-coco-bar" style="height:100%;border-radius:4px;background:#2a6db5;transition:width .5s ease;width:0%"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);font-family:var(--mono)">
-        <span>Cat A: $10,277,988</span>
-        <span>Cat B: $15,058,448</span>
+        <span id="afip-coco-catlow">Cat A: $ —</span>
+        <span id="afip-coco-cathigh">Cat B: $ —</span>
       </div>
     </div>
   </div>
@@ -4047,8 +4047,29 @@ function itemMontoAfip(item,quien){
 
 // ── AFIP ──
 const OBR_SID='1WTHvO_FtxLgRYFNic0eUSvkxfvwMfjBHMIZHtEsZCEw';
-const CAT_A=10277988.13;
-const CAT_B=15058447.71;
+// Tabla de categorías Monotributo — ingresos brutos anuales, vigente desde 1/08/2026 (ARCA, ajuste 16,85%)
+const CATEGORIAS_MONO=[
+  {cat:'A',limite:12009410.45},
+  {cat:'B',limite:17595182.74},
+  {cat:'C',limite:24670494.31},
+  {cat:'D',limite:30628651.43},
+  {cat:'E',limite:36028231.33},
+  {cat:'F',limite:45151659.41},
+  {cat:'G',limite:53995798.87},
+  {cat:'H',limite:81924660.37},
+  {cat:'I',limite:91699761.90},
+  {cat:'J',limite:105012519.20},
+  {cat:'K',limite:126610838.75},
+];
+function catInfo(total){
+  for(let i=0;i<CATEGORIAS_MONO.length;i++){
+    if(total<=CATEGORIAS_MONO[i].limite){
+      return{idx:i,actual:CATEGORIAS_MONO[i],anterior:CATEGORIAS_MONO[i-1]||null,siguiente:CATEGORIAS_MONO[i+1]||null,excluido:false};
+    }
+  }
+  const ult=CATEGORIAS_MONO[CATEGORIAS_MONO.length-1];
+  return{idx:CATEGORIAS_MONO.length-1,actual:ult,anterior:CATEGORIAS_MONO[CATEGORIAS_MONO.length-2],siguiente:null,excluido:true};
+}
 let _obrAfipData=null; // cache
 
 async function fetchObrAfip(){
@@ -4179,20 +4200,26 @@ function rAfip(){
     const obrRows=buildObrRows(quien);
     const allRows=[...localRows,...obrRows].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
     const total=allRows.reduce((s,r)=>s+r.monto,0);
-    const pctA=Math.min(total/CAT_A*100,100);
-    const pctB=Math.min(total/CAT_B*100,100);
+    const info=catInfo(total);
+    const pisoBanda=info.anterior?info.anterior.limite:0;
+    const techoBanda=info.actual.limite;
+    const pctBanda=Math.min((total-pisoBanda)/(techoBanda-pisoBanda)*100,100);
     const color=quien==='jua'?'var(--acc)':'#2a6db5';
-    const alertColor=total>CAT_A?'#c62828':total>CAT_A*0.8?'#b07d2a':'inherit';
+    // Rojo SOLO si superó el tope máximo (Cat K) → riesgo de exclusión del régimen. Subir de categoría es normal, no es alerta.
+    const alertColor=info.excluido?'#c62828':pctBanda>85?'#b07d2a':'inherit';
 
     document.getElementById(`afip-${quien}-total`).textContent=fmt(total);
     document.getElementById(`afip-${quien}-total`).style.color=alertColor;
     document.getElementById(`afip-${quien}-pct`).textContent=
-      total>CAT_B?'⚠️ SUPERÓ CAT B':
-      total>CAT_A?'⚠️ Recategorizar a B':
-      total>CAT_A*0.8?`⚠️ ${Math.round((CAT_A-total)/1000)}k para Cat A`:
-      `${Math.round(pctA)}% del límite Cat A`;
-    document.getElementById(`afip-${quien}-bar`).style.width=pctB+'%';
-    document.getElementById(`afip-${quien}-bar`).style.background=total>CAT_A?'#c62828':total>CAT_A*0.8?'#b07d2a':color;
+      info.excluido?'🚨 Superó tope máximo (Cat K)':
+      info.siguiente&&pctBanda>85?`⚠️ ${Math.round((techoBanda-total)/1000)}k para Cat ${info.siguiente.cat}`:
+      `Cat ${info.actual.cat} · ${Math.round(pctBanda)}% del tramo`;
+    document.getElementById(`afip-${quien}-bar`).style.width=pctBanda+'%';
+    document.getElementById(`afip-${quien}-bar`).style.background=info.excluido?'#c62828':pctBanda>85?'#b07d2a':color;
+    const catLowEl=document.getElementById(`afip-${quien}-catlow`);
+    const catHighEl=document.getElementById(`afip-${quien}-cathigh`);
+    if(catLowEl)catLowEl.textContent=`Cat ${info.actual.cat}: ${fmt(pisoBanda)}`;
+    if(catHighEl)catHighEl.textContent=info.siguiente?`Cat ${info.siguiente.cat}: ${fmt(techoBanda)}`:`Tope Cat K: ${fmt(techoBanda)}`;
 
     const lista=document.getElementById(`afip-${quien}-list`);
     if(!allRows.length){lista.innerHTML='<div style="padding:16px;font-size:12px;color:var(--t3)">Sin ingresos AFIP registrados</div>';return;}
