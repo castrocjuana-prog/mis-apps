@@ -248,7 +248,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
 <aside class="sb">
   <div class="logo">
     <div class="logo-t">Gastos 2026</div>
-    <div class="logo-s">Jua &amp; Coco · v19-oct-italia</div>
+    <div class="logo-s">Jua &amp; Coco · v19-oct-italia2</div>
   </div>
   <nav>
     <div class="ni active" onclick="goPage(&#39;fijos&#39;,this)">
@@ -2018,8 +2018,9 @@ function _italiaGastosToRows(arr){
   (arr||[]).forEach(g=>rows.push([String(g.id),g.f||'',g.d||'',g.cat||'',g.monto||0,g.mon||'EUR',g.fpago||'',g.tc||'',g.nota||'']));
   return rows;
 }
+const _num=v=>{if(typeof v==='number')return v;const n=Number(String(v??'').trim().replace(',','.'));return isNaN(n)?0:n;};
 function _rowsToItaliaGastos(rows){
-  return (rows||[]).slice(1).filter(r=>r&&r[0]).map(r=>({id:Number(r[0]),f:r[1]||'',d:r[2]||'',cat:r[3]||'',monto:Number(r[4])||0,mon:r[5]||'EUR',fpago:r[6]||'',tc:Number(r[7])||0,nota:r[8]||''}));
+  return (rows||[]).slice(1).filter(r=>r&&r[0]).map(r=>({id:Number(r[0]),f:r[1]||'',d:r[2]||'',cat:r[3]||'',monto:_num(r[4]),mon:r[5]||'EUR',fpago:r[6]||'',tc:_num(r[7]),nota:r[8]||''}));
 }
 function _italiaClasesToRows(arr){
   const rows=[['id','quien','cliente','fecha','contacto','nota','tipoPago','monto','mon','fpago','monto2','mon2','fpago2','tc']];
@@ -2027,7 +2028,7 @@ function _italiaClasesToRows(arr){
   return rows;
 }
 function _rowsToItaliaClases(rows){
-  return (rows||[]).slice(1).filter(r=>r&&r[0]).map(r=>({id:Number(r[0]),quien:r[1]||'jua',cliente:r[2]||'',f:r[3]||'',contacto:r[4]||'',nota:r[5]||'',tipoPago:r[6]||'simple',monto:Number(r[7])||0,mon:r[8]||'EUR',fpago:r[9]||'',monto2:Number(r[10])||0,mon2:r[11]||'',fpago2:r[12]||'',tc:Number(r[13])||0}));
+  return (rows||[]).slice(1).filter(r=>r&&r[0]).map(r=>({id:Number(r[0]),quien:r[1]||'jua',cliente:r[2]||'',f:r[3]||'',contacto:r[4]||'',nota:r[5]||'',tipoPago:r[6]||'simple',monto:_num(r[7]),mon:r[8]||'EUR',fpago:r[9]||'',monto2:_num(r[10]),mon2:r[11]||'',fpago2:r[12]||'',tc:_num(r[13])}));
 }
 // Crea las pestañas de Italia VACÍAS si no existen (una vez por sesión). Si falla, no se guarda nada.
 let _italiaTabsOk=false;
@@ -2128,7 +2129,7 @@ async function _readAllSheets(){
   const hayItalia=ITALIA_TABS.every(n=>titulos.has(n));
   if(hayItalia)ranges.push('ITALIA_GASTOS!A1:I2000','ITALIA_CLASES!A1:N2000');
   _italiaTabsOk=hayItalia;
-  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}/values:batchGet?${ranges.map(rng=>'ranges='+encodeURIComponent(rng)).join('&')}`,{headers:{Authorization:`Bearer ${t}`}});
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}/values:batchGet?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING&${ranges.map(rng=>'ranges='+encodeURIComponent(rng)).join('&')}`,{headers:{Authorization:`Bearer ${t}`}});
   if(!r.ok)throw new Error('Error leyendo sheets');
   const dd=await r.json();
   const get=i=>(dd.valueRanges||[])[i]?.values||[];
