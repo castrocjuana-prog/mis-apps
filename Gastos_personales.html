@@ -248,7 +248,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
 <aside class="sb">
   <div class="logo">
     <div class="logo-t">Gastos 2026</div>
-    <div class="logo-s">Jua &amp; Coco · v19-oct-año2</div>
+    <div class="logo-s">Jua &amp; Coco · v19-oct-italia</div>
   </div>
   <nav>
     <div class="ni active" onclick="goPage(&#39;fijos&#39;,this)">
@@ -286,6 +286,10 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
     <div class="ni" onclick="goPage(&#39;mapuches&#39;,this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L2 13h12L8 2z"></path><path d="M8 9v3"></path></svg>
       <span>Mapuches 🏔️</span>
+    </div>
+    <div class="ni" onclick="goPage(&#39;italia&#39;,this)">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13l4-8 3 5 2-3 3 6z"></path></svg>
+      <span>Italia 🇮🇹</span>
     </div>
     <div class="ni" onclick="goPage(&#39;luna&#39;,this)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 8A5 5 0 1 1 8 3a4 4 0 0 0 5 5z"></path></svg>
@@ -1090,11 +1094,12 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
   </div>
 
   <!-- Resumen métricas -->
-  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px" id="ing-metrics">
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:18px" id="ing-metrics">
     <div class="metric metric-purple"><div class="mlb">Juana</div><div class="mv" id="im-jua-usd">— USD</div><div class="mv-sub" id="im-jua-ars"></div><div class="mv-mes" id="im-jua-mes"></div></div>
     <div class="metric metric-blue"><div class="mlb">Coco</div><div class="mv" id="im-coco-usd">— USD</div><div class="mv-sub" id="im-coco-ars"></div><div class="mv-mes" id="im-coco-mes"></div></div>
     <div class="metric metric-red"><div class="mlb">Otto's Boot Room</div><div class="mv" id="im-obr-usd">— USD</div><div class="mv-sub" id="im-obr-ars"></div><div class="mv-mes" id="im-obr-mes"></div></div>
     <div class="metric metric-yellow"><div class="mlb">Airbnb El Faldeo</div><div class="mv" id="im-airbnb-usd">— USD</div><div class="mv-sub" id="im-airbnb-ars"></div><div class="mv-mes" id="im-airbnb-mes"></div></div>
+    <div class="metric metric-green"><div class="mlb">Italia 🇮🇹 (neto)</div><div class="mv" id="im-italia-usd">— USD</div><div class="mv-sub" id="im-italia-eur"></div><div class="mv-mes" id="im-italia-mes"></div></div>
     <div class="metric metric-plain"><div class="mlb">Total</div><div class="mv" id="im-tot-usd">— USD</div><div class="mv-sub" id="im-tot-ars"></div><div class="mv-mes" id="im-tot-mes"></div></div>
   </div>
   <div class="card">
@@ -1576,6 +1581,135 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
   </div>
 </div>
 
+<!-- ITALIA -->
+<div id="page-italia" class="page">
+  <div class="ptitle">Italia 🇮🇹 — temporada</div>
+  <div style="background:linear-gradient(135deg,#14532d,#7f1d1d);border-radius:var(--r);padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🇮🇹</div>
+    <div>
+      <div style="font-size:18px;font-weight:600;color:#fff">Clases de esquí en Italia</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);font-family:var(--mono);margin-top:2px">Gastos 50/50 · ganancia compartida · no entra en AFIP ni en Gastos del mes</div>
+    </div>
+    <div style="margin-left:auto;text-align:right">
+      <div style="font-size:9px;color:rgba(255,255,255,.4);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Ganancia neta</div>
+      <div style="font-size:22px;font-weight:600;font-family:var(--mono);color:#fff" id="it-neto-usd">USD —</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.45);font-family:var(--mono);margin-top:2px" id="it-neto-eur"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="clbl" style="margin-bottom:10px">Resumen de la temporada</div>
+    <div id="it-resumen"></div>
+  </div>
+
+  <div class="card">
+    <div class="chd">
+      <span class="clbl" style="color:#7f1d1d">Gastos de Italia (50/50)</span>
+      <button class="btn" onclick="toggleF('form-ig')">+ Agregar gasto</button>
+    </div>
+    <div id="form-ig" class="fb" style="display:none">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:6px" id="ig-edit-lbl"></div>
+      <div class="fg" style="grid-template-columns:2fr 1fr 1fr;margin-bottom:8px">
+        <input id="ig-desc" placeholder="Descripción (ej: Alquiler depto, Seguro RCT)">
+        <input id="ig-fecha" type="date">
+        <select id="ig-cat"><option>Alojamiento</option><option>Comida</option><option>Transporte</option><option>Seguro / Collegio</option><option>Equipo</option><option>Otros</option></select>
+      </div>
+      <div class="fg" style="grid-template-columns:1fr 80px 160px 110px;margin-bottom:8px">
+        <input id="ig-monto" type="number" placeholder="Monto">
+        <select id="ig-mon"><option value="EUR">€</option><option value="USD">USD</option></select>
+        <select id="ig-fpago"><option value="efectivo">Efectivo</option><option value="zelle">Zelle</option><option value="bancofrances">Banco Francés EU</option></select>
+        <input id="ig-tc" type="number" step="0.01" placeholder="USD por €" title="USD por €">
+      </div>
+      <input id="ig-nota" placeholder="Nota (opcional)" style="margin-bottom:8px">
+      <button class="btn bp" onclick="guardarGastoItalia()">Guardar</button>
+      <button class="btn" onclick="cancelarItalia('ig')">Cancelar</button>
+    </div>
+    <div id="lista-ig"><span style="font-size:12px;color:var(--t3)">Sin gastos</span></div>
+    <div id="tot-ig" class="tot-row" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <div class="chd">
+      <span class="clbl" style="color:#6d28d9">Clases — Juana</span>
+      <button class="btn" onclick="toggleF('form-icj')">+ Agregar clase</button>
+    </div>
+    <div id="form-icj" class="fb" style="display:none">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:6px" id="icj-edit-lbl"></div>
+      <div class="fg fg3" style="margin-bottom:8px">
+        <input id="icj-cliente" placeholder="Cliente (nombre)">
+        <input id="icj-fecha" type="date">
+        <input id="icj-contacto" placeholder="Contacto (tel/mail)">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <select id="icj-tipopago" onchange="toggleMixtoItalia('icj')" style="width:auto;padding:5px 10px;font-size:12px">
+          <option value="simple">Pago simple</option><option value="mixto">Pago mixto</option>
+        </select>
+        <span style="font-size:11px;color:var(--t3)">USD por €:</span>
+        <input id="icj-tc" type="number" step="0.01" style="width:90px;padding:5px 8px;font-size:12px">
+      </div>
+      <div class="fg" style="grid-template-columns:1fr 80px 160px;margin-bottom:8px">
+        <input id="icj-monto" type="number" placeholder="Monto">
+        <select id="icj-mon"><option value="EUR">€</option><option value="USD">USD</option></select>
+        <select id="icj-fpago"><option value="efectivo">Efectivo</option><option value="zelle">Zelle</option><option value="bancofrances">Banco Francés EU</option></select>
+      </div>
+      <div id="icj-parte2" style="display:none">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:4px">Parte 2</div>
+        <div class="fg" style="grid-template-columns:1fr 80px 160px;margin-bottom:8px">
+          <input id="icj-monto2" type="number" placeholder="Monto parte 2">
+          <select id="icj-mon2"><option value="EUR">€</option><option value="USD">USD</option></select>
+          <select id="icj-fpago2"><option value="efectivo">Efectivo</option><option value="zelle">Zelle</option><option value="bancofrances">Banco Francés EU</option></select>
+        </div>
+      </div>
+      <input id="icj-nota" placeholder="Nota" style="margin-bottom:8px">
+      <button class="btn bp" onclick="guardarClaseItalia('jua')">Guardar</button>
+      <button class="btn" onclick="cancelarItalia('icj')">Cancelar</button>
+    </div>
+    <div id="lista-icj"><span style="font-size:12px;color:var(--t3)">Sin clases</span></div>
+    <div id="tot-icj" class="tot-row" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <div class="chd">
+      <span class="clbl" style="color:#2a6db5">Clases — Coco</span>
+      <button class="btn" onclick="toggleF('form-icc')">+ Agregar clase</button>
+    </div>
+    <div id="form-icc" class="fb" style="display:none">
+      <div style="font-size:11px;color:var(--t3);margin-bottom:6px" id="icc-edit-lbl"></div>
+      <div class="fg fg3" style="margin-bottom:8px">
+        <input id="icc-cliente" placeholder="Cliente (nombre)">
+        <input id="icc-fecha" type="date">
+        <input id="icc-contacto" placeholder="Contacto (tel/mail)">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <select id="icc-tipopago" onchange="toggleMixtoItalia('icc')" style="width:auto;padding:5px 10px;font-size:12px">
+          <option value="simple">Pago simple</option><option value="mixto">Pago mixto</option>
+        </select>
+        <span style="font-size:11px;color:var(--t3)">USD por €:</span>
+        <input id="icc-tc" type="number" step="0.01" style="width:90px;padding:5px 8px;font-size:12px">
+      </div>
+      <div class="fg" style="grid-template-columns:1fr 80px 160px;margin-bottom:8px">
+        <input id="icc-monto" type="number" placeholder="Monto">
+        <select id="icc-mon"><option value="EUR">€</option><option value="USD">USD</option></select>
+        <select id="icc-fpago"><option value="efectivo">Efectivo</option><option value="zelle">Zelle</option><option value="bancofrances">Banco Francés EU</option></select>
+      </div>
+      <div id="icc-parte2" style="display:none">
+        <div style="font-size:11px;color:var(--t3);margin-bottom:4px">Parte 2</div>
+        <div class="fg" style="grid-template-columns:1fr 80px 160px;margin-bottom:8px">
+          <input id="icc-monto2" type="number" placeholder="Monto parte 2">
+          <select id="icc-mon2"><option value="EUR">€</option><option value="USD">USD</option></select>
+          <select id="icc-fpago2"><option value="efectivo">Efectivo</option><option value="zelle">Zelle</option><option value="bancofrances">Banco Francés EU</option></select>
+        </div>
+      </div>
+      <input id="icc-nota" placeholder="Nota" style="margin-bottom:8px">
+      <button class="btn bp" onclick="guardarClaseItalia('coco')">Guardar</button>
+      <button class="btn" onclick="cancelarItalia('icc')">Cancelar</button>
+    </div>
+    <div id="lista-icc"><span style="font-size:12px;color:var(--t3)">Sin clases</span></div>
+    <div id="tot-icc" class="tot-row" style="display:none"></div>
+  </div>
+
+</div>
+
 <!-- LUNA -->
 <div id="page-luna" class="page">
   <div class="ptitle">Luna 🐱</div>
@@ -1877,6 +2011,42 @@ function _rowsToLuna(rows){
   return (rows||[]).slice(1).map(r=>({id:Number(r[0]),d:r[1]||'',f:r[2]||'',c:r[3]||'',m:Number(r[4])||0}));
 }
 
+// ── ITALIA: dos pestañas nuevas al final del Sheet ──
+const ITALIA_TABS=['ITALIA_GASTOS','ITALIA_CLASES'];
+function _italiaGastosToRows(arr){
+  const rows=[['id','fecha','desc','cat','monto','mon','fpago','tc','nota']];
+  (arr||[]).forEach(g=>rows.push([String(g.id),g.f||'',g.d||'',g.cat||'',g.monto||0,g.mon||'EUR',g.fpago||'',g.tc||'',g.nota||'']));
+  return rows;
+}
+function _rowsToItaliaGastos(rows){
+  return (rows||[]).slice(1).filter(r=>r&&r[0]).map(r=>({id:Number(r[0]),f:r[1]||'',d:r[2]||'',cat:r[3]||'',monto:Number(r[4])||0,mon:r[5]||'EUR',fpago:r[6]||'',tc:Number(r[7])||0,nota:r[8]||''}));
+}
+function _italiaClasesToRows(arr){
+  const rows=[['id','quien','cliente','fecha','contacto','nota','tipoPago','monto','mon','fpago','monto2','mon2','fpago2','tc']];
+  (arr||[]).forEach(c=>rows.push([String(c.id),c.quien||'',c.cliente||'',c.f||'',c.contacto||'',c.nota||'',c.tipoPago||'simple',c.monto||0,c.mon||'EUR',c.fpago||'',c.monto2||'',c.mon2||'',c.fpago2||'',c.tc||'']));
+  return rows;
+}
+function _rowsToItaliaClases(rows){
+  return (rows||[]).slice(1).filter(r=>r&&r[0]).map(r=>({id:Number(r[0]),quien:r[1]||'jua',cliente:r[2]||'',f:r[3]||'',contacto:r[4]||'',nota:r[5]||'',tipoPago:r[6]||'simple',monto:Number(r[7])||0,mon:r[8]||'EUR',fpago:r[9]||'',monto2:Number(r[10])||0,mon2:r[11]||'',fpago2:r[12]||'',tc:Number(r[13])||0}));
+}
+// Crea las pestañas de Italia VACÍAS si no existen (una vez por sesión). Si falla, no se guarda nada.
+let _italiaTabsOk=false;
+async function _asegurarPestanasItalia(){
+  if(_italiaTabsOk)return;
+  const t=await getT();
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}?fields=sheets.properties.title`,{headers:{Authorization:`Bearer ${t}`}});
+  if(!r.ok)throw new Error('No se pudo verificar las pestañas del Sheet ('+r.status+'). No se guardó nada.');
+  const dd=await r.json();
+  const existentes=new Set((dd.sheets||[]).map(x=>x.properties.title));
+  const faltan=ITALIA_TABS.filter(n=>!existentes.has(n));
+  if(faltan.length){
+    const c=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}:batchUpdate`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({requests:faltan.map(title=>({addSheet:{properties:{title}}}))})});
+    if(!c.ok)throw new Error('No se pudieron crear las pestañas de Italia ('+c.status+'). No se guardó nada.');
+    if(_rowCounts)faltan.forEach(n=>_rowCounts[n]=0);
+  }
+  _italiaTabsOk=true;
+}
+
 function _configToRows(D){
   // Stores: tc, mes, deudas, repuestos, serviceLancha, fijosYears, ingresos, ottos, lunaNotes, mapuches (backup tc)
   return [
@@ -1893,6 +2063,7 @@ function _configToRows(D){
     ['lunaNotes',JSON.stringify(D.lunaNotes||{})],
     ['tcAnios',JSON.stringify(D.tcAnios||{})],
     ['anio',String(D.anio||anio)],
+    ['italiaTc',String(D.italiaTc||'')],
   ];
 }
 function _rowsToConfig(rows){
@@ -1910,7 +2081,7 @@ async function _ensureSheets(){
   const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}?fields=sheets.properties.title`,{headers:{Authorization:`Bearer ${t}`}});
   const dd=await r.json();
   const existing=new Set((dd.sheets||[]).map(s=>s.properties.title));
-  const needed=['CONFIG','VARS','FIJOS','AIRBNB','MAPUCHES','CLASES','CHANGAS','PAT','CREDENCIALES','ACEITES','LUNA'];
+  const needed=['CONFIG','VARS','FIJOS','AIRBNB','MAPUCHES','CLASES','CHANGAS','PAT','CREDENCIALES','ACEITES','LUNA','ITALIA_GASTOS','ITALIA_CLASES'];
   const toAdd=needed.filter(n=>!existing.has(n));
   if(!toAdd.length)return;
   await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}:batchUpdate`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({requests:toAdd.map(title=>({addSheet:{properties:{title}}}))})});
@@ -1938,6 +2109,8 @@ function _buildSheetData(D){
     {range:'CREDENCIALES!A1',values:_credToRows(D.credenciales)},
     {range:'ACEITES!A1',values:_aceitesToRows(D.aceites)},
     {range:'LUNA!A1',values:_lunaToRows(D.luna)},
+    {range:'ITALIA_GASTOS!A1',values:_italiaGastosToRows(D.italiaGastos)},
+    {range:'ITALIA_CLASES!A1',values:_italiaClasesToRows(D.italiaClases)},
   ];
   const counts={};
   data.forEach(d=>{counts[d.range.split('!')[0]]=d.values.length;});
@@ -1948,6 +2121,13 @@ function _buildSheetData(D){
 async function _readAllSheets(){
   const t=await getT();
   const ranges=['CONFIG!A1:B200','VARS!A1:H10000','FIJOS!A1:AG500','AIRBNB!A1:J500','MAPUCHES!A1:G500','CLASES!A1:P2000','CHANGAS!A1:K2000','PAT!A1:G100','CREDENCIALES!A1:G100','ACEITES!A1:F200','LUNA!A1:E500'];
+  // Italia: solo si las pestañas ya existen
+  const rt=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}?fields=sheets.properties.title`,{headers:{Authorization:`Bearer ${t}`}});
+  if(!rt.ok)throw new Error('Error leyendo la estructura del Sheet');
+  const titulos=new Set(((await rt.json()).sheets||[]).map(x=>x.properties.title));
+  const hayItalia=ITALIA_TABS.every(n=>titulos.has(n));
+  if(hayItalia)ranges.push('ITALIA_GASTOS!A1:I2000','ITALIA_CLASES!A1:N2000');
+  _italiaTabsOk=hayItalia;
   const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}/values:batchGet?${ranges.map(rng=>'ranges='+encodeURIComponent(rng)).join('&')}`,{headers:{Authorization:`Bearer ${t}`}});
   if(!r.ok)throw new Error('Error leyendo sheets');
   const dd=await r.json();
@@ -1978,6 +2158,9 @@ async function _readAllSheets(){
     airbnb,mapuches,credenciales,
     tcAnios:(cfg.tcAnios&&typeof cfg.tcAnios==='object')?cfg.tcAnios:null,
     anio:Number(cfg.anio)||undefined,
+    italiaGastos:hayItalia?_rowsToItaliaGastos(get(11)):[],
+    italiaClases:hayItalia?_rowsToItaliaClases(get(12)):[],
+    italiaTc:Number(cfg.italiaTc)||undefined,
   };
 }
 
@@ -2001,8 +2184,8 @@ async function _isNewStructure(){
 let _rowCounts=null;
 let _permitirReduccion=false; // solo se activa al importar un backup JSON (el usuario confirma)
 const MAX_FILAS_MENOS=3;
-const _GUARD_TABS=['VARS','FIJOS','AIRBNB','MAPUCHES','CLASES','CHANGAS','PAT','CREDENCIALES','ACEITES','LUNA'];
-const _READ_RANGES={VARS:'VARS!A1:H10000',FIJOS:'FIJOS!A1:AG500',AIRBNB:'AIRBNB!A1:J500',MAPUCHES:'MAPUCHES!A1:G500',CLASES:'CLASES!A1:P2000',CHANGAS:'CHANGAS!A1:K2000',PAT:'PAT!A1:G100',CREDENCIALES:'CREDENCIALES!A1:G100',ACEITES:'ACEITES!A1:F200',LUNA:'LUNA!A1:E500'};
+const _GUARD_TABS=['VARS','FIJOS','AIRBNB','MAPUCHES','CLASES','CHANGAS','PAT','CREDENCIALES','ACEITES','LUNA','ITALIA_GASTOS','ITALIA_CLASES'];
+const _READ_RANGES={VARS:'VARS!A1:H10000',FIJOS:'FIJOS!A1:AG500',AIRBNB:'AIRBNB!A1:J500',MAPUCHES:'MAPUCHES!A1:G500',CLASES:'CLASES!A1:P2000',CHANGAS:'CHANGAS!A1:K2000',PAT:'PAT!A1:G100',CREDENCIALES:'CREDENCIALES!A1:G100',ACEITES:'ACEITES!A1:F200',LUNA:'LUNA!A1:E500',ITALIA_GASTOS:'ITALIA_GASTOS!A1:I2000',ITALIA_CLASES:'ITALIA_CLASES!A1:N2000'};
 
 async function _leerConteoFilas(){
   const t=await getT();
@@ -2026,6 +2209,8 @@ function save(){
 async function _doSave(){
   setSyncing(true);
   try{
+    // 0) Que existan las pestañas de Italia (se crean vacías una sola vez). Si falla, no se escribe nada.
+    await _asegurarPestanasItalia();
     // 1) Saber cuántas filas tiene hoy el Sheet (una sola lectura por sesión; después se lleva la cuenta)
     if(!_rowCounts)_rowCounts=await _leerConteoFilas();
     // 2) Armar lo que se va a escribir y verificar
@@ -2111,7 +2296,7 @@ async function loadFromSheet(){
 function renderAll(){
   rFijos();
   const ap=document.querySelector('.page.active')?.id?.replace('page-','');
-  if(ap&&ap!=='fijos')({variables:rVar,rescat:rResCat,vehiculos:rVeh,ingresos:rIng,patrimonio:rPat,afip:openAfip,mapuches:rMapuches,luna:rLuna,dolar:rDolar,balance:rBalance})[ap]?.();
+  if(ap&&ap!=='fijos')({variables:rVar,rescat:rResCat,vehiculos:rVeh,ingresos:rIng,patrimonio:rPat,afip:openAfip,mapuches:rMapuches,italia:rItalia,luna:rLuna,dolar:rDolar,balance:rBalance})[ap]?.();
 }
 
 function setSyncing(v){
@@ -2214,6 +2399,7 @@ function aniosDisponibles(){
   Object.values(D.vars||{}).forEach(arr=>(arr||[]).forEach(g=>set.add(varAnio(g))));
   [...(D.clasesJua||[]),...(D.clasesCoco||[]),...(D.changas||[])].forEach(i=>{const y=yOf(i.f);if(y)set.add(y);});
   (D.airbnb||[]).forEach(i=>{const y=yOf(i.entrada);if(y)set.add(y);});
+  [...(D.italiaGastos||[]),...(D.italiaClases||[])].forEach(i=>{const y=yOf(i.f);if(y)set.add(y);});
   return [...set].filter(y=>y>2000).sort((a,b)=>a-b);
 }
 function renderAniosSelect(){
@@ -2297,13 +2483,13 @@ function goPage(id,el){
     loadObrGastos().then(()=>({variables:rVar,rescat:rResCat})[id]?.());
     return;
   }
-  ({fijos:rFijos,variables:rVar,rescat:rResCat,vehiculos:rVeh,ingresos:openIngresos,patrimonio:rPat,afip:openAfip,mapuches:rMapuches,luna:rLuna,dolar:rDolar,balance:rBalance})[id]?.();
+  ({fijos:rFijos,variables:rVar,rescat:rResCat,vehiculos:rVeh,ingresos:openIngresos,patrimonio:rPat,afip:openAfip,mapuches:rMapuches,italia:rItalia,luna:rLuna,dolar:rDolar,balance:rBalance})[id]?.();
 }
 function cambiarMes(){
   mes=parseInt(document.getElementById('mes-global').value);
   D.mes=mes;save();
   const ap=document.querySelector('.page.active')?.id?.replace('page-','');
-  ({fijos:rFijos,variables:rVar,rescat:rResCat,vehiculos:rVeh,ingresos:openIngresos,patrimonio:rPat,afip:openAfip,mapuches:rMapuches,luna:rLuna,dolar:rDolar,balance:rBalance})[ap]?.();
+  ({fijos:rFijos,variables:rVar,rescat:rResCat,vehiculos:rVeh,ingresos:openIngresos,patrimonio:rPat,afip:openAfip,mapuches:rMapuches,italia:rItalia,luna:rLuna,dolar:rDolar,balance:rBalance})[ap]?.();
 }
 
 
@@ -3118,8 +3304,11 @@ function rIng(){
   const airbnbARS=abA.reduce((s,i)=>s+(i.arsEquiv||0),0);
   const airbnbUSD=abA.filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
   // Totals — anual
-  const totalARS=juaTotalARS+cocoTotalARS+obrARS+airbnbARS;
-  const totalUSD=juaTotalUSD+cocoTotalUSD+obrUSD+airbnbUSD;
+  // Italia — neto (ingresos − gastos) del año activo
+  const itA=italiaTotales(f=>enAnio(f));
+  const _tcRef=D.tc[mes]||1400;
+  const totalARS=juaTotalARS+cocoTotalARS+obrARS+airbnbARS+itA.neto*_tcRef;
+  const totalUSD=juaTotalUSD+cocoTotalUSD+obrUSD+airbnbUSD+itA.neto;
 
   // ── Mes activo (solo lo que cae en el mes seleccionado) ──
   const tcMes=D.tc[mes]||1400;
@@ -3143,15 +3332,16 @@ function rIng(){
   const airbnbMesUSD=(D.airbnb||[]).filter(i=>enMes(i.entrada))
     .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.arsEquiv||0)/tcMes),0);
   const airbnbMesARS=(D.airbnb||[]).filter(i=>enMes(i.entrada)).reduce((s,i)=>s+(i.arsEquiv||0),0);
-  const totalMesUSD=juaMesUSD+cocoMesUSD+obrMesUSD+airbnbMesUSD;
-  const totalMesARS=juaMesARS+cocoMesARS+obrMesARS+airbnbMesARS;
+  const itM=italiaTotales(f=>enMes(f));
+  const totalMesUSD=juaMesUSD+cocoMesUSD+obrMesUSD+airbnbMesUSD+itM.neto;
+  const totalMesARS=juaMesARS+cocoMesARS+obrMesARS+airbnbMesARS+itM.neto*_tcRef;
   const nombreMes=ML[mes]||'';
 
   // ── Elegir período según el selector Mensual/Anual ──
   const modo=document.getElementById('ing-tipo')?.value||'anual';
   const per=modo==='mes'
-    ? {jUSD:juaMesUSD,jARS:juaMesARS,cUSD:cocoMesUSD,cARS:cocoMesARS,oUSD:obrMesUSD,oARS:obrMesARS,aUSD:airbnbMesUSD,aARS:airbnbMesARS,tUSD:totalMesUSD,tARS:totalMesARS,label:nombreMes+' '+anio}
-    : {jUSD:juaTotalUSD,jARS:juaTotalARS,cUSD:cocoTotalUSD,cARS:cocoTotalARS,oUSD:obrUSD,oARS:obrARS,aUSD:airbnbUSD,aARS:airbnbARS,tUSD:totalUSD,tARS:totalARS,label:'Anual '+anio};
+    ? {jUSD:juaMesUSD,jARS:juaMesARS,cUSD:cocoMesUSD,cARS:cocoMesARS,oUSD:obrMesUSD,oARS:obrMesARS,aUSD:airbnbMesUSD,aARS:airbnbMesARS,iUSD:itM.neto,iEUR:itM.netoE,tUSD:totalMesUSD,tARS:totalMesARS,label:nombreMes+' '+anio}
+    : {jUSD:juaTotalUSD,jARS:juaTotalARS,cUSD:cocoTotalUSD,cARS:cocoTotalARS,oUSD:obrUSD,oARS:obrARS,aUSD:airbnbUSD,aARS:airbnbARS,iUSD:itA.neto,iEUR:itA.netoE,tUSD:totalUSD,tARS:totalARS,label:'Anual '+anio};
 
   // Update metric cards
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
@@ -3164,9 +3354,11 @@ function rIng(){
   set('im-obr-ars', per.oARS>0?'≈ '+fmt(per.oARS):'');
   set('im-airbnb-usd', per.aUSD>0?fU(per.aUSD):'— USD');
   set('im-airbnb-ars', per.aARS>0?'≈ '+fmt(per.aARS):'');
+  set('im-italia-usd', per.iUSD?(per.iUSD<0?'−':'')+fU(Math.abs(per.iUSD)):'— USD');
+  set('im-italia-eur', per.iUSD?'≈ '+fE(per.iEUR):'');
   set('im-tot-usd', per.tUSD>0?fU(per.tUSD):'— USD');
   set('im-tot-ars', per.tARS>0?'≈ '+fmt(per.tARS):'');
-  setLbl('im-jua-mes');setLbl('im-coco-mes');setLbl('im-obr-mes');setLbl('im-airbnb-mes');setLbl('im-tot-mes');
+  setLbl('im-jua-mes');setLbl('im-coco-mes');setLbl('im-obr-mes');setLbl('im-airbnb-mes');setLbl('im-italia-mes');setLbl('im-tot-mes');
   // Render OBR list
   rObrIngList();
 }
@@ -3483,7 +3675,7 @@ function importarDatos(input){
       save();
       // re-render page activa
       const ap=document.querySelector('.page.active')?.id?.replace('page-','');
-      ({fijos:rFijos,variables:rVar,rescat:rResCat,vehiculos:rVeh,ingresos:openIngresos,patrimonio:rPat,afip:openAfip,mapuches:rMapuches,luna:rLuna,dolar:rDolar,balance:rBalance})[ap]?.();
+      ({fijos:rFijos,variables:rVar,rescat:rResCat,vehiculos:rVeh,ingresos:openIngresos,patrimonio:rPat,afip:openAfip,mapuches:rMapuches,italia:rItalia,luna:rLuna,dolar:rDolar,balance:rBalance})[ap]?.();
       alert('✓ Datos importados correctamente.');
     }catch(err){alert('Error al leer el archivo. Asegurate de que sea un backup .json de esta app.');}
   };
@@ -4565,7 +4757,8 @@ function rBalance(){
         ingOBRUSD+=(parseFloat(r[9])||0);
       });
     }
-    const ingTotalUSD=ingJuaUSD+ingCocoUSD+ingChUSD+ingOBRUSD+ingAirbnbUSD;
+    const ingItaliaUSD=italiaTotales(f=>!!f&&String(f).startsWith(anio+'-'+mStr)).neto;
+    const ingTotalUSD=ingJuaUSD+ingCocoUSD+ingChUSD+ingOBRUSD+ingAirbnbUSD+ingItaliaUSD;
     const gfUSD=tfM(m)/tc;
     const gvUSD=tvM(m)/tc;
     const resUSD=ingTotalUSD-gfUSD-gvUSD;
@@ -4627,6 +4820,165 @@ function rObrIngList(){
   if(usdEl)usdEl.textContent=totalUSD>0?fU(totalUSD)+' USD':'';
 }
 
+
+// ── ITALIA ──
+// Cada registro guarda su propio TC (USD por €). Gastos 50/50, ganancia compartida.
+// No entra en Gastos del mes ni en AFIP. La ganancia neta (en USD) va a Ingresos y al Balance.
+const FP_IT={efectivo:'Efectivo',zelle:'Zelle',bancofrances:'Banco Francés EU'};
+const fE=n=>'€ '+Math.round(n).toLocaleString('es-AR');
+const itTc=x=>Number(x.tc)||Number(D.italiaTc)||1.1;
+const itUsd=(monto,mon,tc)=>!monto?0:(mon==='USD'?Number(monto):Number(monto)*tc);
+const itGastoUsd=g=>itUsd(g.monto,g.mon,itTc(g));
+const itClaseUsd=c=>itUsd(c.monto,c.mon,itTc(c))+(c.tipoPago==='mixto'?itUsd(c.monto2,c.mon2,itTc(c)):0);
+function italiaTotales(filtro){
+  const f=filtro||(()=>true);
+  const gs=(D.italiaGastos||[]).filter(g=>f(g.f)), cs=(D.italiaClases||[]).filter(c=>f(c.f));
+  const sum=(arr,fn)=>arr.reduce((s,x)=>s+fn(x),0);
+  const cj=cs.filter(c=>c.quien==='jua'), cc=cs.filter(c=>c.quien==='coco');
+  const t={
+    gast:sum(gs,itGastoUsd), jua:sum(cj,itClaseUsd), coco:sum(cc,itClaseUsd),
+    gastE:sum(gs,g=>itGastoUsd(g)/itTc(g)), juaE:sum(cj,c=>itClaseUsd(c)/itTc(c)), cocoE:sum(cc,c=>itClaseUsd(c)/itTc(c)),
+    nG:gs.length, nC:cs.length
+  };
+  t.ing=t.jua+t.coco; t.neto=t.ing-t.gast; t.ingE=t.juaE+t.cocoE; t.netoE=t.ingE-t.gastE;
+  return t;
+}
+let _itEdit={q:null,id:null};
+function _itPrepForm(q){
+  const fe=document.getElementById(q+'-fecha'); if(fe&&!fe.value)fe.value=hoy();
+  const tc=document.getElementById(q+'-tc'); if(tc&&!tc.value)tc.value=D.italiaTc||1.1;
+}
+function toggleMixtoItalia(q){
+  const t=document.getElementById(q+'-tipopago').value;
+  document.getElementById(q+'-parte2').style.display=t==='mixto'?'block':'none';
+}
+function cancelarItalia(q){
+  const ids=q==='ig'?['desc','monto','nota']:['cliente','contacto','monto','monto2','nota'];
+  ids.forEach(i=>{const el=document.getElementById(q+'-'+i);if(el)el.value='';});
+  if(q!=='ig'){document.getElementById(q+'-tipopago').value='simple';toggleMixtoItalia(q);}
+  const lbl=document.getElementById(q+'-edit-lbl');if(lbl)lbl.textContent='';
+  if(_itEdit.q===q)_itEdit={q:null,id:null};
+  document.getElementById('form-'+q).style.display='none';
+}
+function guardarGastoItalia(){
+  if(!D.italiaGastos)D.italiaGastos=[];
+  const d=document.getElementById('ig-desc').value.trim();
+  const monto=parseFloat(document.getElementById('ig-monto').value)||0;
+  if(!d||!monto)return tst('Completá descripción y monto','err');
+  const tc=parseFloat(document.getElementById('ig-tc').value)||Number(D.italiaTc)||1.1;
+  const data={f:document.getElementById('ig-fecha').value||hoy(),d,cat:document.getElementById('ig-cat').value,monto,
+    mon:document.getElementById('ig-mon').value,fpago:document.getElementById('ig-fpago').value,tc,nota:document.getElementById('ig-nota').value.trim()};
+  D.italiaTc=tc;
+  if(_itEdit.q==='ig'){const g=D.italiaGastos.find(x=>x.id===_itEdit.id);if(g)Object.assign(g,data);}
+  else D.italiaGastos.push({id:Date.now(),...data});
+  cancelarItalia('ig');save();rItalia();tst('Gasto guardado ✓','ok');
+}
+function editGastoItalia(id){
+  const g=(D.italiaGastos||[]).find(x=>x.id===id);if(!g)return;
+  _itEdit={q:'ig',id};
+  document.getElementById('ig-desc').value=g.d;document.getElementById('ig-fecha').value=g.f;
+  document.getElementById('ig-cat').value=g.cat;document.getElementById('ig-monto').value=g.monto;
+  document.getElementById('ig-mon').value=g.mon;document.getElementById('ig-fpago').value=g.fpago;
+  document.getElementById('ig-tc').value=itTc(g);document.getElementById('ig-nota').value=g.nota||'';
+  document.getElementById('ig-edit-lbl').textContent='Editando: '+g.d;
+  const fm=document.getElementById('form-ig');fm.style.display='block';fm.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function elimGastoItalia(id){
+  if(!confirm('¿Eliminar este gasto de Italia?'))return;
+  D.italiaGastos=(D.italiaGastos||[]).filter(x=>x.id!==id);save();rItalia();
+}
+function guardarClaseItalia(quien){
+  if(!D.italiaClases)D.italiaClases=[];
+  const q=quien==='jua'?'icj':'icc';
+  const v=i=>document.getElementById(q+'-'+i).value;
+  const cliente=v('cliente').trim();
+  const monto=parseFloat(v('monto'))||0;
+  if(!cliente||!monto)return tst('Completá cliente y monto','err');
+  const tipoPago=v('tipopago');
+  const tc=parseFloat(v('tc'))||Number(D.italiaTc)||1.1;
+  const data={quien,cliente,f:v('fecha')||hoy(),contacto:v('contacto').trim(),nota:v('nota').trim(),tipoPago,
+    monto,mon:v('mon'),fpago:v('fpago'),tc,
+    monto2:tipoPago==='mixto'?(parseFloat(v('monto2'))||0):0,mon2:tipoPago==='mixto'?v('mon2'):'',fpago2:tipoPago==='mixto'?v('fpago2'):''};
+  D.italiaTc=tc;
+  if(_itEdit.q===q){const c=D.italiaClases.find(x=>x.id===_itEdit.id);if(c)Object.assign(c,data);}
+  else D.italiaClases.push({id:Date.now(),...data});
+  cancelarItalia(q);save();rItalia();tst('Clase guardada ✓','ok');
+}
+function editClaseItalia(id){
+  const c=(D.italiaClases||[]).find(x=>x.id===id);if(!c)return;
+  const q=c.quien==='jua'?'icj':'icc';
+  _itEdit={q,id};
+  const set=(i,val)=>{document.getElementById(q+'-'+i).value=val??'';};
+  set('cliente',c.cliente);set('fecha',c.f);set('contacto',c.contacto);set('nota',c.nota);
+  set('tipopago',c.tipoPago||'simple');toggleMixtoItalia(q);
+  set('monto',c.monto);set('mon',c.mon||'EUR');set('fpago',c.fpago||'efectivo');set('tc',itTc(c));
+  if(c.tipoPago==='mixto'){set('monto2',c.monto2);set('mon2',c.mon2||'EUR');set('fpago2',c.fpago2||'efectivo');}
+  document.getElementById(q+'-edit-lbl').textContent='Editando: '+c.cliente;
+  const fm=document.getElementById('form-'+q);fm.style.display='block';fm.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function elimClaseItalia(id){
+  if(!confirm('¿Eliminar esta clase?'))return;
+  D.italiaClases=(D.italiaClases||[]).filter(x=>x.id!==id);save();rItalia();
+}
+const _itMonto=(m,mon)=>mon==='USD'?fU(m):fE(m);
+function rItalia(){
+  if(!D.italiaGastos)D.italiaGastos=[];
+  if(!D.italiaClases)D.italiaClases=[];
+  ['ig','icj','icc'].forEach(_itPrepForm);
+  const t=italiaTotales();
+  // Banner
+  document.getElementById('it-neto-usd').textContent=(t.neto<0?'−':'')+fU(Math.abs(t.neto));
+  document.getElementById('it-neto-eur').textContent='≈ '+fE(t.netoE)+' · cada uno '+fU(t.neto/2);
+  // Resumen
+  const fila=(lbl,usd,eur,est='')=>`<tr ${est}><td style="font-family:var(--sans);text-align:left">${lbl}</td><td>${eur?fE(eur):'—'}</td><td>${usd?fU(usd):'—'}</td></tr>`;
+  document.getElementById('it-resumen').innerHTML=`<table class="ct"><thead><tr><th style="text-align:left">Concepto</th><th>≈ €</th><th>USD</th></tr></thead><tbody>
+    ${fila('Ingresos Juana',t.jua,t.juaE)}
+    ${fila('Ingresos Coco',t.coco,t.cocoE)}
+    ${fila('Total ingresos',t.ing,t.ingE,'style="font-weight:700"')}
+    ${fila('Gastos (50/50)',-t.gast,-t.gastE)}
+    <tr class="totr"><td style="font-family:var(--sans);text-align:left">Ganancia neta</td><td>${fE(t.netoE)}</td><td style="color:${t.neto>=0?'#1a7a40':'var(--dan)'}">${fU(t.neto)}</td></tr>
+    <tr><td style="font-family:var(--sans);text-align:left;color:var(--t2)">Cada uno (50/50)</td><td style="color:var(--t2)">${fE(t.netoE/2)}</td><td style="color:var(--t2)">${fU(t.neto/2)}</td></tr>
+  </tbody></table>
+  <div style="font-size:11px;color:var(--t3);margin-top:8px">La ganancia neta se suma en Ingresos y en el Balance, en el mes de cada movimiento. No entra en AFIP ni en Gastos del mes.</div>`;
+  // Gastos
+  const gs=[...D.italiaGastos].sort((a,b)=>(b.f||'').localeCompare(a.f||''));
+  document.getElementById('lista-ig').innerHTML=gs.length?`<table class="vt"><thead><tr><th>Descripción</th><th>Fecha</th><th>Categoría</th><th>Pago</th><th class="r">Monto</th><th class="r">USD</th><th style="width:64px"></th></tr></thead><tbody>${gs.map(g=>`<tr>
+      <td style="font-weight:500">${e(g.d)}${g.nota?`<div class="nota">${e(g.nota)}</div>`:''}</td>
+      <td style="color:var(--t2);font-size:12px;font-family:var(--mono);white-space:nowrap">${(g.f||'').split('-').reverse().join('/')}</td>
+      <td><span class="tag ta">${e(g.cat)}</span></td>
+      <td style="font-size:12px;color:var(--t2)">${FP_IT[g.fpago]||e(g.fpago)}</td>
+      <td class="r">${_itMonto(g.monto,g.mon)}</td>
+      <td class="r" style="font-size:11px;color:var(--t3)">${fU(itGastoUsd(g))}</td>
+      <td style="white-space:nowrap"><button class="btn" style="font-size:11px;padding:2px 7px" onclick="editGastoItalia(${g.id})">✏️</button><button class="btn bd" onclick="elimGastoItalia(${g.id})">×</button></td>
+    </tr>`).join('')}</tbody></table>`:'<span style="font-size:12px;color:var(--t3)">Sin gastos</span>';
+  const tg=document.getElementById('tot-ig');
+  if(gs.length){tg.style.display='flex';tg.innerHTML=`<span>Total gastos</span><div style="text-align:right"><div>${fU(t.gast)}</div><div style="font-size:11px;color:var(--t3)">≈ ${fE(t.gastE)} · cada uno ${fU(t.gast/2)}</div></div>`;}else tg.style.display='none';
+  // Clases
+  [['jua','icj'],['coco','icc']].forEach(([quien,q])=>{
+    const cs=D.italiaClases.filter(c=>c.quien===quien).sort((a,b)=>(b.f||'').localeCompare(a.f||''));
+    document.getElementById('lista-'+q).innerHTML=cs.length?cs.map(c=>{
+      const pago=c.tipoPago==='mixto'
+        ?`${_itMonto(c.monto,c.mon)} ${FP_IT[c.fpago]||c.fpago} + ${_itMonto(c.monto2,c.mon2)} ${FP_IT[c.fpago2]||c.fpago2}`
+        :`${_itMonto(c.monto,c.mon)}`;
+      return `<div class="row">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-weight:500">${e(c.cliente)}</span>
+            <span class="tag ta">${c.tipoPago==='mixto'?'mixto':(FP_IT[c.fpago]||e(c.fpago))}</span>
+          </div>
+          <div class="nota">${(c.f||'').split('-').reverse().join('/')} ${c.contacto?'· '+e(c.contacto):''} ${c.nota?'· '+e(c.nota):''}</div>
+        </div>
+        <div class="rr" style="text-align:right">
+          <div><div class="amt">${pago}</div><div style="font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:1px">≈ ${fU(itClaseUsd(c))}</div></div>
+          <button class="btn" style="font-size:11px;padding:2px 7px" onclick="editClaseItalia(${c.id})">✏️</button>
+          <button class="btn bd" onclick="elimClaseItalia(${c.id})">×</button>
+        </div>
+      </div>`;}).join(''):'<span style="font-size:12px;color:var(--t3)">Sin clases</span>';
+    const tt=document.getElementById('tot-'+q);
+    const tot=quien==='jua'?t.jua:t.coco, totE=quien==='jua'?t.juaE:t.cocoE;
+    if(cs.length){tt.style.display='flex';tt.innerHTML=`<span>Total ${quien==='jua'?'Juana':'Coco'}</span><div style="text-align:right"><div>${fU(tot)}</div><div style="font-size:11px;color:var(--t3)">≈ ${fE(totE)}</div></div>`;}else tt.style.display='none';
+  });
+}
 
 // ── FIJOS YEAR MANAGEMENT ──
 function renderFijosYearBtns(){
