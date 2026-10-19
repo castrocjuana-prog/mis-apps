@@ -248,7 +248,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
 <aside class="sb">
   <div class="logo">
     <div class="logo-t">Gastos 2026</div>
-    <div class="logo-s">Jua &amp; Coco · v19-oct-italia2</div>
+    <div class="logo-s">Jua &amp; Coco · v19-oct-italia3</div>
   </div>
   <nav>
     <div class="ni active" onclick="goPage(&#39;fijos&#39;,this)">
@@ -1099,7 +1099,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
     <div class="metric metric-blue"><div class="mlb">Coco</div><div class="mv" id="im-coco-usd">— USD</div><div class="mv-sub" id="im-coco-ars"></div><div class="mv-mes" id="im-coco-mes"></div></div>
     <div class="metric metric-red"><div class="mlb">Otto's Boot Room</div><div class="mv" id="im-obr-usd">— USD</div><div class="mv-sub" id="im-obr-ars"></div><div class="mv-mes" id="im-obr-mes"></div></div>
     <div class="metric metric-yellow"><div class="mlb">Airbnb El Faldeo</div><div class="mv" id="im-airbnb-usd">— USD</div><div class="mv-sub" id="im-airbnb-ars"></div><div class="mv-mes" id="im-airbnb-mes"></div></div>
-    <div class="metric metric-green"><div class="mlb">Italia 🇮🇹 (neto)</div><div class="mv" id="im-italia-usd">— USD</div><div class="mv-sub" id="im-italia-eur"></div><div class="mv-mes" id="im-italia-mes"></div></div>
+    <div class="metric metric-green"><div class="mlb">Italia 🇮🇹 (saldo +)</div><div class="mv" id="im-italia-usd">— USD</div><div class="mv-sub" id="im-italia-eur"></div><div class="mv-mes" id="im-italia-mes"></div></div>
     <div class="metric metric-plain"><div class="mlb">Total</div><div class="mv" id="im-tot-usd">— USD</div><div class="mv-sub" id="im-tot-ars"></div><div class="mv-mes" id="im-tot-mes"></div></div>
   </div>
   <div class="card">
@@ -1588,7 +1588,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
     <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🇮🇹</div>
     <div>
       <div style="font-size:18px;font-weight:600;color:#fff">Clases de esquí en Italia</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.5);font-family:var(--mono);margin-top:2px">Gastos 50/50 · ganancia compartida · no entra en AFIP ni en Gastos del mes</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);font-family:var(--mono);margin-top:2px">Gastos 50/50 · ganancia compartida · solo el saldo positivo pasa a Ingresos</div>
     </div>
     <div style="margin-left:auto;text-align:right">
       <div style="font-size:9px;color:rgba(255,255,255,.4);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Ganancia neta</div>
@@ -3306,7 +3306,8 @@ function rIng(){
   const airbnbUSD=abA.filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
   // Totals — anual
   // Italia — neto (ingresos − gastos) del año activo
-  const itA=italiaTotales(f=>enAnio(f));
+  const itA={neto:italiaAporte(k=>k.startsWith(anio+'-'))};
+  const itSaldo=italiaTotales().neto;
   const _tcRef=D.tc[mes]||1400;
   const totalARS=juaTotalARS+cocoTotalARS+obrARS+airbnbARS+itA.neto*_tcRef;
   const totalUSD=juaTotalUSD+cocoTotalUSD+obrUSD+airbnbUSD+itA.neto;
@@ -3333,7 +3334,7 @@ function rIng(){
   const airbnbMesUSD=(D.airbnb||[]).filter(i=>enMes(i.entrada))
     .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.arsEquiv||0)/tcMes),0);
   const airbnbMesARS=(D.airbnb||[]).filter(i=>enMes(i.entrada)).reduce((s,i)=>s+(i.arsEquiv||0),0);
-  const itM=italiaTotales(f=>enMes(f));
+  const itM={neto:italiaAporte(k=>k===anio+'-'+mStr2)};
   const totalMesUSD=juaMesUSD+cocoMesUSD+obrMesUSD+airbnbMesUSD+itM.neto;
   const totalMesARS=juaMesARS+cocoMesARS+obrMesARS+airbnbMesARS+itM.neto*_tcRef;
   const nombreMes=ML[mes]||'';
@@ -3341,8 +3342,8 @@ function rIng(){
   // ── Elegir período según el selector Mensual/Anual ──
   const modo=document.getElementById('ing-tipo')?.value||'anual';
   const per=modo==='mes'
-    ? {jUSD:juaMesUSD,jARS:juaMesARS,cUSD:cocoMesUSD,cARS:cocoMesARS,oUSD:obrMesUSD,oARS:obrMesARS,aUSD:airbnbMesUSD,aARS:airbnbMesARS,iUSD:itM.neto,iEUR:itM.netoE,tUSD:totalMesUSD,tARS:totalMesARS,label:nombreMes+' '+anio}
-    : {jUSD:juaTotalUSD,jARS:juaTotalARS,cUSD:cocoTotalUSD,cARS:cocoTotalARS,oUSD:obrUSD,oARS:obrARS,aUSD:airbnbUSD,aARS:airbnbARS,iUSD:itA.neto,iEUR:itA.netoE,tUSD:totalUSD,tARS:totalARS,label:'Anual '+anio};
+    ? {jUSD:juaMesUSD,jARS:juaMesARS,cUSD:cocoMesUSD,cARS:cocoMesARS,oUSD:obrMesUSD,oARS:obrMesARS,aUSD:airbnbMesUSD,aARS:airbnbMesARS,iUSD:itM.neto,tUSD:totalMesUSD,tARS:totalMesARS,label:nombreMes+' '+anio}
+    : {jUSD:juaTotalUSD,jARS:juaTotalARS,cUSD:cocoTotalUSD,cARS:cocoTotalARS,oUSD:obrUSD,oARS:obrARS,aUSD:airbnbUSD,aARS:airbnbARS,iUSD:itA.neto,tUSD:totalUSD,tARS:totalARS,label:'Anual '+anio};
 
   // Update metric cards
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
@@ -3356,7 +3357,7 @@ function rIng(){
   set('im-airbnb-usd', per.aUSD>0?fU(per.aUSD):'— USD');
   set('im-airbnb-ars', per.aARS>0?'≈ '+fmt(per.aARS):'');
   set('im-italia-usd', per.iUSD?(per.iUSD<0?'−':'')+fU(Math.abs(per.iUSD)):'— USD');
-  set('im-italia-eur', per.iUSD?'≈ '+fE(per.iEUR):'');
+  set('im-italia-eur', (D.italiaGastos||[]).length||(D.italiaClases||[]).length?('temporada: '+(itSaldo<0?'−':'')+fU(Math.abs(itSaldo))):'');
   set('im-tot-usd', per.tUSD>0?fU(per.tUSD):'— USD');
   set('im-tot-ars', per.tARS>0?'≈ '+fmt(per.tARS):'');
   setLbl('im-jua-mes');setLbl('im-coco-mes');setLbl('im-obr-mes');setLbl('im-airbnb-mes');setLbl('im-italia-mes');setLbl('im-tot-mes');
@@ -4758,8 +4759,8 @@ function rBalance(){
         ingOBRUSD+=(parseFloat(r[9])||0);
       });
     }
-    const ingItaliaUSD=italiaTotales(f=>!!f&&String(f).startsWith(anio+'-'+mStr)).neto;
-    const ingTotalUSD=ingJuaUSD+ingCocoUSD+ingChUSD+ingOBRUSD+ingAirbnbUSD+ingItaliaUSD;
+    // Italia NO entra en el Balance mensual (solo en la pestaña Ingresos, como saldo positivo)
+    const ingTotalUSD=ingJuaUSD+ingCocoUSD+ingChUSD+ingOBRUSD+ingAirbnbUSD;
     const gfUSD=tfM(m)/tc;
     const gvUSD=tvM(m)/tc;
     const resUSD=ingTotalUSD-gfUSD-gvUSD;
@@ -4843,6 +4844,21 @@ function italiaTotales(filtro){
   };
   t.ing=t.jua+t.coco; t.neto=t.ing-t.gast; t.ingE=t.juaE+t.cocoE; t.netoE=t.ingE-t.gastE;
   return t;
+}
+// Lo que Italia aporta a Ingresos/Balance: SOLO el saldo positivo acumulado de la temporada.
+// Mes a mes: aporte = saldoPositivo(fin de mes) − saldoPositivo(mes anterior). Mientras la temporada
+// esté en negativo, aporta 0. La suma de todos los aportes = saldo positivo actual (nunca negativo).
+function italiaAportesPorMes(){
+  const movs={};
+  (D.italiaGastos||[]).forEach(g=>{const k=String(g.f||'').slice(0,7);if(k)movs[k]=(movs[k]||0)-itGastoUsd(g);});
+  (D.italiaClases||[]).forEach(c=>{const k=String(c.f||'').slice(0,7);if(k)movs[k]=(movs[k]||0)+itClaseUsd(c);});
+  const out={};let cum=0,prev=0;
+  Object.keys(movs).sort().forEach(k=>{cum+=movs[k];const pos=Math.max(0,cum);out[k]=pos-prev;prev=pos;});
+  return out;
+}
+function italiaAporte(filtroMes){
+  const a=italiaAportesPorMes();
+  return Object.entries(a).filter(([k])=>filtroMes(k)).reduce((s,[,v])=>s+v,0);
 }
 let _itEdit={q:null,id:null};
 function _itPrepForm(q){
@@ -4940,7 +4956,7 @@ function rItalia(){
     <tr class="totr"><td style="font-family:var(--sans);text-align:left">Ganancia neta</td><td>${fE(t.netoE)}</td><td style="color:${t.neto>=0?'#1a7a40':'var(--dan)'}">${fU(t.neto)}</td></tr>
     <tr><td style="font-family:var(--sans);text-align:left;color:var(--t2)">Cada uno (50/50)</td><td style="color:var(--t2)">${fE(t.netoE/2)}</td><td style="color:var(--t2)">${fU(t.neto/2)}</td></tr>
   </tbody></table>
-  <div style="font-size:11px;color:var(--t3);margin-top:8px">La ganancia neta se suma en Ingresos y en el Balance, en el mes de cada movimiento. No entra en AFIP ni en Gastos del mes.</div>`;
+  <div style="font-size:11px;color:var(--t3);margin-top:8px">A la pestaña Ingresos pasa solo el saldo positivo de la temporada (mientras esté en negativo, no aparece) y se actualiza a medida que cargás clases. No entra en el Balance mensual, ni en AFIP, ni en Gastos del mes.</div>`;
   // Gastos
   const gs=[...D.italiaGastos].sort((a,b)=>(b.f||'').localeCompare(a.f||''));
   document.getElementById('lista-ig').innerHTML=gs.length?`<table class="vt"><thead><tr><th>Descripción</th><th>Fecha</th><th>Categoría</th><th>Pago</th><th class="r">Monto</th><th class="r">USD</th><th style="width:64px"></th></tr></thead><tbody>${gs.map(g=>`<tr>
