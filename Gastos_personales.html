@@ -246,7 +246,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
 <aside class="sb">
   <div class="logo">
     <div class="logo-t">Gastos 2026</div>
-    <div class="logo-s">Jua &amp; Coco · v19-oct</div>
+    <div class="logo-s">Jua &amp; Coco · v19-oct-año</div>
   </div>
   <nav>
     <div class="ni active" onclick="goPage(&#39;fijos&#39;,this)">
@@ -295,6 +295,8 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
     </div>
   </nav>
   <div class="mbox">
+    <div class="mlbl">Año</div>
+    <select id="anio-global" onchange="cambiarAnio(Number(this.value))" style="margin-bottom:10px"></select>
     <div class="mlbl">Mes activo</div>
     <select id="mes-global" onchange="cambiarMes()">
       <option value="1">Enero</option><option value="2">Febrero</option>
@@ -1728,10 +1730,9 @@ async function mkSh(nm){const t=await getT();const r=await fetch(`https://sheets
 function _varsToRows(vars){
   // vars = {1:[...],2:[...],...}
   const rows=[['anio','mes','id','fecha','desc','cat','monto','sub']];
-  const anio=new Date().getFullYear();
   Object.entries(vars||{}).forEach(([m,arr])=>{
     (arr||[]).forEach(g=>{
-      rows.push([anio,Number(m),String(g.id),g.f||'',g.d||'',g.c||'',g.m||0,g.sub||'']);
+      rows.push([varAnio(g),Number(m),String(g.id),g.f||'',g.d||'',g.c||'',g.m||0,g.sub||'']);
     });
   });
   return rows;
@@ -1741,10 +1742,10 @@ function _rowsToVars(rows){
   (rows||[]).slice(1).forEach(r=>{
     const mes=String(r[1]||'');if(!mes)return;
     if(!vars[mes])vars[mes]=[];
-    vars[mes].push({id:isNaN(r[2])?r[2]:Number(r[2]),f:r[3]||'',d:r[4]||'',c:r[5]||'',m:Number(r[6])||0,sub:r[7]||undefined});
+    vars[mes].push({anio:Number(r[0])||undefined,id:isNaN(r[2])?r[2]:Number(r[2]),f:r[3]||'',d:r[4]||'',c:r[5]||'',m:Number(r[6])||0,sub:r[7]||undefined});
   });
   // clean empty sub
-  Object.values(vars).forEach(arr=>arr.forEach(g=>{if(!g.sub)delete g.sub;}));
+  Object.values(vars).forEach(arr=>arr.forEach(g=>{if(!g.sub)delete g.sub;if(!g.anio)delete g.anio;}));
   return vars;
 }
 
@@ -1770,12 +1771,13 @@ function _rowsToFijos(rows){
     if(!fijos[yr])fijos[yr]=[];
     const tipo=r[4]||'';
     const obj={id:isNaN(r[1])?r[1]:Number(r[1]),n:r[2]||'',cat:r[3]||'',tipo,nota:r[5]||''};
-    if(tipo!=='anual'){
+    {
       obj.m={1:Number(r[6])||0,2:Number(r[7])||0,3:Number(r[8])||0,4:Number(r[9])||0,5:Number(r[10])||0,6:Number(r[11])||0,7:Number(r[12])||0,8:Number(r[13])||0,9:Number(r[14])||0,10:Number(r[15])||0,11:Number(r[16])||0,12:Number(r[17])||0};
       const fe={};
       for(let i=1;i<=12;i++){const v=r[17+i];if(v)fe[i]=v;}
       if(Object.keys(fe).length)obj.fechas=fe;
-    } else {
+    }
+    if(tipo==='anual'||r[30]!==undefined&&r[30]!==''){
       obj.montoAnual=Number(r[30])||0;
       obj.notaAnual=r[31]||'';
     }
@@ -1877,7 +1879,7 @@ function _configToRows(D){
   // Stores: tc, mes, deudas, repuestos, serviceLancha, fijosYears, ingresos, ottos, lunaNotes, mapuches (backup tc)
   return [
     ['key','value'],
-    ['tc',JSON.stringify(D.tc||{})],
+    ['tc',JSON.stringify((D.tcAnios&&D.tcAnios[2026])||D.tc||{})],
     ['mes',String(D.mes||new Date().getMonth()+1)],
     ['deudas',JSON.stringify(D.deudas||[])],
     ['deudasContra',JSON.stringify(D.deudasContra||[])],
@@ -1887,6 +1889,8 @@ function _configToRows(D){
     ['ingresos',JSON.stringify(D.ingresos||[])],
     ['ottos',JSON.stringify(D.ottos||[])],
     ['lunaNotes',JSON.stringify(D.lunaNotes||{})],
+    ['tcAnios',JSON.stringify(D.tcAnios||{})],
+    ['anio',String(D.anio||anio)],
   ];
 }
 function _rowsToConfig(rows){
@@ -1970,6 +1974,8 @@ async function _readAllSheets(){
     fijosYears:cfg.fijosYears||[new Date().getFullYear()],
     serviceLancha:cfg.serviceLancha||[],
     airbnb,mapuches,credenciales,
+    tcAnios:(cfg.tcAnios&&typeof cfg.tcAnios==='object')?cfg.tcAnios:null,
+    anio:Number(cfg.anio)||undefined,
   };
 }
 
@@ -2077,6 +2083,7 @@ async function loadFromSheet(){
       await _writeAllSheets(sourceD);
       D=sourceD;
       mes=D.mes||new Date().getMonth()+1;
+      anio=Number(D.anio)||anio;fijosYear=anio;_linkTc();
       try{localStorage.setItem('jua_g26h',JSON.stringify(D));}catch(e){}
       tst('Migración exitosa ✓ — Sheet ahora tiene pestañas separadas','ok');
     } else {
@@ -2084,10 +2091,12 @@ async function loadFromSheet(){
       const loaded=await _readAllSheets();
       D=loaded;
       mes=D.mes||new Date().getMonth()+1;
+      anio=Number(D.anio)||anio;fijosYear=anio;_linkTc();
       try{localStorage.setItem('jua_g26h',JSON.stringify(D));}catch(e){}
       tst('Datos cargados del Sheet ✓','ok');
     }
     document.getElementById('mes-global').value=mes;
+    renderAniosSelect();actualizarEtiquetasAnio();
     setShOn(true);
     renderAll();
   }catch(ex){
@@ -2168,9 +2177,66 @@ function tst(msg,type=''){const t=document.getElementById('tst');t.textContent=m
 function loadD(){try{const s=localStorage.getItem('jua_g26h');return s?JSON.parse(s):JSON.parse(JSON.stringify(DEF));}catch(e){return JSON.parse(JSON.stringify(DEF));}}
 let D=loadD();
 let mes=D.mes||5;
-let fijosYear=new Date().getFullYear();
-// Use most recent year that has data
-const _initFijosYr=()=>{if(D.fijos&&!Array.isArray(D.fijos)){const yrs=Object.keys(D.fijos).map(Number).sort((a,b)=>b-a);if(yrs.length)fijosYear=yrs[0];}};setTimeout(_initFijosYr,0);
+
+// ── AÑO ACTIVO ──
+// Todo se filtra por este año. Los datos NO cambian de lugar: cada registro ya tiene su fecha
+// (y los gastos del mes tienen además la columna "anio" en el Sheet).
+const AHORA=new Date().getFullYear();
+let anio=Number(D.anio)||AHORA;
+let fijosYear=anio; // Gastos fijos usa el mismo año
+const yOf=s=>{const y=parseInt(String(s||'').slice(0,4));return y>2000?y:null;};
+const varAnio=g=>Number(g.anio)||yOf(g.f)||2026;          // año de un gasto del mes
+const enAnio=f=>yOf(f)===anio;                              // ¿esta fecha cae en el año activo?
+const enAnioMes=(f,m)=>!!f&&String(f).startsWith(anio+'-'+String(m).padStart(2,'0'));
+// Tipo de cambio por año: D.tcAnios = {2026:{1..12}, 2027:{...}}. D.tc apunta siempre al del año activo.
+// En el Sheet, la fila "tc" de CONFIG sigue siendo la de 2026 (no se toca) y se agrega la fila "tcAnios".
+function _linkTc(){
+  if(!D.tcAnios||typeof D.tcAnios!=='object'||!Object.keys(D.tcAnios).length){
+    D.tcAnios={2026:Object.assign({},D.tc||{})};
+  }
+  if(!D.tcAnios[anio]){
+    // Año nuevo: arranca con el TC de diciembre del año anterior (se edita en Tipo de cambio)
+    const prev=D.tcAnios[anio-1]||D.tcAnios[2026]||{};
+    const base=Number(prev[12])||1400;
+    const o={};for(let m=1;m<=12;m++)o[m]=base;
+    D.tcAnios[anio]=o;
+  }
+  D.tc=D.tcAnios[anio];
+}
+_linkTc();
+function aniosDisponibles(){
+  const set=new Set([AHORA,anio]);
+  (D.fijosYears||[]).forEach(y=>set.add(Number(y)));
+  Object.keys(D.fijos||{}).forEach(y=>set.add(Number(y)));
+  Object.keys(D.tcAnios||{}).forEach(y=>set.add(Number(y)));
+  Object.values(D.vars||{}).forEach(arr=>(arr||[]).forEach(g=>set.add(varAnio(g))));
+  [...(D.clasesJua||[]),...(D.clasesCoco||[]),...(D.changas||[])].forEach(i=>{const y=yOf(i.f);if(y)set.add(y);});
+  (D.airbnb||[]).forEach(i=>{const y=yOf(i.entrada);if(y)set.add(y);});
+  return [...set].filter(y=>y>2000).sort((a,b)=>a-b);
+}
+function renderAniosSelect(){
+  const sel=document.getElementById('anio-global');if(!sel)return;
+  sel.innerHTML=aniosDisponibles().map(y=>`<option value="${y}" ${y===anio?'selected':''}>${y}</option>`).join('');
+}
+function actualizarEtiquetasAnio(){
+  const rep=el=>{if(el)el.textContent=el.textContent.replace(/\b20\d\d\b/,String(anio));};
+  document.title=document.title.replace(/\b20\d\d\b/,String(anio));
+  rep(document.querySelector('.logo-t'));
+  rep(document.querySelector('#rescat-tipo option[value="anual"]'));
+  rep(document.querySelector('#ing-tipo option[value="anual"]'));
+  rep(document.querySelector('#page-balance .ptitle'));
+  rep(document.querySelector('#page-afip .ptitle'));
+  document.querySelectorAll('#page-afip .clbl').forEach(rep);
+}
+function cambiarAnio(y){
+  y=Number(y);if(!y)return;
+  anio=y;fijosYear=y;D.anio=y;
+  _linkTc();
+  _obrAfipData=null; // las ventas de OBR se leen de VENTAS_<año>
+  renderAniosSelect();actualizarEtiquetasAnio();
+  try{localStorage.setItem('jua_g26h',JSON.stringify(D));}catch(e){}
+  renderAll();
+}
 
 // Migrate old flat fijos array to year-keyed
 if(Array.isArray(D.fijos)){
@@ -2196,10 +2262,10 @@ const fMon=(n,mon)=>(MON_SYM[mon]||'USD\u202f')+Math.round(n).toLocaleString('es
 const fU=n=>'USD\u202f'+Math.round(n).toLocaleString('es-AR');
 const hoy=()=>new Date().toISOString().split('T')[0];
 const gV=m=>{
-  const vars=D.vars[m]||[];
+  const vars=(D.vars[m]||[]).filter(g=>varAnio(g)===anio);
   // Inject luna gastos as category 'Luna' for that month
   const lunaItems=(D.luna||[])
-    .filter(g=>g.f&&g.f.startsWith('2026-'+String(m).padStart(2,'0')))
+    .filter(g=>enAnioMes(g.f,m))
     .map(g=>({...g,c:'Luna',d:g.d}));
   return [...vars,...lunaItems];
 };
@@ -2247,6 +2313,9 @@ function rFijos(){
   let h=`<thead><tr><th>Gasto fijo</th><th style="text-align:left">Categoría</th>`;
   for(let i=1;i<=12;i++)h+=`<th class="${i===mes?'ma':''}">${MC[i]}</th>`;
   h+=`<th style="width:30px"></th></tr></thead><tbody>`;
+  if(!getFijos().length){
+    h+=`<tr><td colspan="15" style="padding:18px;color:var(--t3);font-size:13px">No hay gastos fijos cargados para ${fijosYear}. Tocá <b>+ Año</b> para crearlo copiando los del año anterior.</td></tr>`;
+  }
   getFijos().forEach(f=>{
     const catColor=f.cat&&CC[f.cat]?CC[f.cat]:'transparent';
     const catBg=f.cat&&CB[f.cat]?CB[f.cat]:'transparent';
@@ -2258,7 +2327,11 @@ function rFijos(){
           <input value="${e(f.nota).replace(/"/g,'&quot;')}" onchange="editFijoNota(${f.id},this.value)"
             style="border:none;border-bottom:1px solid var(--b2);background:transparent;font-size:10px;color:var(--t3);width:150px;padding:1px 3px;outline:none;font-family:var(--sans);"
             onfocus="this.style.borderBottomColor='var(--acc)'" onblur="this.style.borderBottomColor='var(--b2)'">
-          <span class="tag ta">anual</span>
+          <select onchange="editFijoTipo(${f.id},this.value)" style="font-size:10px;font-family:var(--mono);border:none;border-radius:20px;padding:1px 6px;cursor:pointer;background:var(--s3);color:var(--t2)">
+            <option value="anual" selected>anual</option>
+            <option value="manual">manual</option>
+            <option value="debito">débito</option>
+          </select>
         </div>
       </td>`;
       h+=`<td style="text-align:left">
@@ -2286,6 +2359,7 @@ function rFijos(){
           <select onchange="editFijoTipo(${f.id},this.value)" style="font-size:10px;font-family:var(--mono);border:none;border-radius:20px;padding:1px 6px;cursor:pointer;background:${f.tipo==='debito'?'#fff3e0':'var(--accL)'};color:${f.tipo==='debito'?'#b07d2a':'var(--acc)'}">
             <option value="debito" ${f.tipo==='debito'?'selected':''}>débito</option>
             <option value="manual" ${f.tipo==='manual'?'selected':''}>manual</option>
+            <option value="anual">anual</option>
           </select>
         </div>
       </td>`;
@@ -2348,9 +2422,9 @@ function editFijoFecha(id,m,val){
   const f=getFijos().find(x=>x.id===id);if(!f)return;
   if(!f.fechas)f.fechas={};
   if(val){
-    // Forzar año 2026 — el input type=date en file:// a veces trunca el año
+    // Si el input de fecha trunca el año, se usa el año activo
     const parts=val.split('-');
-    const year=parts[0].length===4&&parseInt(parts[0])>2000?parts[0]:'2026';
+    const year=parts[0].length===4&&parseInt(parts[0])>2000?parts[0]:String(anio);
     f.fechas[m]=year+'-'+parts[1]+'-'+parts[2];
   }else{
     delete f.fechas[m];
@@ -2402,7 +2476,9 @@ function editFijoMontoAnual(id,val){
   f.montoAnual=parseFloat(val)||0;save();rFijos();
 }
 function editFijoTipo(id,val){
-  const f=getFijos().find(x=>x.id===id);if(!f)return;
+  const f=getFijos().find(x=>String(x.id)===String(id));if(!f)return;
+  if(val==='anual'&&f.montoAnual===undefined)f.montoAnual=0;
+  if(val!=='anual'&&!f.m)f.m={1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0};
   f.tipo=val;save();rFijos();
 }
 function elimFijo(id){if(!confirm('¿Eliminar?'))return;D.fijos[fijosYear]=(D.fijos[fijosYear]||[]).filter(f=>f.id!==id);save();rFijos();}
@@ -2451,11 +2527,11 @@ async function loadObrGastos(){
 function getObrTallerMes(m){
   if(!_obrGastos)return[];
   const mStr=String(m).padStart(2,'0');
-  return _obrGastos.filter(g=>g.fecha.startsWith('2026-'+mStr) && g.medio!=='Gastos Personales');
+  return _obrGastos.filter(g=>g.fecha.startsWith(anio+'-'+mStr) && g.medio!=='Gastos Personales');
 }
 
 function rVar(){
-  document.getElementById('ttl-var').textContent='Gastos del mes — '+ML[mes]+' 2026';
+  document.getElementById('ttl-var').textContent='Gastos del mes — '+ML[mes]+' '+anio;
   document.getElementById('var-card-lbl').textContent='Gastos de '+ML[mes];
   const tc=D.tc[mes]||1400;
   document.getElementById('var-tc-info').textContent='TC: $'+tc.toLocaleString('es-AR')+'/USD';
@@ -2537,7 +2613,7 @@ async function agregarVar(){
   const fecha=document.getElementById('var-fecha').value||hoy();
   const sub=cat==='Taller'?(document.getElementById('var-sub')?.value||'Obra/Infraestructura'):undefined;
   if(!D.vars[mes])D.vars[mes]=[];
-  const entry={id:Date.now(),d,f:fecha,c:cat,m};
+  const entry={id:Date.now(),anio,d,f:fecha,c:cat,m};
   if(sub)entry.sub=sub;
   D.vars[mes].push(entry);
   save();rVar();
@@ -2578,7 +2654,7 @@ function makeDonut(data, cx=140, cy=140, r=100, ri=58){
 function rResCat(){
   const tipo=document.getElementById('rescat-tipo').value,el=document.getElementById('rescat-content');
   if(tipo==='mes'){
-    document.getElementById('rescat-lbl').textContent='Mensual — '+ML[mes]+' 2026';
+    document.getElementById('rescat-lbl').textContent='Mensual — '+ML[mes]+' '+anio;
     const ct={};CATS.forEach(c=>ct[c]=0);
     gV(mes).forEach(g=>{if(ct[g.c]!==undefined)ct[g.c]+=g.m;});
     // OBR Taller gastos NO se suman — son del taller, no personales
@@ -2619,7 +2695,7 @@ function rResCat(){
       </div>
       ${table}`;
   } else {
-    document.getElementById('rescat-lbl').textContent='Anual 2026 — por categoría';
+    document.getElementById('rescat-lbl').textContent='Anual '+anio+' — por categoría';
     const cd={};CATS.forEach(c=>{cd[c]={};for(let m=1;m<=12;m++)cd[c][m]=0;});
     for(let m=1;m<=12;m++){
       gV(m).forEach(g=>{if(cd[g.c])cd[g.c][m]=(cd[g.c][m]||0)+g.m;});
@@ -2750,7 +2826,7 @@ function rVeh(){
       </tr>`).join(''):`<tr><td colspan="5" style="color:var(--t3);font-size:12px;padding:8px">Los gastos de categoría ${v.catSeg} aparecen acá automáticamente.</td></tr>`;
 
     // tabla gastos mes a mes
-    let h=`<div class="clbl" style="margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${v.color};display:inline-block"></span>${v.nombre} — gastos mensuales 2026</div>`;
+    let h=`<div class="clbl" style="margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${v.color};display:inline-block"></span>${v.nombre} — gastos mensuales ${anio}</div>`;
     h+=`<table class="ct"><thead><tr><th style="text-align:left">Mes</th><th>${v.catComb}</th><th>Repuestos</th><th>Seguro</th><th>Total</th></tr></thead><tbody>`;
     let tC=0,tR=0,tS=0;
     for(let m=1;m<=12;m++){
@@ -2768,7 +2844,7 @@ function rVeh(){
         </tr>`;
       }
     }
-    h+=`<tr class="totr"><td style="font-family:var(--sans);text-align:left">Total 2026</td><td>${tC>0?fmt(tC):'—'}</td><td>${tR>0?fmt(tR):'—'}</td><td>${tS>0?fmt(tS):'—'}</td><td>${fmt(tC+tR+tS)}</td></tr>`;
+    h+=`<tr class="totr"><td style="font-family:var(--sans);text-align:left">Total ${anio}</td><td>${tC>0?fmt(tC):'—'}</td><td>${tR>0?fmt(tR):'—'}</td><td>${tS>0?fmt(tS):'—'}</td><td>${fmt(tC+tR+tS)}</td></tr>`;
     h+=`</tbody></table>`;
     document.getElementById(v.gastosId).innerHTML=h;
   });
@@ -2810,7 +2886,7 @@ function rVeh(){
     </tr>`).join(''):`<tr><td colspan="5" style="color:var(--t3);font-size:12px;padding:8px">Los gastos de categoría Lancha aparecen acá automáticamente.</td></tr>`;
 
   // gastos mensuales lancha
-  let lh=`<div class="clbl" style="margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${lColor};display:inline-block"></span>Regnicoli 630 — gastos mensuales 2026</div>`;
+  let lh=`<div class="clbl" style="margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${lColor};display:inline-block"></span>Regnicoli 630 — gastos mensuales ${anio}</div>`;
   lh+=`<table class="ct"><thead><tr><th style="text-align:left">Mes</th><th>Nafta</th><th>Repuestos</th><th>Arreglos</th><th>Mant.</th><th>Papeleo</th><th>Total</th></tr></thead><tbody>`;
   let ltots={n:0,r:0,a:0,m:0,p:0};
   for(let m=1;m<=12;m++){
@@ -2837,7 +2913,7 @@ function rVeh(){
     }
   }
   const lTot=ltots.n+ltots.r+ltots.a+ltots.m+ltots.p;
-  lh+=`<tr class="totr"><td style="font-family:var(--sans);text-align:left">Total 2026</td><td>${ltots.n>0?fmt(ltots.n):'—'}</td><td>${ltots.r>0?fmt(ltots.r):'—'}</td><td>${ltots.a>0?fmt(ltots.a):'—'}</td><td>${ltots.m>0?fmt(ltots.m):'—'}</td><td>${ltots.p>0?fmt(ltots.p):'—'}</td><td>${lTot>0?fmt(lTot):'—'}</td></tr>`;
+  lh+=`<tr class="totr"><td style="font-family:var(--sans);text-align:left">Total ${anio}</td><td>${ltots.n>0?fmt(ltots.n):'—'}</td><td>${ltots.r>0?fmt(ltots.r):'—'}</td><td>${ltots.a>0?fmt(ltots.a):'—'}</td><td>${ltots.m>0?fmt(ltots.m):'—'}</td><td>${ltots.p>0?fmt(ltots.p):'—'}</td><td>${lTot>0?fmt(lTot):'—'}</td></tr>`;
   lh+=`</tbody></table>`;
   document.getElementById('veh-lancha-gastos').innerHTML=lh;
 }
@@ -2946,17 +3022,22 @@ function rIng(){
   if(!D.changas)D.changas=[];
   if(!D.ottos)D.ottos=[];
   if(!D.airbnb)D.airbnb=[];
+  // Solo lo del año activo (los datos de otros años siguen guardados, solo no se muestran)
+  const cjA=D.clasesJua.filter(i=>enAnio(i.f));
+  const ccA=D.clasesCoco.filter(i=>enAnio(i.f));
+  const chA=(D.changas||[]).filter(i=>enAnio(i.f));
+  const abA=(D.airbnb||[]).filter(i=>enAnio(i.entrada));
 
-  const tJua=totIngSection(D.clasesJua,'lista-clases-jua','tot-clases-jua');
-  const tCoco=totIngSection(D.clasesCoco,'lista-clases-coco','tot-clases-coco');
-  const tCh=totIngSection(D.changas,'lista-changas','tot-changas');
+  const tJua=totIngSection(cjA,'lista-clases-jua','tot-clases-jua');
+  const tCoco=totIngSection(ccA,'lista-clases-coco','tot-clases-coco');
+  const tCh=totIngSection(chA,'lista-changas','tot-changas');
 
   // fix delete handlers — render manually since generic helper can't resolve function names
   ['lista-clases-jua','lista-clases-coco','lista-changas'].forEach(id=>{
     const section={
-      'lista-clases-jua':{data:D.clasesJua,fn:'elimClasesJua',editFn:'editClase',quien:'jua'},
-      'lista-clases-coco':{data:D.clasesCoco,fn:'elimClasesCoco',editFn:'editClase',quien:'coco'},
-      'lista-changas':{data:D.changas,fn:'elimChanga',editFn:'editChanga',quien:''}
+      'lista-clases-jua':{data:cjA,fn:'elimClasesJua',editFn:'editClase',quien:'jua'},
+      'lista-clases-coco':{data:ccA,fn:'elimClasesCoco',editFn:'editClase',quien:'coco'},
+      'lista-changas':{data:chA,fn:'elimChanga',editFn:'editChanga',quien:''}
     }[id];
     document.getElementById(id).innerHTML=section.data.length?
       [...section.data].reverse().map(item=>`
@@ -3008,7 +3089,7 @@ function rIng(){
   rObrIngList();
   // Render Airbnb list
   rAirbnbList();
-  // OBR live data — anual (todo 2026)
+  // OBR live data — anual (todo el año activo)
   let obrARS=0,obrUSD=0;
   if(_obrAfipData){
     (_obrAfipData||[]).forEach(r=>{
@@ -3018,22 +3099,22 @@ function rIng(){
     });
   }
   // Jua: clasesJua + changas where quien=jua — anual
-  const jARS2=D.clasesJua.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const jUSD=D.clasesJua.reduce((s,i)=>s+itemUsdEquiv(i),0);
-  const chJuaARS=(D.changas||[]).filter(i=>i.quien==='jua').reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const chJuaUSD=(D.changas||[]).filter(i=>i.quien==='jua').reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
+  const jARS2=cjA.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
+  const jUSD=cjA.reduce((s,i)=>s+itemUsdEquiv(i),0);
+  const chJuaARS=chA.filter(i=>i.quien==='jua').reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
+  const chJuaUSD=chA.filter(i=>i.quien==='jua').reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
   const juaTotalARS=jARS2+chJuaARS;
   const juaTotalUSD=jUSD+chJuaUSD;
   // Coco: clasesCoco + changas where quien=coco — anual
-  const cARS2=D.clasesCoco.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const cUSD=D.clasesCoco.reduce((s,i)=>s+itemUsdEquiv(i),0);
-  const chCocoARS=(D.changas||[]).filter(i=>i.quien==='coco').reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
-  const chCocoUSD=(D.changas||[]).filter(i=>i.quien==='coco').reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
+  const cARS2=ccA.reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
+  const cUSD=ccA.reduce((s,i)=>s+itemUsdEquiv(i),0);
+  const chCocoARS=chA.filter(i=>i.quien==='coco').reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
+  const chCocoUSD=chA.filter(i=>i.quien==='coco').reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
   const cocoTotalARS=cARS2+chCocoARS;
   const cocoTotalUSD=cUSD+chCocoUSD;
   // Airbnb — anual
-  const airbnbARS=(D.airbnb||[]).reduce((s,i)=>s+(i.arsEquiv||0),0);
-  const airbnbUSD=(D.airbnb||[]).filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
+  const airbnbARS=abA.reduce((s,i)=>s+(i.arsEquiv||0),0);
+  const airbnbUSD=abA.filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
   // Totals — anual
   const totalARS=juaTotalARS+cocoTotalARS+obrARS+airbnbARS;
   const totalUSD=juaTotalUSD+cocoTotalUSD+obrUSD+airbnbUSD;
@@ -3041,18 +3122,18 @@ function rIng(){
   // ── Mes activo (solo lo que cae en el mes seleccionado) ──
   const tcMes=D.tc[mes]||1400;
   const mStr2=String(mes).padStart(2,'0');
-  const enMes=f=>f&&f.startsWith('2026-'+mStr2);
+  const enMes=f=>f&&f.startsWith(anio+'-'+mStr2);
   const juaMesUSD=D.clasesJua.filter(i=>enMes(i.f)).reduce((s,i)=>s+itemUsdEquiv(i),0)
-    +(D.changas||[]).filter(i=>i.quien==='jua'&&enMes(i.f)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
+    +chA.filter(i=>i.quien==='jua'&&enMes(i.f)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
   const juaMesARS=D.clasesJua.filter(i=>enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0)
-    +(D.changas||[]).filter(i=>i.quien==='jua'&&enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
+    +chA.filter(i=>i.quien==='jua'&&enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
   const cocoMesUSD=D.clasesCoco.filter(i=>enMes(i.f)).reduce((s,i)=>s+itemUsdEquiv(i),0)
-    +(D.changas||[]).filter(i=>i.quien==='coco'&&enMes(i.f)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
+    +chA.filter(i=>i.quien==='coco'&&enMes(i.f)).reduce((s,i)=>s+toUsd(i.monto,i.mon,i.tc),0);
   const cocoMesARS=D.clasesCoco.filter(i=>enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0)
-    +(D.changas||[]).filter(i=>i.quien==='coco'&&enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
+    +chA.filter(i=>i.quien==='coco'&&enMes(i.f)).reduce((s,i)=>s+(i.arsEquiv||i.monto||0),0);
   let obrMesUSD=0,obrMesARS=0;
   if(_obrAfipData){
-    _obrAfipData.filter(r=>r[0]&&r[0].startsWith('2026-'+mStr2)).forEach(r=>{
+    _obrAfipData.filter(r=>r[0]&&r[0].startsWith(anio+'-'+mStr2)).forEach(r=>{
       obrMesUSD+=(parseFloat(r[9])||0);
       obrMesARS+=(parseFloat(r[5])||0)+(parseFloat(r[7])||0);
     });
@@ -3067,8 +3148,8 @@ function rIng(){
   // ── Elegir período según el selector Mensual/Anual ──
   const modo=document.getElementById('ing-tipo')?.value||'anual';
   const per=modo==='mes'
-    ? {jUSD:juaMesUSD,jARS:juaMesARS,cUSD:cocoMesUSD,cARS:cocoMesARS,oUSD:obrMesUSD,oARS:obrMesARS,aUSD:airbnbMesUSD,aARS:airbnbMesARS,tUSD:totalMesUSD,tARS:totalMesARS,label:nombreMes+' 2026'}
-    : {jUSD:juaTotalUSD,jARS:juaTotalARS,cUSD:cocoTotalUSD,cARS:cocoTotalARS,oUSD:obrUSD,oARS:obrARS,aUSD:airbnbUSD,aARS:airbnbARS,tUSD:totalUSD,tARS:totalARS,label:'Anual 2026'};
+    ? {jUSD:juaMesUSD,jARS:juaMesARS,cUSD:cocoMesUSD,cARS:cocoMesARS,oUSD:obrMesUSD,oARS:obrMesARS,aUSD:airbnbMesUSD,aARS:airbnbMesARS,tUSD:totalMesUSD,tARS:totalMesARS,label:nombreMes+' '+anio}
+    : {jUSD:juaTotalUSD,jARS:juaTotalARS,cUSD:cocoTotalUSD,cARS:cocoTotalARS,oUSD:obrUSD,oARS:obrARS,aUSD:airbnbUSD,aARS:airbnbARS,tUSD:totalUSD,tARS:totalARS,label:'Anual '+anio};
 
   // Update metric cards
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
@@ -3161,7 +3242,7 @@ function rAirbnbList(){
   const el=document.getElementById('lista-airbnb');
   const tot=document.getElementById('tot-airbnb');
   if(!el)return;
-  const items=[...D.airbnb].reverse();
+  const items=D.airbnb.filter(i=>enAnio(i.entrada)).reverse();
   el.innerHTML=items.length?items.map(item=>{
     const nights=item.entrada&&item.salida?Math.round((new Date(item.salida)-new Date(item.entrada))/(1000*60*60*24)):null;
     return `<div class="row">
@@ -3186,8 +3267,8 @@ function rAirbnbList(){
       </div>
     </div>`;
   }).join(''):'<span style="font-size:12px;color:var(--t3)">Sin reservas registradas</span>';
-  const tARS=(D.airbnb||[]).reduce((s,i)=>s+(i.arsEquiv||0),0);
-  const tUSD=(D.airbnb||[]).filter(i=>i.mon==='USD').reduce((s,i)=>s+i.monto,0);
+  const tARS=D.airbnb.filter(i=>enAnio(i.entrada)).reduce((s,i)=>s+(i.arsEquiv||0),0);
+  const tUSD=D.airbnb.filter(i=>enAnio(i.entrada)&&i.mon==='USD').reduce((s,i)=>s+i.monto,0);
   if(tARS||tUSD){
     tot.style.display='flex';
     tot.innerHTML=`<span>Total</span><div style="text-align:right">
@@ -3341,6 +3422,7 @@ function agregarCuenta(){
 
 // ── TIPO DE CAMBIO ──
 function rDolar(){
+  const pt=document.querySelector('#page-dolar .ptitle');if(pt)pt.textContent='Tipo de cambio USD '+anio+' — editable por mes';
   const gc=document.getElementById('tc-grid');gc.innerHTML='';
   for(let m=1;m<=12;m++){
     gc.innerHTML+=`<div class="tc-item ${m===mes?'ama':''}">
@@ -3393,6 +3475,7 @@ function importarDatos(input){
       if(!confirm('¿Importar datos? Esto reemplaza todo lo que hay actualmente en la app.'))return;
       D=datos;
       mes=D.mes||4;
+      anio=Number(D.anio)||anio;fijosYear=anio;_linkTc();renderAniosSelect();actualizarEtiquetasAnio();
       document.getElementById('mes-global').value=mes;
       _permitirReduccion=true; // importar un backup puede tener menos registros: lo confirmaste arriba
       save();
@@ -4233,7 +4316,7 @@ async function fetchObrAfip(){
     // Read VENTAS_2026 from OBR sheet
     const t=await getT();
     // First get sheet IDs to find VENTAS_2026
-    const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${OBR_SID}/values/${encodeURIComponent('VENTAS_2026!A2:N2000')}`,{headers:{Authorization:`Bearer ${t}`}});
+    const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${OBR_SID}/values/${encodeURIComponent('VENTAS_'+anio+'!A2:N2000')}`,{headers:{Authorization:`Bearer ${t}`}});
     if(!r.ok)return null;
     const d=await r.json();
     return d.values||[];
@@ -4246,7 +4329,7 @@ async function openAfip(){
 }
 async function refreshAfip(){
   tst('Leyendo OBR...');
-  _obrAfipData=await fetchObrAfip();
+  _obrAfipData=(await fetchObrAfip())||[];
   rAfip();
   tst('Actualizado ✓','ok');
 }
@@ -4257,7 +4340,7 @@ function rAfip(){
     ...D.clasesJua.map(i=>({...i,_src:'clases-jua'})),
     ...D.clasesCoco.map(i=>({...i,_src:'clases-coco'})),
     ...(D.changas||[]).map(i=>({...i,_src:'changas'})),
-  ];
+  ].filter(i=>enAnio(i.f));
 
   // Build rows for each person from clases
   function buildLocalRows(quien){
@@ -4427,7 +4510,7 @@ async function toggleFacturado(src,id,quien,val){
     try{
       // Read current value first
       const t=await getT();
-      const rd=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${OBR_SID}/values/${encodeURIComponent('VENTAS_2026!M'+rowNum+':M'+rowNum)}`,{headers:{Authorization:`Bearer ${t}`}});
+      const rd=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${OBR_SID}/values/${encodeURIComponent('VENTAS_'+anio+'!M'+rowNum+':M'+rowNum)}`,{headers:{Authorization:`Bearer ${t}`}});
       const rj=await rd.json();
       const cur=(rj.values||[['']])[0][0]||'';
       let factJua=false,factCoco=false;
@@ -4439,7 +4522,7 @@ async function toggleFacturado(src,id,quien,val){
       if(factJua&&factCoco)saveVal='✓';
       else if(!factJua&&!factCoco)saveVal='';
       else saveVal=JSON.stringify({Jua:factJua,Coco:factCoco});
-      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${OBR_SID}/values/${encodeURIComponent('VENTAS_2026!M'+rowNum+':M'+rowNum)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({values:[[saveVal]]})});
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${OBR_SID}/values/${encodeURIComponent('VENTAS_'+anio+'!M'+rowNum+':M'+rowNum)}?valueInputOption=RAW`,{method:'PUT',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({values:[[saveVal]]})});
       tst('Facturado guardado en OBR ✓','ok');
       // Update local cache — ensure array is long enough
       if(_obrAfipData&&_obrAfipData[rowNum-2]){
@@ -4464,19 +4547,19 @@ function rBalance(){
     const tc=D.tc[m]||1400;
     const mStr=String(m).padStart(2,'0');
     // Ingresos en USD — cada fuente convertida al TC del mes
-    const ingJuaUSD=D.clasesJua.filter(i=>i.f&&i.f.startsWith('2026-'+mStr))
+    const ingJuaUSD=D.clasesJua.filter(i=>i.f&&i.f.startsWith(anio+'-'+mStr))
       .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.arsEquiv||i.monto||0)/tc),0);
-    const ingCocoUSD=D.clasesCoco.filter(i=>i.f&&i.f.startsWith('2026-'+mStr))
+    const ingCocoUSD=D.clasesCoco.filter(i=>i.f&&i.f.startsWith(anio+'-'+mStr))
       .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.arsEquiv||i.monto||0)/tc),0);
-    const ingChUSD=(D.changas||[]).filter(i=>i.f&&i.f.startsWith('2026-'+mStr))
+    const ingChUSD=(D.changas||[]).filter(i=>i.f&&i.f.startsWith(anio+'-'+mStr))
       .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.arsEquiv||i.monto||0)/tc),0);
     // Airbnb: usar monto USD directo si existe, sino arsEquiv/tc del mes
-    const ingAirbnbUSD=(D.airbnb||[]).filter(i=>i.entrada&&i.entrada.startsWith('2026-'+mStr))
+    const ingAirbnbUSD=(D.airbnb||[]).filter(i=>i.entrada&&i.entrada.startsWith(anio+'-'+mStr))
       .reduce((s,i)=>s+(i.mon==='USD'?i.monto:(i.arsEquiv||0)/tc),0);
     // OBR
     let ingOBRUSD=0;
     if(_obrAfipData){
-      _obrAfipData.filter(r=>r[0]&&r[0].startsWith('2026-'+mStr)).forEach(r=>{
+      _obrAfipData.filter(r=>r[0]&&r[0].startsWith(anio+'-'+mStr)).forEach(r=>{
         ingOBRUSD+=(parseFloat(r[9])||0);
       });
     }
@@ -4500,7 +4583,7 @@ function rBalance(){
   }
   const totColor=totResUSD>=0?'color:var(--acc)':'color:var(--dan)';
   rows+=`<tr class="totr">
-    <td style="font-family:var(--sans)">Total 2026</td>
+    <td style="font-family:var(--sans)">Total ${anio}</td>
     <td>${totIngUSD>0?fU(Math.round(totIngUSD)):'—'}</td>
     <td>${totGfUSD>0?fU(Math.round(totGfUSD)):'—'}</td>
     <td>${totGvUSD>0?fU(Math.round(totGvUSD)):'—'}</td>
@@ -4514,7 +4597,7 @@ async function openIngresos(){
   rIng();
   if(!_obrAfipData&&CR){
     tst('Cargando OBR...');
-    _obrAfipData=await fetchObrAfip();
+    _obrAfipData=(await fetchObrAfip())||[];
     tst('');
   }
   rIng(); // re-render with OBR data
@@ -4523,7 +4606,7 @@ async function openIngresos(){
 async function refreshObrIngresos(){
   if(!CR){tst('Conectá el Sheet primero','err');return;}
   tst('Actualizando OBR...');
-  _obrAfipData=await fetchObrAfip();
+  _obrAfipData=(await fetchObrAfip())||[];
   rIng();
   tst('Actualizado ✓','ok');
 }
@@ -4550,39 +4633,62 @@ function renderFijosYearBtns(){
   if(!D.fijosYears)D.fijosYears=[new Date().getFullYear()];
   const sorted=[...D.fijosYears].sort((a,b)=>b-a);
   c.innerHTML=sorted.map(yr=>
-    `<button class="btn ${yr===fijosYear?'bp':''}" style="font-size:12px;padding:5px 12px" onclick="setFijosYear(${yr})">${yr}</button>`
+    `<button class="btn ${Number(yr)===Number(fijosYear)?'bp':''}" style="font-size:12px;padding:5px 12px" onclick="setFijosYear(${yr})">${yr}</button>`
   ).join('');
 }
 
 function setFijosYear(yr){
-  fijosYear=yr;
-  renderFijosYearBtns();
-  rFijos();
+  cambiarAnio(yr); // cambia el año de toda la app
 }
 
 function agregarAnioFijos(){
-  const maxYr=Math.max(...(D.fijosYears||[new Date().getFullYear()]));
-  const suggested=maxYr>=new Date().getFullYear()?maxYr+1:new Date().getFullYear();
-  const input=prompt(`¿Qué año querés agregar? (ej: ${suggested})`,suggested);
+  const existentes=(D.fijosYears||[]).map(Number).concat(Object.keys(D.fijos||{}).map(Number));
+  const base=existentes.length?Math.max(...existentes):anio;
+  const input=prompt(`¿Qué año querés agregar? (se copian los gastos fijos de ${base}, con montos en 0)`,base+1);
   if(!input)return;
   const yr=parseInt(input);
   if(isNaN(yr)||yr<2020||yr>2040){tst('Año inválido','err');return;}
-  if((D.fijosYears||[]).includes(yr)){tst(`El año ${yr} ya existe`,'err');return;}
-  if(!D.fijosYears)D.fijosYears=[];
-  D.fijosYears.push(yr);
-  // Copy current year's fijos as template for new year (montos vacíos)
-  const template=(D.fijos[fijosYear]||[]).map(f=>({
-    ...f,
-    id:Date.now()+Math.random(),
-    m:f.tipo!=='anual'?{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0}:undefined,
-    montoAnual:f.tipo==='anual'?0:undefined
-  }));
-  D.fijos[yr]=template;
-  save();
-  fijosYear=yr;
-  renderFijosYearBtns();
-  rFijos();
-  tst(`Año ${yr} creado con los mismos fijos (montos en 0) ✓`,'ok');
+  if(existentes.includes(yr)||(D.fijos&&D.fijos[yr]&&D.fijos[yr].length)){tst(`El año ${yr} ya existe`,'err');return;}
+  const fuente=D.fijos[base]||[];
+  _abrirModalCopiarFijos(yr,base,fuente);
+}
+function _abrirModalCopiarFijos(yr,base,fuente){
+  document.getElementById('modal-anio')?.remove();
+  const m=document.createElement('div');
+  m.id='modal-anio';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+  const filas=fuente.map((f,i)=>{
+    const termino=/plan/i.test((f.n||'')+' '+(f.nota||'')); // ej: plan de pagos terminado
+    return `<label style="display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px">
+      <input type="checkbox" data-i="${i}" ${termino?'':'checked'} style="width:16px;height:16px">
+      <span style="flex:1;font-weight:500">${e(f.n)}</span>
+      <span style="font-size:10px;color:var(--t3);font-family:var(--mono)">${f.tipo==='anual'?'anual':'mensual'}${termino?' · terminó':''}</span>
+    </label>`;}).join('');
+  m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:24px;width:92%;max-width:480px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    <div style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:6px">Crear ${yr}</div>
+    <div style="font-size:13px;color:var(--t2);margin-bottom:12px">Elegí qué gastos fijos de ${base} pasan a ${yr}. Se copian con montos en 0. ${base} no se modifica.</div>
+    <div style="overflow-y:auto;flex:1;margin-bottom:14px">${filas||'<div style="font-size:12px;color:var(--t3)">No hay gastos fijos para copiar.</div>'}</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn bp" style="flex:1" id="btn-crear-anio">Crear ${yr}</button>
+      <button class="btn" onclick="document.getElementById('modal-anio').remove()">Cancelar</button>
+    </div></div>`;
+  document.body.appendChild(m);
+  document.getElementById('btn-crear-anio').onclick=()=>{
+    const sel=[...m.querySelectorAll('input[type=checkbox]')].filter(c=>c.checked).map(c=>fuente[Number(c.dataset.i)]);
+    const t0=Date.now();
+    D.fijos[yr]=sel.map((f,i)=>{
+      const o={id:t0+i,n:f.n,cat:f.cat,tipo:f.tipo,nota:f.nota||''};
+      if(f.tipo==='anual'){o.montoAnual=0;o.notaAnual='';}
+      else{o.m={1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0,11:0,12:0};}
+      return o;
+    });
+    if(!D.fijosYears)D.fijosYears=[];
+    if(!D.fijosYears.map(Number).includes(yr))D.fijosYears.push(yr);
+    m.remove();
+    cambiarAnio(yr);
+    save();
+    tst(`Año ${yr} creado con ${sel.length} gastos fijos (montos en 0) ✓`,'ok');
+  };
 }
 
 // ── INIT ──
@@ -4599,6 +4705,8 @@ const _ft=document.querySelector('#tabla-fijos tbody');
 if(_ft)_ft.innerHTML='';
 const _lv=document.getElementById('lista-var');
 if(_lv)_lv.innerHTML='';
+renderAniosSelect();
+actualizarEtiquetasAnio();
 rFijos();
 rVar();
 
