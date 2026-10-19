@@ -246,7 +246,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
 <aside class="sb">
   <div class="logo">
     <div class="logo-t">Gastos 2026</div>
-    <div class="logo-s">Jua &amp; Coco</div>
+    <div class="logo-s">Jua &amp; Coco · v19-oct</div>
   </div>
   <nav>
     <div class="ni active" onclick="goPage(&#39;fijos&#39;,this)">
@@ -1549,6 +1549,19 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
     <div id="tot-mapuches-gastos" class="tot-row" style="display:none"></div>
   </div>
 
+  <!-- Impuestos del lote: se leen de Gastos fijos (nombre con "Mapuches"), no suman al total invertido -->
+  <div class="card">
+    <div class="chd">
+      <div>
+        <span class="clbl" style="color:#10B981">Impuestos del lote — gasto corriente</span>
+        <div style="font-size:11px;color:var(--t3);margin-top:3px">Se cargan en Gastos fijos (filas con "Mapuches" en el nombre). No suman al total invertido.</div>
+      </div>
+      <span id="mapuches-imp-anio" style="font-size:11px;color:var(--t3);font-family:var(--mono)"></span>
+    </div>
+    <div id="lista-mapuches-imp"><span style="font-size:12px;color:var(--t3)">Sin impuestos cargados en Gastos fijos</span></div>
+    <div id="tot-mapuches-imp" class="tot-row" style="display:none"></div>
+  </div>
+
   <!-- Gastos variables con cat Mapuches -->
   <div class="card">
     <div class="chd">
@@ -1899,7 +1912,14 @@ async function _ensureSheets(){
 
 // ── Escribir todas las pestañas de una vez (batchUpdate values) ──
 async function _writeAllSheets(D){
+  await _writeData(_buildSheetData(D).data);
+}
+async function _writeData(data){
   const t=await getT();
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}/values:batchUpdate`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({valueInputOption:'RAW',data})});
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+}
+function _buildSheetData(D){
   const data=[
     {range:'CONFIG!A1',values:_configToRows(D)},
     {range:'VARS!A1',values:_varsToRows(D.vars)},
@@ -1913,8 +1933,9 @@ async function _writeAllSheets(D){
     {range:'ACEITES!A1',values:_aceitesToRows(D.aceites)},
     {range:'LUNA!A1',values:_lunaToRows(D.luna)},
   ];
-  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}/values:batchUpdate`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({valueInputOption:'RAW',data})});
-  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+  const counts={};
+  data.forEach(d=>{counts[d.range.split('!')[0]]=d.values.length;});
+  return {data,counts};
 }
 
 // ── Leer todas las pestañas ──
@@ -1936,6 +1957,9 @@ async function _readAllSheets(){
   const credenciales=_rowsToCred(get(8));
   const aceites=_rowsToAceites(get(9));
   const luna=_rowsToLuna(get(10));
+  // Anotar cuántas filas tiene cada pestaña (para la protección al guardar)
+  const _c={};_GUARD_TABS.forEach((tab,i)=>{_c[tab]=get(i+1).length;});
+  _rowCounts=_c;
   return{
     fijos,vars,aceites,repuestos:cfg.repuestos||{kuga:[],mitsu:[],lancha:[]},
     clasesJua:clases.jua,clasesCoco:clases.coco,changas,ottos:cfg.ottos||[],
@@ -1951,22 +1975,80 @@ async function _readAllSheets(){
 
 // ── Detectar si el Sheet ya tiene estructura nueva ──
 async function _isNewStructure(){
-  try{
-    const t=await getT();
-    const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}?fields=sheets.properties.title`,{headers:{Authorization:`Bearer ${t}`}});
-    const dd=await r.json();
-    const titles=new Set((dd.sheets||[]).map(s=>s.properties.title));
-    return titles.has('VARS');
-  }catch(e){return false;}
+  // OJO: si esta consulta falla NO se asume "estructura vieja" (eso disparaba una migración que
+  // sobrescribía el Sheet con lo que hubiera en pantalla). Ante un error, se corta todo.
+  const t=await getT();
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}?fields=sheets.properties.title`,{headers:{Authorization:`Bearer ${t}`}});
+  if(!r.ok)throw new Error('No se pudo leer la estructura del Sheet ('+r.status+'). No se tocó nada.');
+  const dd=await r.json();
+  if(!Array.isArray(dd.sheets)||!dd.sheets.length)throw new Error('Respuesta inesperada del Sheet. No se tocó nada.');
+  const titles=new Set(dd.sheets.map(s=>s.properties.title));
+  return titles.has('VARS');
 }
 
-// ── SAVE — escribe todas las pestañas ──
-async function save(){
+// ── PROTECCIÓN DE DATOS ──
+// _rowCounts: cuántas filas tiene cada pestaña en el Sheet (según la última lectura o guardado de esta sesión).
+// Antes de guardar se compara: si alguna pestaña quedaría con muchas filas menos, NO se guarda.
+// Eso frena el caso típico de pérdida: un dispositivo con datos viejos pisando el Sheet.
+let _rowCounts=null;
+let _permitirReduccion=false; // solo se activa al importar un backup JSON (el usuario confirma)
+const MAX_FILAS_MENOS=3;
+const _GUARD_TABS=['VARS','FIJOS','AIRBNB','MAPUCHES','CLASES','CHANGAS','PAT','CREDENCIALES','ACEITES','LUNA'];
+const _READ_RANGES={VARS:'VARS!A1:H10000',FIJOS:'FIJOS!A1:AG500',AIRBNB:'AIRBNB!A1:J500',MAPUCHES:'MAPUCHES!A1:G500',CLASES:'CLASES!A1:P2000',CHANGAS:'CHANGAS!A1:K2000',PAT:'PAT!A1:G100',CREDENCIALES:'CREDENCIALES!A1:G100',ACEITES:'ACEITES!A1:F200',LUNA:'LUNA!A1:E500'};
+
+async function _leerConteoFilas(){
+  const t=await getT();
+  const qs=_GUARD_TABS.map(tab=>'ranges='+encodeURIComponent(_READ_RANGES[tab])).join('&');
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}/values:batchGet?${qs}`,{headers:{Authorization:`Bearer ${t}`}});
+  if(!r.ok)throw new Error('No se pudo leer el Sheet para verificar antes de guardar ('+r.status+')');
+  const dd=await r.json();
+  const c={};
+  _GUARD_TABS.forEach((tab,i)=>{c[tab]=((dd.valueRanges||[])[i]?.values||[]).length;});
+  return c;
+}
+
+let _saveChain=Promise.resolve();
+// ── SAVE — escribe todas las pestañas (de a un guardado por vez) ──
+function save(){
   try{localStorage.setItem('jua_g26h',JSON.stringify(D));}catch(e){}
-  if(!CR)return;
+  if(!CR)return Promise.resolve();
+  _saveChain=_saveChain.then(_doSave,_doSave);
+  return _saveChain;
+}
+async function _doSave(){
   setSyncing(true);
   try{
-    await _writeAllSheets(D);
+    // 1) Saber cuántas filas tiene hoy el Sheet (una sola lectura por sesión; después se lleva la cuenta)
+    if(!_rowCounts)_rowCounts=await _leerConteoFilas();
+    // 2) Armar lo que se va a escribir y verificar
+    const nuevos=_buildSheetData(D);
+    if(!_permitirReduccion){
+      const problemas=[];
+      _GUARD_TABS.forEach(tab=>{
+        const antes=_rowCounts[tab]||0, despues=nuevos.counts[tab]||0;
+        if(antes-despues>MAX_FILAS_MENOS)problemas.push(`${tab}: ${antes-1} → ${despues-1}`);
+      });
+      if(problemas.length){
+        setSyncing(false);
+        tst('⚠️ NO se guardó: faltan datos respecto del Sheet ('+problemas.join(', ')+'). Tocá "🔄 Recargar del Sheet".','err');
+        alert('PROTECCIÓN DE DATOS — no se guardó nada en el Sheet.\n\nLo que hay en esta pantalla tiene menos registros que el Sheet:\n'+problemas.join('\n')+'\n\nProbablemente este dispositivo tiene datos viejos. Tocá "🔄 Recargar del Sheet" antes de seguir cargando.\n\n(Tus cambios quedaron guardados solo en este navegador.)');
+        return;
+      }
+    }
+    // 3) Escribir
+    await _writeData(nuevos.data);
+    // 4) Recién después de escribir bien: limpiar filas sobrantes al final (quedaban de registros borrados)
+    const clear=[];
+    _GUARD_TABS.forEach(tab=>{
+      const antes=_rowCounts[tab]||0, despues=nuevos.counts[tab]||0;
+      if(antes>despues)clear.push(`${tab}!A${despues+1}:AZ${antes}`);
+    });
+    if(clear.length){
+      const t=await getT();
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SID}/values:batchClear`,{method:'POST',headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},body:JSON.stringify({ranges:clear})});
+    }
+    _rowCounts=nuevos.counts;
+    _permitirReduccion=false;
   }catch(ex){console.error('save:',ex);tst('Error guardando: '+ex.message,'err');}
   setSyncing(false);
 }
@@ -2122,7 +2204,11 @@ const gV=m=>{
   return [...vars,...lunaItems];
 };
 const tvM=m=>gV(m).reduce((s,g)=>s+g.m,0);
-const tfM=m=>getFijos().reduce((s,f)=>f.tipo==='anual'?s:(s+(f.m[m]||0)),0);
+// Monto de un gasto fijo en un mes. Los pagos anuales se reparten: montoAnual ÷ 12 por mes.
+const fijoMes=(f,m)=>f.tipo==='anual'?((Number(f.montoAnual)||0)/12):((f.m&&f.m[m])||0);
+const tfM=m=>getFijos().reduce((s,f)=>s+fijoMes(f,m),0);
+// Fijos que pertenecen al lote Mapuches: se reconocen porque el nombre dice "Mapuches"
+const esFijoMapuches=f=>/mapuches/i.test(f.n||'');
 const tPat=()=>D.pat.reduce((s,p)=>s+p.monto,0);
 const tDeu=()=>(D.deudas||[]).reduce((s,d)=>s+d.m,0);
 const tIA=()=>D.ingresos.filter(i=>i.mon==='ARS').reduce((s,i)=>s+i.m,0);
@@ -2165,9 +2251,30 @@ function rFijos(){
     const catColor=f.cat&&CC[f.cat]?CC[f.cat]:'transparent';
     const catBg=f.cat&&CB[f.cat]?CB[f.cat]:'transparent';
     if(f.tipo==='anual'){
-      h+=`<tr><td><div style="font-weight:500">${f.n}</div><div class="nota">${f.nota} <span class="tag ta">anual</span></div></td>`;
-      h+=`<td style="text-align:left">${f.cat?`<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-family:var(--mono)"><span style="width:6px;height:6px;border-radius:50%;background:${catColor};display:inline-block"></span>${f.cat}</span>`:'—'}</td>`;
-      h+=`<td class="ac" colspan="12">${f.notaAnual} — <strong>${fmt(f.montoAnual||0)}</strong></td>`;
+      const porMes=(Number(f.montoAnual)||0)/12;
+      h+=`<tr><td>
+        <input value="${e(f.n).replace(/"/g,'&quot;')}" data-fijo-id="${f.id}" class="fijo-nombre-input" style="border:none;border-bottom:1px solid transparent;background:transparent;font-size:13px;font-weight:600;color:var(--text);width:100%;padding:0;outline:none;font-family:var(--sans);" onfocus="this.style.borderBottomColor='var(--acc)'" onblur="this.style.borderBottomColor='transparent'">
+        <div class="nota" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px">
+          <input value="${e(f.nota).replace(/"/g,'&quot;')}" onchange="editFijoNota(${f.id},this.value)"
+            style="border:none;border-bottom:1px solid var(--b2);background:transparent;font-size:10px;color:var(--t3);width:150px;padding:1px 3px;outline:none;font-family:var(--sans);"
+            onfocus="this.style.borderBottomColor='var(--acc)'" onblur="this.style.borderBottomColor='var(--b2)'">
+          <span class="tag ta">anual</span>
+        </div>
+      </td>`;
+      h+=`<td style="text-align:left">
+        <select onchange="cambiarCatFijo(${f.id},this.value)" style="width:auto;min-width:80px;padding:2px 6px;font-size:11px;font-family:var(--mono);background:${catBg};border-color:${catColor};color:${catColor==='transparent'?'var(--t3)':catColor};cursor:pointer">
+          <option value="">—</option>${CATS.map(c=>`<option value="${c}" ${c===f.cat?'selected':''}>${c}</option>`).join('')}
+        </select></td>`;
+      h+=`<td class="ac" colspan="12">
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+          <input value="${e(f.notaAnual).replace(/"/g,'&quot;')}" placeholder="Nota del pago anual" onchange="editFijoNotaAnual(${f.id},this.value)"
+            style="border:none;border-bottom:1px solid var(--b2);background:transparent;font-size:11px;color:var(--t2);min-width:260px;padding:1px 3px;outline:none;font-family:var(--mono);text-align:center">
+          <span>—</span>
+          <span style="white-space:nowrap">Total $ <input type="number" value="${Number(f.montoAnual)||0}" onchange="editFijoMontoAnual(${f.id},this.value)"
+            style="width:110px;padding:2px 6px;font-size:12px;font-weight:700;font-family:var(--mono);text-align:right;border:1px solid var(--b2);border-radius:6px"></span>
+          <span style="color:var(--t3);white-space:nowrap">÷ 12 = <strong style="color:var(--t2)">${fmt(porMes)}</strong> por mes</span>
+        </div>
+      </td>`;
       h+=`<td><button class="btn bd" onclick="elimFijo(${f.id})">×</button></td></tr>`;
     } else {
       h+=`<tr><td>
@@ -2209,8 +2316,8 @@ function rFijos(){
   // Wire nombre inputs via event delegation (safe for any character)
   document.querySelectorAll('.fijo-nombre-input').forEach(inp=>{
     inp.addEventListener('change',function(){
-      const id=parseInt(this.dataset.fijoId);
-      const f=getFijos().find(x=>x.id===id);
+      const id=this.dataset.fijoId;
+      const f=getFijos().find(x=>String(x.id)===String(id));
       if(f){f.n=this.value.trim();save();}
     });
     inp.addEventListener('keydown',function(e){
@@ -2285,6 +2392,14 @@ function editFijoNombre(id,val){
 function editFijoNota(id,val){
   const f=getFijos().find(x=>x.id===id);if(!f)return;
   f.nota=val;save();
+}
+function editFijoNotaAnual(id,val){
+  const f=getFijos().find(x=>x.id===id);if(!f)return;
+  f.notaAnual=val;save();
+}
+function editFijoMontoAnual(id,val){
+  const f=getFijos().find(x=>x.id===id);if(!f)return;
+  f.montoAnual=parseFloat(val)||0;save();rFijos();
 }
 function editFijoTipo(id,val){
   const f=getFijos().find(x=>x.id===id);if(!f)return;
@@ -2468,8 +2583,7 @@ function rResCat(){
     gV(mes).forEach(g=>{if(ct[g.c]!==undefined)ct[g.c]+=g.m;});
     // OBR Taller gastos NO se suman — son del taller, no personales
     getFijos().forEach(f=>{
-      if(f.tipo==='anual')return;
-      const v=f.m[mes]||0;if(!v)return;
+      const v=fijoMes(f,mes);if(!v)return;
       const cat=f.cat||'Otros';
       if(ct[cat]!==undefined)ct[cat]+=v;
       else ct['Otros']=(ct['Otros']||0)+v;
@@ -2512,8 +2626,7 @@ function rResCat(){
       // OBR Taller NO se suma al resumen por categoría personal
       // Fijos
       getFijos().forEach(f=>{
-        if(f.tipo==='anual')return;
-        const v=f.m[m]||0;if(!v)return;
+        const v=fijoMes(f,m);if(!v)return;
         const cat=f.cat||'Otros';
         if(cd[cat])cd[cat][m]=(cd[cat][m]||0)+v;
         else cd['Otros'][m]=(cd['Otros'][m]||0)+v;
@@ -3281,6 +3394,7 @@ function importarDatos(input){
       D=datos;
       mes=D.mes||4;
       document.getElementById('mes-global').value=mes;
+      _permitirReduccion=true; // importar un backup puede tener menos registros: lo confirmaste arriba
       save();
       // re-render page activa
       const ap=document.querySelector('.page.active')?.id?.replace('page-','');
@@ -3310,6 +3424,7 @@ function exportCSV(){
 function rMapuches(){
   if(!D.mapuches)D.mapuches=[];
   poblarCuentasMapuches();
+  rMapuchesImpuestos();
 
   // Gastos directos
   const lista=document.getElementById('lista-mapuches-gastos');
@@ -3378,6 +3493,46 @@ function rMapuches(){
   const elA=document.getElementById('mapuches-total-ars');
   if(elU)elU.textContent=totalUSD>0?fU(Math.round(totalUSD))+' USD':'USD —';
   if(elA)elA.textContent=totalARS>0?'≈ '+fmt(totalARS):'';
+}
+
+// Impuestos del lote Mapuches — solo lectura, salen de Gastos fijos del año que se ve en Gastos fijos
+function rMapuchesImpuestos(){
+  const lista=document.getElementById('lista-mapuches-imp');
+  const tot=document.getElementById('tot-mapuches-imp');
+  const lblAnio=document.getElementById('mapuches-imp-anio');
+  if(!lista)return;
+  if(lblAnio)lblAnio.textContent='Año '+fijosYear;
+  const fs=getFijos().filter(esFijoMapuches);
+  if(!fs.length){
+    lista.innerHTML='<span style="font-size:12px;color:var(--t3)">Sin impuestos cargados en Gastos fijos. Agregalos ahí con "Mapuches" en el nombre.</span>';
+    tot.style.display='none';
+    return;
+  }
+  let totARS=0,totUSD=0;
+  let h=`<table class="vt"><thead><tr><th>Concepto</th><th>Meses</th><th class="r">Total ARS</th><th class="r">≈ USD</th></tr></thead><tbody>`;
+  fs.forEach(f=>{
+    let fARS=0,fUSD=0;const meses=[];
+    for(let m=1;m<=12;m++){
+      const v=fijoMes(f,m);
+      if(v>0){fARS+=v;fUSD+=toUSD(v,m);if(f.tipo!=='anual')meses.push(MC[m]);}
+    }
+    totARS+=fARS;totUSD+=fUSD;
+    const detalle=f.tipo==='anual'
+      ?`<span class="tag ta">anual</span> ${fmt(Number(f.montoAnual)||0)} ÷ 12`
+      :(meses.length?meses.join(' · '):'<span style="color:var(--t3)">sin montos</span>');
+    h+=`<tr>
+      <td style="font-weight:500">${e(f.n)}</td>
+      <td style="font-size:12px;color:var(--t2)">${detalle}</td>
+      <td class="r">${fARS>0?fmt(fARS):'—'}</td>
+      <td class="r" style="font-size:11px;color:var(--t3)">${fUSD>0?fU(fUSD):'—'}</td>
+    </tr>`;
+  });
+  h+=`</tbody></table>`;
+  lista.innerHTML=h;
+  if(totARS>0){
+    tot.style.display='flex';
+    tot.innerHTML=`<span>Total impuestos ${fijosYear}</span><div style="text-align:right"><div style="font-family:var(--mono);font-weight:500">${fmt(totARS)}</div><div style="font-size:11px;color:var(--t3);font-family:var(--mono)">≈ ${fU(totUSD)}</div></div>`;
+  } else tot.style.display='none';
 }
 
 function poblarCuentasMapuches(){
