@@ -130,6 +130,8 @@ nav{padding:10px 8px;flex:1;overflow-y:auto}
 .fg6{grid-template-columns:2fr 1fr 1fr 80px 80px 36px}
 input,select{width:100%;padding:9px 12px;font-size:13px;font-weight:500;font-family:var(--sans);border:1.5px solid var(--border);border-radius:var(--rs);background:#fff;color:var(--text);outline:none;transition:border-color .15s;-webkit-appearance:none}
 input:focus,select:focus{border-color:var(--text)}
+/* Casillas: la regla de arriba (appearance:none) las dejaba invisibles — se restaura el dibujo normal */
+input[type=checkbox]{-webkit-appearance:checkbox;appearance:auto;width:16px;height:16px;min-width:16px;padding:0;margin:0;flex:none;cursor:pointer;accent-color:var(--text)}
 
 /* ── CATEGORY BARS ── */
 .bw{margin-bottom:12px}
@@ -246,7 +248,7 @@ table.at td.r{text-align:right;font-family:var(--mono);font-size:12px;font-weigh
 <aside class="sb">
   <div class="logo">
     <div class="logo-t">Gastos 2026</div>
-    <div class="logo-s">Jua &amp; Coco · v19-oct-año</div>
+    <div class="logo-s">Jua &amp; Coco · v19-oct-año2</div>
   </div>
   <nav>
     <div class="ni active" onclick="goPage(&#39;fijos&#39;,this)">
