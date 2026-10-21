@@ -1804,6 +1804,17 @@ x2 gramaje 60</div>
 </div>
 </div><!-- /app -->
 
+<!-- PAGO DE DEUDA -->
+<div class="mo" id="m-pago-deuda"><div class="md" style="max-width:380px;">
+  <div class="mh"><div class="mt">REGISTRAR PAGO</div><button class="mc" onclick="closeM('m-pago-deuda')">✕</button></div>
+  <div id="pd-info" style="font-size:13px;color:var(--txt2);margin-bottom:12px;"></div>
+  <div class="fg">
+    <div class="fi"><label>Fecha del pago</label><input type="date" id="pdd-fecha"></div>
+    <div class="fi"><label>Medio de pago</label><select id="pdd-mp"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Clover</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select></div>
+  </div>
+  <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px;" onclick="guardarPagoDeuda()">Guardar pago</button>
+</div></div>
+
 <!-- ═══ MODALS ═══ -->
 
 <!-- VENTA -->
@@ -2466,17 +2477,6 @@ x2 gramaje 60</div>
   <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px;" onclick="saveDolar()">Actualizar</button>
 </div></div>
 
-<!-- PAGO DE DEUDA -->
-<div class="mo" id="m-pago-deuda"><div class="md" style="max-width:380px;">
-  <div class="mh"><div class="mt">REGISTRAR PAGO</div><button class="mc" onclick="closeM('m-pago-deuda')">✕</button></div>
-  <div id="pd-info" style="font-size:13px;color:var(--txt2);margin-bottom:12px;"></div>
-  <div class="fg">
-    <div class="fi"><label>Fecha del pago</label><input type="date" id="pdd-fecha"></div>
-    <div class="fi"><label>Medio de pago</label><select id="pdd-mp"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Clover</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select></div>
-  </div>
-  <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px;" onclick="guardarPagoDeuda()">Guardar pago</button>
-</div></div>
-
 <div class="tst ok" id="tst">Eliminado ✓</div>
 
 <script>
@@ -2799,7 +2799,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: 2026-10-21 paso 5b — pestaña Resumen ✓');
+  console.log('OBR build: 2026-10-21 paso 5c — arreglo botón Pagó ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -5842,6 +5842,7 @@ function toggleMostrador() {
 }
 
 function sv(name, btn) {
+  document.body.style.overflow = ''; // por si quedó bloqueado el scroll de un cuadro abierto
   document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
   document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
   document.getElementById('view-'+name)?.classList.add('on');
