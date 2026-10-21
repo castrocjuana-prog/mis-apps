@@ -1729,6 +1729,13 @@ x2 gramaje 60</div>
     </div>
   </div>
 
+  <!-- RESUMEN DE LA TEMPORADA -->
+  <div style="margin-top:24px;">
+    <div class="st" style="font-size:16px;margin-bottom:4px;">RESUMEN DE VENTAS</div>
+    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;" id="res-sub">Según las fechas Desde / Hasta de arriba. Las unidades incluyen regalos; los USD no.</p>
+    <div id="res-body"><div style="color:var(--txt3);font-size:13px;">Cargando...</div></div>
+  </div>
+
   <div style="margin-top:20px;">
     <div class="st" style="font-size:16px;margin-bottom:4px;">AFIP / MONOTRIBUTO</div>
     <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;">Santander + MP COCO + Macro Coco arg = declara Coco · Macro jua + MP JUA = declarás vos. Tildá las ventas que ya facturaste.</p>
@@ -2771,7 +2778,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: 2026-10-21 paso 4 — DEBE y morosos ✓');
+  console.log('OBR build: 2026-10-21 paso 5 — resumen de ventas en Balance ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -4400,6 +4407,118 @@ async function rbal() {
 
   // AFIP section
   rAfip(allVentas);
+  try { rResumenVentas(allVentas, de, ha); } catch(e) { console.error('resumen', e); }
+}
+
+// ─────────────────────────────────────────
+// RESUMEN DE VENTAS (solo lectura, no escribe nada en el Sheet)
+// ─────────────────────────────────────────
+function rResumenVentas(allVentas, de, ha) {
+  const cont = document.getElementById('res-body'); if (!cont) return;
+  const sinT = x => String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const BOOT = /^(.*?)\s*(\d\d(?:\.5)?)\s*\((Angosta|Media|Ancha)\)$/i;
+  const servN = new Map((D.servicios||[]).map(x => [sinT(x.n), x]));
+  const prodN = new Map((D.productos||[]).map(x => [sinT(x.n), x]));
+  const baseDe = n => sinT(n).replace(/\s*[—–-]+\s*(recambio|freza|suelta)\s*$/i,'').trim();
+  // Clasifica un ítem: {cat, nombre, modelo, talle, lista}
+  function clasif(nRaw) {
+    let n = String(nRaw||'').trim().replace(/Genericas/g,'Genéricas').replace(/\(LBJ9260\)28\.5/,'(LBJ9260)');
+    const m = n.match(BOOT);
+    if (m) {
+      const modelo = m[1].trim(), talle = m[2];
+      const b = D.botas.find(x => sinT(`${x.marca} ${x.mod}`).replace('(lbj9260)28.5','(lbj9260)') === sinT(modelo) && String(x.talle) === talle);
+      return { cat:'Botas', nombre:modelo, modelo, talle, lista: b?.vu || 550 };
+    }
+    const sv = servN.get(sinT(n)); if (sv) return { cat:'Servicios', nombre:sv.n, lista: sv.pu || 25 };
+    const mpl = sinT(n).match(/^(podetti(?: custom)?|custom|race)\s+(xxl|xl|xs|s|m|l)$/);
+    if (mpl) {
+      const nom = mpl[1].startsWith('podetti') ? `Podetti Custom ${mpl[2].toUpperCase()}` : `${mpl[1][0].toUpperCase()+mpl[1].slice(1)} ${mpl[2].toUpperCase()}`;
+      const pp = prodN.get(sinT(nom));
+      return { cat:'Plantillas', nombre:nom, lista: pp?.pu || 205 };
+    }
+    const pr = prodN.get(sinT(n)) || prodN.get(baseDe(n));
+    if (pr) return { cat: pr.c || 'Otros', nombre: n, lista: pr.pu || ({Plantillas:205,Medias:32,Boosters:55,Lifters:39})[pr.c] || 30 };
+    if (/—\s*(freza|recambio|suelta)$/i.test(n)) return { cat:'Lifters', nombre:n, lista:39 };
+    const bt = D.botas.find(x => x.mod && nameMatchesBota(sinT(n), x.marca, x.mod, x.talle));
+    if (bt) return { cat:'Botas', nombre:`${bt.marca} ${bt.mod}`, modelo:`${bt.marca} ${bt.mod}`, talle:String(bt.talle), lista: bt.vu || 550 };
+    return { cat:'Otros', nombre:n, lista:30 };
+  }
+  let ventas = allVentas.filter(v => (!de || v.fecha >= de) && (!ha || v.fecha <= ha));
+  const agg = new Map(); // clave → {cat,nombre,modelo,talle,u,usd}
+  let sinItems = { n:0, usd:0 }, totalUsd = 0;
+  const add = (c, q, usd) => {
+    const k = c.cat + '|' + sinT(c.nombre) + '|' + (c.talle||'');
+    const a = agg.get(k) || { cat:c.cat, nombre:c.nombre, modelo:c.modelo, talle:c.talle, u:0, usd:0 };
+    a.u += q; a.usd += usd; agg.set(k, a);
+  };
+  ventas.forEach(v => {
+    const esReg = v.mp === 'Regalo';
+    const tot = esReg ? 0 : (v.tusd > 0 ? v.tusd : 0);
+    totalUsd += tot;
+    if (v.itemsDetail && v.itemsDetail.length) {
+      v.itemsDetail.forEach(it => { const c = clasif(it.n); if (it.cat === 'Botas') c.cat = 'Botas'; add(c, it.q||1, esReg ? 0 : (parseFloat(it.real)||0)); });
+      return;
+    }
+    if (!v.items || v.items === '(sin items)') { if (!esReg) { sinItems.n++; sinItems.usd += tot; } return; }
+    const its = v.items.split(',').map(raw => { const t = raw.trim(); const m = t.match(/^(\d+)x\s+(.+)$/i); return { n: m ? m[2] : t, q: m ? parseInt(m[1]) : 1 }; }).filter(x => x.n);
+    const cs = its.map(x => ({ c: clasif(x.n), q: x.q }));
+    const W = cs.reduce((a, x) => a + x.c.lista * x.q, 0) || 1;
+    cs.forEach(x => add(x.c, x.q, esReg ? 0 : tot * x.c.lista * x.q / W));
+  });
+  const filas = [...agg.values()];
+  const f0 = n => Math.round(n).toLocaleString('es-AR');
+  if (!filas.length) { cont.innerHTML = '<div style="color:var(--txt3);font-size:13px;">Sin ventas en el período.</div>'; return; }
+  const tabla = (head, rows) => `<div class="tw" style="margin-bottom:16px;"><div class="ts"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div></div>`;
+  const sub = t => `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--txt2);margin:18px 0 8px;">${t}</div>`;
+  // 1) Totales por categoría
+  const cats = ['Botas','Plantillas','Servicios','Lifters','Medias','Boosters','Otros'];
+  const porCat = cats.map(c => { const r = filas.filter(x => x.cat === c); return { c, u: r.reduce((a,x)=>a+x.u,0), usd: r.reduce((a,x)=>a+x.usd,0) }; }).filter(x => x.u);
+  let html = sub('Totales por categoría') + tabla(['Categoría','Unidades','USD','% de USD'],
+    porCat.map(x => `<tr><td>${x.c}</td><td style="font-family:var(--fm);">${x.u}</td><td style="font-family:var(--fm);">${f0(x.usd)}</td><td style="font-family:var(--fm);">${totalUsd ? Math.round(x.usd/totalUsd*100) : 0}%</td></tr>`)
+    .concat(sinItems.n ? [`<tr><td style="color:var(--txt3);">Ventas sin ítems</td><td style="font-family:var(--fm);">${sinItems.n} ventas</td><td style="font-family:var(--fm);">${f0(sinItems.usd)}</td><td style="font-family:var(--fm);">${totalUsd ? Math.round(sinItems.usd/totalUsd*100) : 0}%</td></tr>`] : [])
+    .concat([`<tr class="tr-tot"><td>TOTAL</td><td></td><td>${f0(totalUsd)}</td><td></td></tr>`]));
+  // 2) Botas por talle (barras) y por modelo + talle
+  const botas = filas.filter(x => x.cat === 'Botas');
+  if (botas.length) {
+    const tl = {}; botas.forEach(b => { const t = b.talle || '?'; tl[t] = tl[t] || { u:0, lange:0, atomic:0, otras:0 }; tl[t].u += b.u; const mk = sinT(b.modelo||b.nombre).split(' ')[0]; if (mk==='lange') tl[t].lange += b.u; else if (mk==='atomic') tl[t].atomic += b.u; else tl[t].otras += b.u; });
+    const tKeys = Object.keys(tl).sort((a,b) => parseFloat(a)-parseFloat(b));
+    const maxU = Math.max(...tKeys.map(k => tl[k].u));
+    const totB = botas.reduce((a,x)=>a+x.u,0);
+    html += sub(`Botas por talle — ${totB} pares`) + `<div class="tw" style="padding:14px 16px;margin-bottom:16px;">` + tKeys.map(k => `
+      <div style="display:flex;align-items:center;gap:10px;margin:4px 0;" title="Lange ${tl[k].lange} · Atomic ${tl[k].atomic}${tl[k].otras?' · otras '+tl[k].otras:''}">
+        <div style="width:42px;font-family:var(--fm);font-size:12px;color:var(--txt2);">${e(k)}</div>
+        <div style="flex:1;background:var(--s2);border-radius:4px;height:18px;"><div style="width:${(tl[k].u/maxU*100).toFixed(1)}%;height:18px;border-radius:4px;background:${tl[k].u===maxU?'var(--red)':'#c9c6bd'};"></div></div>
+        <div style="width:150px;font-family:var(--fm);font-size:12px;">${tl[k].u} <span style="color:var(--txt3);font-size:11px;">(L ${tl[k].lange} · A ${tl[k].atomic}${tl[k].otras?' · otras '+tl[k].otras:''})</span></div>
+      </div>`).join('') + `</div>`;
+    const bs = [...botas].sort((a,b) => b.u - a.u || b.usd - a.usd);
+    html += sub('Botas por modelo y talle') + tabla(['Modelo','Talle','Pares','USD'],
+      bs.map(b => `<tr><td>${e(b.modelo||b.nombre)}</td><td style="font-family:var(--fm);">${e(b.talle||'')}</td><td style="font-family:var(--fm);font-weight:600;">${b.u}</td><td style="font-family:var(--fm);">${f0(b.usd)}</td></tr>`));
+  }
+  // 3) Plantillas por talle: Custom / Race / Podetti
+  const pl = filas.filter(x => x.cat === 'Plantillas');
+  if (pl.length) {
+    const T = ['XS','S','M','L','XL','XXL']; const g = {}; T.forEach(t => g[t] = { custom:0, race:0, podetti:0, otra:0, usd:0 });
+    pl.forEach(x => {
+      const m = sinT(x.nombre).match(/^(podetti(?: custom)?|custom|race)\s+(xxl|xl|xs|s|m|l)$/);
+      const t = m ? m[2].toUpperCase() : null; if (!t) { g.otra = (g.otra||0) + x.u; return; }
+      const fam = m[1].startsWith('podetti') ? 'podetti' : m[1];
+      g[t][fam] += x.u; g[t].usd += x.usd;
+    });
+    const rows = T.filter(t => g[t].custom+g[t].race+g[t].podetti).map(t => { const r = g[t]; const tot = r.custom+r.race+r.podetti;
+      return `<tr><td style="font-weight:600;">${t}</td><td style="font-family:var(--fm);font-weight:600;">${tot}</td><td style="font-family:var(--fm);">${r.custom}</td><td style="font-family:var(--fm);">${r.race}</td><td style="font-family:var(--fm);">${r.podetti}</td><td style="font-family:var(--fm);">${f0(r.usd)}</td></tr>`; });
+    const sum = k => T.reduce((a,t) => a + g[t][k], 0);
+    rows.push(`<tr class="tr-tot"><td>TOTAL</td><td>${sum('custom')+sum('race')+sum('podetti')}</td><td>${sum('custom')}</td><td>${sum('race')}</td><td>${sum('podetti')}</td><td>${f0(sum('usd'))}</td></tr>`);
+    html += sub('Plantillas por talle') + tabla(['Talle','Total','Custom','Race','Podetti','USD'], rows);
+  }
+  // 4) Resto, de más a menos vendido
+  ['Servicios','Lifters','Medias','Boosters','Otros'].forEach(c => {
+    const r = filas.filter(x => x.cat === c).sort((a,b) => b.u - a.u || b.usd - a.usd);
+    if (!r.length) return;
+    html += sub(c) + tabla(['Producto / servicio','Unidades','USD'],
+      r.map(x => `<tr><td>${e(x.nombre)}</td><td style="font-family:var(--fm);font-weight:600;">${x.u}</td><td style="font-family:var(--fm);">${f0(x.usd)}</td></tr>`));
+  });
+  html += `<div style="font-size:11px;color:var(--txt3);margin-top:-6px;">En ventas viejas con varios ítems y un solo total, los USD se reparten según el precio de lista (son aproximados).</div>`;
+  cont.innerHTML = html;
 }
 
 function balResetFiltros() {
