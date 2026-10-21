@@ -284,6 +284,7 @@ body.ready #app{display:block}
   <button class="nb nb-private" onclick="sv('precios',this)">Precios</button>
   <button class="nb nb-private" onclick="sv('gastos',this)">Gastos</button>
   <button class="nb nb-private" onclick="sv('provs',this)">Proveedores</button>
+  <button class="nb nb-private" onclick="sv('morosos',this)">Morosos <span id="nb-morosos-cnt" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:0 6px;font-size:10px;font-weight:700;margin-left:4px;"></span></button>
   <button class="nb nb-private" onclick="sv('balance',this)">Balance</button>
   <button class="nb nb-mostrador" id="btn-mostrador" onclick="toggleMostrador()" title="Modo mostrador — oculta precios y pestañas internas">🔓 Mostrador</button>
 </nav>
@@ -1612,6 +1613,21 @@ x2 gramaje 60</div>
 </div>
 
 <!-- BALANCE -->
+<!-- MOROSOS -->
+<div id="view-morosos" class="view">
+  <div class="sh"><div class="st">MOROSOS</div><div id="mor-total" style="font-family:var(--fm);font-size:14px;color:var(--red);font-weight:600;"></div></div>
+  <p style="font-size:12px;color:var(--txt2);margin:-4px 0 14px;">Ventas con saldo pendiente (de todos los años). Cuando paguen, tocá <strong>Pagó</strong>: el cobro entra al Balance en la fecha del pago.</p>
+  <div class="tw"><div class="ts"><table>
+    <thead><tr><th>Fecha venta</th><th>Cliente</th><th>Qué llevó</th><th>Debe</th><th>Días</th><th></th></tr></thead>
+    <tbody id="mor-tbody"><tr><td colspan="6" style="text-align:center;color:var(--txt3);padding:20px;">Cargando...</td></tr></tbody>
+  </table></div></div>
+  <div class="st" style="font-size:16px;margin:22px 0 12px;">PAGADOS</div>
+  <div class="tw"><div class="ts"><table>
+    <thead><tr><th>Fecha venta</th><th>Cliente</th><th>Monto</th><th>Pagó el</th><th>Medio</th></tr></thead>
+    <tbody id="mor-pagados"><tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:20px;">—</td></tr></tbody>
+  </table></div></div>
+</div>
+
 <div id="view-balance" class="view">
   <div class="st" style="margin-bottom:12px;">BALANCE DEL TALLER</div>
 
@@ -2209,6 +2225,18 @@ x2 gramaje 60</div>
     </div>
 
     <div class="fi s2"><label>Observación</label><textarea id="v-obs" placeholder="Bota nueva, debe algo, notas..."></textarea></div>
+    <div class="fi s2" style="background:var(--red-l);border:1px solid var(--bd);border-radius:8px;padding:10px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;color:var(--txt);">
+        <input type="checkbox" id="v-debe-chk" onchange="toggleDebe()" style="appearance:auto;-webkit-appearance:checkbox;width:18px;height:18px;min-width:18px;padding:0;margin:0;flex:none;border:none;background:none;box-shadow:none;accent-color:var(--red);cursor:pointer;"> <strong>Debe</strong> — queda saldo pendiente
+      </label>
+      <div id="v-debe-wrap" style="display:none;margin-top:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="fi" style="margin:0;"><label>Debe en USD</label><input type="number" id="v-debe-usd" placeholder="vacío = todo" oninput="document.getElementById('v-debe-ars').value=''"></div>
+          <div class="fi" style="margin:0;"><label>o en pesos</label><input type="number" id="v-debe-ars" placeholder="ej: 150000" oninput="document.getElementById('v-debe-usd').value=''"></div>
+        </div>
+        <div id="v-debe-info" style="font-size:11px;color:var(--txt2);margin-top:6px;">Si lo dejás vacío, debe el total de la venta. En pesos se pasa a USD con el dólar de la venta.</div>
+      </div>
+    </div>
   </div>
   <div style="margin-top:16px;display:flex;gap:10px;">
     <button class="btn btn-p" style="flex:1;justify-content:center;" onclick="saveVenta()">Guardar venta</button>
@@ -2408,6 +2436,17 @@ x2 gramaje 60</div>
     <input type="number" id="dol-q" style="font-size:24px;font-family:var(--fm);text-align:center;padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);width:100%;color:var(--txt);">
   </div>
   <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px;" onclick="saveDolar()">Actualizar</button>
+</div></div>
+
+<!-- PAGO DE DEUDA -->
+<div class="mo" id="m-pago-deuda"><div class="md" style="max-width:380px;">
+  <div class="mh"><div class="mt">REGISTRAR PAGO</div><button class="mc" onclick="closeM('m-pago-deuda')">✕</button></div>
+  <div id="pd-info" style="font-size:13px;color:var(--txt2);margin-bottom:12px;"></div>
+  <div class="fg">
+    <div class="fi"><label>Fecha del pago</label><input type="date" id="pdd-fecha"></div>
+    <div class="fi"><label>Medio de pago</label><select id="pdd-mp"><option>Efectivo</option><option>Santander</option><option>MP JUA</option><option>MP COCO</option><option>Clover</option><option>Zelle</option><option>Macro jua</option><option>Macro Coco arg</option><option>Macro Coco usd</option><option>Otro</option></select></div>
+  </div>
+  <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px;" onclick="guardarPagoDeuda()">Guardar pago</button>
 </div></div>
 
 <div class="tst ok" id="tst">Eliminado ✓</div>
@@ -2732,10 +2771,11 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: 2026-10-21 paso 3 — ganancia neta con costo ✓');
+  console.log('OBR build: 2026-10-21 paso 4 — DEBE y morosos ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
+    actualizarMorosos();
   }
   catch(e) { tst('Error cargando: '+e.message, 'err'); console.error(e); }
   spin(false);
@@ -2743,7 +2783,7 @@ async function loadAll() {
 async function lV() {
   const sheet = `VENTAS_${D.year}`;
   try {
-    const d = await sG(`${sheet}!A2:N2000`);
+    const d = await sG(`${sheet}!A2:Q2000`);
     const rows = d.values || [];
     D.ventas = rows.map((r, i) => {
       let itemsDetail = null;
@@ -2754,7 +2794,8 @@ async function lV() {
         pp:parseFloat(r[5])||0, up:parseFloat(r[6])||0,
         pex:parseFloat(r[7])||0, uex:parseFloat(r[8])||0,
         tusd:parseFloat(r[9])||0, mp:r[10]||'', dol:parseFloat(r[11])||D.cfg.dol,
-        fact:r[12]||'', itemsDetail
+        fact:r[12]||'', itemsDetail,
+        debe:parseFloat(String(r[14]||'').replace(',','.'))||0, fpago:r[15]||'', mpago:r[16]||'', yr:D.year
       };
     }).filter(v => v.cli || v.items);
   } catch(err) {
@@ -2970,7 +3011,7 @@ function rv() {
     return `<tr style="${D.selRows.has(x._r)?'background:var(--red-l);':''}">
       ${chk}
       <td style="color:var(--txt2);font-size:12px;white-space:nowrap;">${fd(x.fecha)}</td>
-      <td><strong>${e(x.cli)}</strong></td>
+      <td><strong>${e(x.cli)}</strong>${x.debe>0 && !x.fpago ? ` <span class="bx bx-r" style="margin-left:4px;">DEBE u$s ${x.debe.toFixed(0)}</span>` : x.debe>0 ? ` <span style="font-size:10px;color:var(--txt3);margin-left:4px;">pagó deuda ${fd(x.fpago)}</span>` : ''}</td>
       <td><span class="${x.tipo==='profe'?'bg-profe':'bg-turista'}">${x.tipo==='profe'?'Efectivo':x.tipo==='turista'?'Electrónico':(x.tipo||'—')}</span></td>
       <td style="max-width:200px;white-space:normal;font-size:12px;line-height:1.5;">${e(x.items)}</td>
       <td style="font-family:var(--fm);">${tp?'$'+tp.toLocaleString('es-AR'):'—'}</td>
@@ -3879,7 +3920,7 @@ async function loadAllVentas() {
   const allVentas = [];
   for (const yr of (D.years||[new Date().getFullYear()])) {
     try {
-      const d = await sG(`VENTAS_${yr}!A2:N2000`);
+      const d = await sG(`VENTAS_${yr}!A2:Q2000`);
       const rows = (d.values||[]).map((r,i) => {
         let itemsDetail = null;
         try { if (r[13]) itemsDetail = JSON.parse(r[13]); } catch(e) {}
@@ -3888,7 +3929,8 @@ async function loadAllVentas() {
           pp:parseFloat(r[5])||0, up:parseFloat(r[6])||0,
           pex:parseFloat(r[7])||0, uex:parseFloat(r[8])||0,
           tusd:parseFloat(r[9])||0, mp:r[10]||'', dol:parseFloat(r[11])||D.cfg.dol,
-          fact:r[12]||'', itemsDetail
+          fact:r[12]||'', itemsDetail,
+          debe:parseFloat(String(r[14]||'').replace(',','.'))||0, fpago:r[15]||'', mpago:r[16]||'', yr
         };
       }).filter(v => v.cli||v.items);
       allVentas.push(...rows);
@@ -3938,6 +3980,114 @@ function itemsDeVentaParaCosto(v) {
   }).filter(x => x.n);
 }
 
+// ─────────────────────────────────────────
+// DEBE / MOROSOS
+// Columnas nuevas al final de VENTAS_{año}: O = DebeUSD · P = FechaPagoDeuda · Q = MedioPagoDeuda
+// ─────────────────────────────────────────
+function toggleDebe() {
+  const on = document.getElementById('v-debe-chk')?.checked;
+  const w = document.getElementById('v-debe-wrap'); if (w) w.style.display = on ? 'block' : 'none';
+}
+function resetDebe() {
+  const c = document.getElementById('v-debe-chk'); if (c) c.checked = false;
+  ['v-debe-usd','v-debe-ars'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const i = document.getElementById('v-debe-info'); if (i) i.textContent = 'Si lo dejás vacío, debe el total de la venta. En pesos se pasa a USD con el dólar de la venta.';
+  toggleDebe();
+}
+async function asegurarEncabezadoDeuda(yr) {
+  try {
+    const d = await sG(`VENTAS_${yr}!O1:Q1`);
+    const h = (d.values && d.values[0]) || [];
+    if (!h[0]) await sUraw(`VENTAS_${yr}!O1:Q1`, [['DebeUSD','FechaPagoDeuda','MedioPagoDeuda']]);
+  } catch(e) { console.warn('encabezado deuda', e); }
+}
+let _morosos = [];
+async function actualizarMorosos() {
+  try {
+    const all = await loadAllVentas();
+    _morosos = all.filter(v => v.debe > 0);
+    const pend = _morosos.filter(v => !v.fpago);
+    const b = document.getElementById('nb-morosos-cnt');
+    if (b) { b.textContent = pend.length; b.style.display = pend.length ? 'inline-block' : 'none'; }
+  } catch(e) { console.warn('morosos', e); }
+  return _morosos;
+}
+async function rMorosos() {
+  const tb = document.getElementById('mor-tbody');
+  tb.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--txt3);padding:20px;">Cargando...</td></tr>`;
+  const all = await actualizarMorosos();
+  const pend = all.filter(v => !v.fpago).sort((a,b) => a.fecha.localeCompare(b.fecha));
+  const hoy = new Date();
+  const tot = pend.reduce((a,v) => a + v.debe, 0);
+  document.getElementById('mor-total').textContent = pend.length ? `Total adeudado: u$s ${tot.toFixed(0)} · ≈ $${Math.round(tot*D.cfg.dol).toLocaleString('es-AR')}` : '';
+  tb.innerHTML = pend.length ? pend.map(v => {
+    const dias = v.fecha ? Math.floor((hoy - new Date(v.fecha+'T12:00:00')) / 86400000) : '';
+    return `<tr>
+      <td style="white-space:nowrap;font-size:12px;color:var(--txt2);">${fd(v.fecha)}${v.yr && Number(v.yr)!==Number(D.cfg.tmp) ? ` <span class="utag">${v.yr}</span>` : ''}</td>
+      <td><strong>${e(v.cli)}</strong>${v.obs ? `<br><span style="font-size:11px;color:var(--txt3);">${e(v.obs.replace(/\s*\[Mixto:[^\]]*\]/g,''))}</span>` : ''}</td>
+      <td style="font-size:12px;max-width:220px;white-space:normal;">${e(v.items)}</td>
+      <td style="font-family:var(--fm);color:var(--red);font-weight:600;white-space:nowrap;">u$s ${v.debe.toFixed(0)}<br><span style="font-size:11px;color:var(--txt3);font-weight:400;">≈ $${Math.round(v.debe*D.cfg.dol).toLocaleString('es-AR')}</span></td>
+      <td style="font-family:var(--fm);">${dias}</td>
+      <td><button class="btn btn-p btn-sm" onclick="abrirPagoDeuda(${v.yr},${v._r})">Pagó</button></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--ok);padding:20px;">Nadie debe nada ✓</td></tr>`;
+  const pag = all.filter(v => v.fpago).sort((a,b) => b.fpago.localeCompare(a.fpago)).slice(0, 30);
+  document.getElementById('mor-pagados').innerHTML = pag.length ? pag.map(v => `<tr>
+      <td style="font-size:12px;color:var(--txt2);">${fd(v.fecha)}</td><td>${e(v.cli)}</td>
+      <td style="font-family:var(--fm);">u$s ${v.debe.toFixed(0)}</td><td style="font-size:12px;">${fd(v.fpago)}</td>
+      <td><span class="bx ${mpb(v.mpago)}">${e(v.mpago||'—')}</span></td></tr>`).join('')
+    : `<tr><td colspan="5" style="text-align:center;color:var(--txt3);padding:20px;">Todavía no hay pagos registrados</td></tr>`;
+}
+let _pagoDeuda = null;
+function abrirPagoDeuda(yr, r) {
+  const v = _morosos.find(x => Number(x.yr) === Number(yr) && x._r === r);
+  if (!v) return tst('No encontré esa venta, tocá ⟳ y probá de nuevo','err');
+  _pagoDeuda = v;
+  document.getElementById('pd-info').innerHTML = `<strong>${e(v.cli)}</strong> · venta del ${fd(v.fecha)}<br>Debe <strong>u$s ${v.debe.toFixed(0)}</strong> — ${e(v.items)}`;
+  document.getElementById('pdd-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('pdd-mp').selectedIndex = 0;
+  openM('m-pago-deuda');
+}
+async function guardarPagoDeuda() {
+  const v = _pagoDeuda; if (!v) return;
+  const f = document.getElementById('pdd-fecha').value;
+  const mp = document.getElementById('pdd-mp').value;
+  if (!f) return tst('Poné la fecha del pago','err');
+  try {
+    // Verificar que la fila sigue siendo la misma venta antes de escribir
+    const chk = await sG(`VENTAS_${v.yr}!A${v._r}:B${v._r}`);
+    const fila = (chk.values && chk.values[0]) || [];
+    if ((fila[1]||'') !== v.cli) { tst('La venta cambió de lugar en el Sheet. Tocá ⟳ y probá de nuevo.','err'); return; }
+    await asegurarEncabezadoDeuda(v.yr);
+    await sUraw(`VENTAS_${v.yr}!P${v._r}:Q${v._r}`, [[f, mp]]);
+    closeM('m-pago-deuda'); _pagoDeuda = null;
+    tst('Pago registrado ✓','ok');
+    await rMorosos();
+    if (Number(v.yr) === Number(D.year)) await lV();
+  } catch(ex) { tst('Error: '+ex.message,'err'); }
+}
+// Para el Balance: una venta con deuda cuenta solo lo cobrado en su fecha,
+// y el pago de la deuda entra como un cobro aparte en la fecha en que pagó.
+function aplicarDeudasBalance(ventas, dol) {
+  const out = [];
+  ventas.forEach(v => {
+    if (!(v.debe > 0) || v.mp === 'Regalo') { out.push(v); return; }
+    const deb = v.tusd > 0 ? Math.min(v.debe, v.tusd) : v.debe;
+    const f = v.tusd > 0 ? (v.tusd - deb) / v.tusd : 0;
+    out.push(Object.assign({}, v, {
+      tusd: v.tusd - deb, pp: v.pp * f, pex: v.pex * f, up: v.up * f,
+      itemsDetail: v.itemsDetail ? v.itemsDetail.map(it => Object.assign({}, it, { real: (parseFloat(it.real)||0) * f })) : null,
+      _debePendiente: v.fpago ? 0 : deb
+    }));
+    if (v.fpago) out.push({
+      _r: v._r, yr: v.yr, fecha: v.fpago, cli: v.cli + ' (pago de deuda)', tipo: v.tipo,
+      items: '(sin items)', obs: '', pp: deb * (v.dol || dol), up: deb, pex: 0, uex: 0, tusd: deb,
+      mp: v.mpago || 'Efectivo', dol: v.dol || dol, fact: '', itemsDetail: null, _cobroDeuda: true
+    });
+  });
+  return out;
+}
+
 async function rbal() {
   const dol = D.cfg.dol;
   const de   = document.getElementById('bal-de')?.value||'';
@@ -3951,8 +4101,10 @@ async function rbal() {
   document.getElementById('bal-ing').textContent = '...';
   const allVentas = await loadAllVentas();
 
+  // Deudas: lo que no se cobró no cuenta como ingreso; el pago entra en su fecha
+  const conDeudas = aplicarDeudasBalance(allVentas, dol);
   // Filter
-  let ventas = allVentas;
+  let ventas = conDeudas;
   if (de)    ventas = ventas.filter(v => v.fecha >= de);
   if (ha)    ventas = ventas.filter(v => v.fecha <= ha);
   if (tipo)  ventas = ventas.filter(v => v.tipo === tipo);
@@ -4142,13 +4294,14 @@ async function rbal() {
   const netaUsd = brutaUsd - gasUsd - regLoss;
 
   document.getElementById('bal-ing').textContent   = 'u$s '+ingUsd.toFixed(0);
-  document.getElementById('bal-ing-sub').textContent = `$${(ingPesos/1000).toFixed(0)}k ARS · ${ventasSinRegalo.length} ventas`;
+  const porCobrar = ventas.reduce((a,v) => a + (v._debePendiente||0), 0);
+  document.getElementById('bal-ing-sub').textContent = `$${(ingPesos/1000).toFixed(0)}k ARS · ${ventasSinRegalo.filter(v=>!v._cobroDeuda).length} ventas` + (porCobrar ? ` · u$s ${porCobrar.toFixed(0)} por cobrar` : '');
   document.getElementById('bal-gas').textContent   = 'u$s '+(gasUsd+regLoss).toFixed(0);
   document.getElementById('bal-bruta').textContent = 'u$s '+brutaUsd.toFixed(0);
   const netaEl = document.getElementById('bal-neta');
   netaEl.textContent = 'u$s '+netaUsd.toFixed(0);
   netaEl.style.color = netaUsd >= 0 ? 'var(--ok)' : 'var(--red)';
-  document.getElementById('bal-cnt').textContent   = base.length;
+  document.getElementById('bal-cnt').textContent   = base.filter(v => !v._cobroDeuda).length;
   document.getElementById('bal-cnt-sub').textContent = exclRegalo ? 'sin regalos' : 'total operaciones';
   document.getElementById('bal-reg').textContent   = regCount ? `−u$s ${regLoss.toFixed(0)}` : '0';
   document.getElementById('bal-reg').style.color   = regCount ? 'var(--red)' : 'var(--ok)';
@@ -4701,14 +4854,30 @@ async function saveVenta() {
 
   // Al editar se conservan las marcas de Facturado (AFIP) que ya tenía la venta
   const factPrev = prevV ? (prevV.fact || '') : '';
+  // DEBE: saldo pendiente en USD (vacío = el total de la venta)
+  let debeUsd = 0;
+  if (!esRegalo && document.getElementById('v-debe-chk')?.checked) {
+    const dU = parseFloat(document.getElementById('v-debe-usd')?.value) || 0;
+    const dA = parseFloat(document.getElementById('v-debe-ars')?.value) || 0;
+    debeUsd = dU || (dA ? dA / dol : 0) || tusd;
+    if (tusd > 0) debeUsd = Math.min(debeUsd, tusd);
+    debeUsd = +debeUsd.toFixed(2);
+  }
   const row = [fecha, cli, D.ptMode, iStr||'(sin items)', obs+monedaNote,
     Math.round(pp)||'', up||'', '', '', tusd.toFixed(2), mp, dol, factPrev, itemsJson];
 
   try {
     if (D.editVenta) {
       await sU(`VENTAS_${D.year}!A${D.editVenta}:N${D.editVenta}`, [row]);
+      // La columna O (Debe) se escribe aparte y solo si cambió: así editar nunca borra una deuda ni un pago
+      const debePrev = prevV ? (prevV.debe || 0) : 0;
+      if (Math.abs(debePrev - debeUsd) > 0.005) {
+        await asegurarEncabezadoDeuda(D.year);
+        await sUraw(`VENTAS_${D.year}!O${D.editVenta}:O${D.editVenta}`, [[debeUsd || '']]);
+      }
       tst('Venta actualizada ✓','ok');
     } else {
+      if (debeUsd > 0) { await asegurarEncabezadoDeuda(D.year); row.push(debeUsd, '', ''); }
       await sAraw(`VENTAS_${D.year}`, [row]);
       tst(esRegalo ? 'Regalo registrado 🎁 · stock actualizando...' : 'Venta guardada · stock actualizando...','ok');
     }
@@ -4720,6 +4889,7 @@ async function saveVenta() {
     await lV();
     await recalcStockFromVentas();
     await Promise.all([lProd(), lBotas()]);
+    actualizarMorosos();
     tst('Listo ✓','ok');
   } catch(ex) { tst('Error: '+ex.message,'err'); }
 }
@@ -4836,6 +5006,14 @@ function editVenta(rowNum) {
   }
   if (v.pp) document.getElementById('v-monto-pesos').value = v.pp;
   if (v.up) document.getElementById('v-monto-usd').value   = v.up;
+  // DEBE: cargar el saldo que tenía la venta
+  resetDebe();
+  if (v.debe > 0) {
+    document.getElementById('v-debe-chk').checked = true;
+    document.getElementById('v-debe-usd').value = v.debe;
+    toggleDebe();
+    if (v.fpago) document.getElementById('v-debe-info').textContent = `Ya pagó el ${fd(v.fpago)} (${v.mpago||'—'}).`;
+  }
   document.querySelector('#m-venta .mt').textContent = 'EDITAR VENTA';
   D.ic=''; D.iq='';
   document.getElementById('ip-q').value='';
@@ -5496,6 +5674,7 @@ function sv(name, btn) {
     rpr();
     renderPagos();
   }
+  if (name==='morosos') { rMorosos(); }
   if (name==='balance') {
     const de = document.getElementById('bal-de');
     const ha = document.getElementById('bal-ha');
@@ -5564,6 +5743,7 @@ function openVenta() {
   document.getElementById('v-dol').value = D.cfg.dol;
   D.sel = []; D.iq = ''; D.ic = '';
   quitarOpcionesTemporalesMp();
+  resetDebe();
   D_moneda = 'pesos';
   setMoneda('pesos', document.getElementById('mb-pesos'));
   document.getElementById('v-monto-pesos').value = '';
