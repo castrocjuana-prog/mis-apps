@@ -1688,7 +1688,7 @@ x2 gramaje 60</div>
     <div class="bal-card bal-card-blue"><div class="bal-lbl">Ingresos totales <button class="eye-btn" onclick="toggleEye('bal-ing-wrap',this)">👁</button></div><div id="bal-ing-wrap" class="hidden"><div class="bal-val" id="bal-ing">u$s 0</div><div class="bal-sub" id="bal-ing-sub">$0k ARS · 0 ventas</div></div></div>
     <div class="bal-card bal-card-red"><div class="bal-lbl">Gastos temporada <button class="eye-btn" onclick="toggleEye('bal-gas-wrap',this)">👁</button></div><div id="bal-gas-wrap" class="hidden"><div class="bal-val" id="bal-gas">u$s 0</div><div class="bal-sub">Alquiler · servicios · corrientes</div></div></div>
     <div class="bal-card bal-card-ok"><div class="bal-lbl">Ganancia bruta <button class="eye-btn" onclick="toggleEye('bal-bruta-wrap',this)">👁</button></div><div id="bal-bruta-wrap" class="hidden"><div class="bal-val" id="bal-bruta">u$s 0</div><div class="bal-sub">Venta − costo producto</div></div></div>
-    <div class="bal-card"><div class="bal-lbl">Ganancia neta <button class="eye-btn" onclick="toggleEye('bal-neta-wrap',this)">👁</button></div><div id="bal-neta-wrap" class="hidden"><div class="bal-val" id="bal-neta" style="color: var(--ok);">u$s 0</div><div class="bal-sub">Ingresos − gastos temporada</div></div></div>
+    <div class="bal-card"><div class="bal-lbl">Ganancia neta <button class="eye-btn" onclick="toggleEye('bal-neta-wrap',this)">👁</button></div><div id="bal-neta-wrap" class="hidden"><div class="bal-val" id="bal-neta" style="color: var(--ok);">u$s 0</div><div class="bal-sub">Bruta − gastos temporada − regalos</div></div></div>
     <div class="bal-card"><div class="bal-lbl">Ventas</div><div class="bal-val" id="bal-cnt">0</div><div class="bal-sub" id="bal-cnt-sub">total operaciones</div></div>
     <div class="bal-card"><div class="bal-lbl">Regalos</div><div class="bal-val" id="bal-reg" style="color: var(--ok);">0</div><div class="bal-sub" id="bal-reg-sub">0 regalos</div></div>
     <div class="bal-card" style="border-left:3px solid var(--warn);"><div class="bal-lbl" style="color:var(--warn);">Total inversión <button class="eye-btn" onclick="toggleEye('bal-inv-wrap',this)">👁</button></div><div id="bal-inv-wrap" class="hidden"><div class="bal-val" id="bal-inv" style="color:var(--warn);">u$s 0</div><div class="bal-sub">Stock USA/Europa · Obra · Infraestructura</div></div></div>
@@ -1747,6 +1747,14 @@ x2 gramaje 60</div>
     <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;box-shadow:var(--sh);max-width:360px;">
       <div style="font-size:12px;color:var(--txt2);margin-bottom:12px;">Sheet ID: <span style="font-family:var(--fm);color:var(--red);font-size:11px;" id="cfg-sid">1WTHvO_FtxLgRYFN...</span></div>
       <button class="btn btn-d btn-sm" onclick="showSetup()">Cambiar credenciales</button>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;">
+    <div class="st" style="font-size:16px;margin-bottom:12px;">CIERRE DE TEMPORADA</div>
+    <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;box-shadow:var(--sh);max-width:560px;">
+      <div id="cierre-info" style="font-size:12px;color:var(--txt2);margin-bottom:12px;line-height:1.5;">Temporada activa: —</div>
+      <button class="btn btn-d btn-sm" id="btn-cerrar-temp" onclick="cerrarTemporada()">Cerrar temporada</button>
     </div>
   </div>
 </div>
@@ -2434,7 +2442,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (c && sid) {
     D.cr = JSON.parse(c); D.sid = sid;
     document.body.classList.add('ready');
-    loadCfg().then(() => { renderYearBtns(); loadAll().then(() => rg()); });
+    loadCfg().then(() => { aplicarTemporadaActiva(); renderYearBtns(); loadAll().then(() => rg()); });
   }
   const today = new Date().toISOString().split('T')[0];
   ['v-fecha','g-f','pv-f','bt-f','pd-f'].forEach(id => {
@@ -2724,7 +2732,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: 2026-10-21 paso 1 — editar venta conserva datos ✓');
+  console.log('OBR build: 2026-10-21 paso 3 — ganancia neta con costo ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -2953,7 +2961,7 @@ function rv() {
   if (ha) v = v.filter(x => x.fecha <= ha);
   if (mp) v = v.filter(x => x.mp === mp || x.mp.startsWith(mp+' '));
   if (!v.length) {
-    tb.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-i">🎿</div><p>${D.year===2026?'Sin ventas. La temporada 2026 arranca en Mayo!':'Sin ventas cargadas para '+D.year+'. Usá "↑ Importar histórico" para cargar los datos.'}</p></div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="10"><div class="empty"><div class="empty-i">🎿</div><p>${Number(D.year)===Number(D.cfg.tmp)?'Sin ventas todavía en la temporada '+D.year+'.':'Sin ventas cargadas para '+D.year+'. Usá "↑ Importar histórico" para cargar los datos.'}</p></div></td></tr>`;
     updSt([]); return;
   }
   tb.innerHTML = v.map(x => {
@@ -3889,6 +3897,47 @@ async function loadAllVentas() {
   return allVentas;
 }
 
+// Costo total (USD) de un ítem vendido: cantidad × costo unitario.
+// Botas: busca la fila exacta por código + talle; si no, por marca + modelo + talle.
+// Productos: por nombre exacto o nombre base (sin "— Freza/Recambio/Suelta"). Servicios: 0.
+function costoItemVenta(it) {
+  const q = it.q || 1;
+  const n = String(it.n || '').trim();
+  if (!n || it.cat === 'Servicios') return 0;
+  const sinTildes = x => String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const nl = n.toLowerCase();
+  const nn = sinTildes(n);
+  const base = nn.replace(/\s*[—–-]+\s*(recambio|freza|suelta)\s*$/i, '').trim();
+  const prod = D.productos.find(p => { const pn = sinTildes(p.n); return pn === nn || pn === base; });
+  if (prod && it.cat !== 'Botas') return (prod.cu || 0) * q;
+  // Botas
+  let bota = null;
+  if (it.codigo && it.talle) {
+    const m = D.botas.filter(b => b.codigo === it.codigo && String(b.talle) === String(it.talle));
+    if (m.length === 1) bota = m[0];
+  }
+  if (!bota) {
+    const mm = n.match(/^(.*?)\s*(\d\d(?:\.5)?)\s*\((Angosta|Media|Ancha)\)$/i);
+    if (mm) {
+      const modelo = mm[1].toLowerCase().trim(), talle = mm[2];
+      bota = D.botas.find(b => `${b.marca} ${b.mod}`.toLowerCase().trim() === modelo && String(b.talle) === talle) || null;
+    }
+  }
+  if (!bota) bota = D.botas.find(b => b.mod && nameMatchesBota(nl, b.marca, b.mod, b.talle)) || null;
+  if (bota) return (bota.cu || 0) * q;
+  if (prod) return (prod.cu || 0) * q;
+  return 0;
+}
+// Ítems de una venta: usa el detalle (col N) si existe; si no, el texto de Items
+function itemsDeVentaParaCosto(v) {
+  if (v.itemsDetail && v.itemsDetail.length) return v.itemsDetail;
+  if (!v.items || v.items === '(sin items)') return [];
+  return v.items.split(',').map(raw => {
+    const t = raw.trim(); const m = t.match(/^(\d+)x\s+(.+)$/i);
+    return { n: m ? m[2].trim() : t, q: m ? parseInt(m[1]) : 1, cat: '' };
+  }).filter(x => x.n);
+}
+
 async function rbal() {
   const dol = D.cfg.dol;
   const de   = document.getElementById('bal-de')?.value||'';
@@ -4052,21 +4101,15 @@ async function rbal() {
         const totalUsd = parts.reduce((s,p)=>s+p.usd,0);
         const factor = totalUsd > 0 ? matchUsd/totalUsd : 0;
         // Calculate full ganancia then scale
-        let fullGan = 0;
-        if (v.itemsDetail) {
-          fullGan = v.itemsDetail.reduce((s,it) => {
-            const prod = D.productos.find(p=>p.n===it.n);
-            const bota = !prod && D.botas.find(b=>it.n.includes(b.mod));
-            const cu = (prod?.cu||bota?.cu||0)*it.q;
-            return s + it.real - cu;
-          }, 0);
-        } else {
-          fullGan = getVentaUsd(v);
-        }
+        const fullGan = (v.tusd > 0 ? v.tusd : 0) - itemsDeVentaParaCosto(v).reduce((s,it) => s + costoItemVenta(it), 0);
         return a + fullGan * factor;
       }
     }
     // Use itemsDetail if available
+    // Sin filtro de sección: ganancia = total cobrado − costo de todo lo vendido (igual base que "Ingresos")
+    if (v.itemsDetail && !itemF) {
+      return a + v.tusd - v.itemsDetail.reduce((s, it) => s + costoItemVenta(it), 0);
+    }
     if (v.itemsDetail) {
       const relevantItems = itemF ? (() => {
         const catMap = {'plantilla':'Plantillas','booster':'Boosters','plaquita':'Lifters','media':'Medias','bota':'Botas'};
@@ -4074,53 +4117,29 @@ async function rbal() {
         return tc ? v.itemsDetail.filter(it => it.cat === tc)
                   : v.itemsDetail.filter(it => it.cat === 'Servicios' && it.n.toLowerCase().includes(itemF));
       })() : v.itemsDetail;
-      return a + relevantItems.reduce((s, it) => {
-        const prod = D.productos.find(p => p.n === it.n);
-        const bota = !prod && D.botas.find(b => it.n.includes(b.mod));
-        const cu = (prod?.cu || bota?.cu || 0) * it.q;
-        return s + it.real - cu;
-      }, 0);
+      return a + relevantItems.reduce((s, it) => s + (parseFloat(it.real)||0) - costoItemVenta(it), 0);
     }
     // Fallback for old ventas
     if (!v.items || v.items === '(sin items)') return a + v.tusd;
-    // Try to calculate cost from items
-    let costTotal = 0;
-    let matched = false;
-    v.items.split(',').forEach(raw => {
-      const trimmed = raw.trim();
-      const m = trimmed.match(/^(\d+)x\s+(.+)$/i);
-      const qty = m ? parseInt(m[1]) : 1;
-      const name = (m ? m[2] : trimmed).toLowerCase().trim();
-      const prod = D.productos.find(p => p.n.toLowerCase() === name ||
-        name.includes(p.n.toLowerCase()) || p.n.toLowerCase().includes(name));
-      const bota = !prod && D.botas.find(b =>
-        name.includes(b.mod.toLowerCase()) || name.includes(b.marca.toLowerCase()));
-      const cu = prod?.cu || bota?.cu || 0;
-      if (cu) { costTotal += cu * qty; matched = true; }
-    });
-    return a + (matched ? v.tusd - costTotal : v.tusd);
+    // Venta vieja sin detalle: total cobrado menos el costo de los ítems del texto
+    const costTotal = itemsDeVentaParaCosto(v).reduce((s, it) => s + costoItemVenta(it), 0);
+    return a + v.tusd - costTotal;
   }, 0);
 
   // Regalos — costo real de los productos regalados (desde itemsDetail + D.productos)
   // Servicios regalados tienen costo 0 (solo tiempo)
-  function costoDeItem(it) {
-    if (it.cat === 'Servicios') return 0;
-    // Strip suffixes like "— Recambio", "— Freza", "— Suelta" to find base product
-    const baseName = it.n.replace(/\s*[—–-]+\s*(Recambio|Freza|Suelta)\s*$/i, '').trim();
-    const prod = D.productos.find(p => p.n === it.n || p.n === baseName);
-    const bota = !prod ? D.botas.find(b => it.n.includes(b.mod)) : null;
-    return (prod?.cu || bota?.cu || 0) * (it.q || 1);
-  }
+  const costoDeItem = it => costoItemVenta(it);
   const regLoss = regalos.reduce((a, v) => {
     if (v.itemsDetail && v.itemsDetail.length) {
       return a + v.itemsDetail.reduce((s, it) => s + costoDeItem(it), 0);
     }
-    return a + Math.abs(v.tusd || 0);
+    // Regalo sin detalle: costo de los ítems del texto
+    return a + itemsDeVentaParaCosto(v).reduce((s, it) => s + costoDeItem(it), 0);
   }, 0);
   const regCount = regalos.length;
 
-  // Regalos se suman a gastos de temporada (opción B)
-  const netaUsd = ingUsd - gasUsd - regLoss;
+  // Ganancia neta = ganancia bruta (ventas − costo de lo vendido) − gastos de temporada − regalos
+  const netaUsd = brutaUsd - gasUsd - regLoss;
 
   document.getElementById('bal-ing').textContent   = 'u$s '+ingUsd.toFixed(0);
   document.getElementById('bal-ing-sub').textContent = `$${(ingPesos/1000).toFixed(0)}k ARS · ${ventasSinRegalo.length} ventas`;
@@ -6182,14 +6201,137 @@ async function agregarAnio() {
 // ─────────────────────────────────────────
 // YEAR SELECTOR
 // ─────────────────────────────────────────
+
+// La app abre en la temporada activa guardada en CONFIG (fila "temporada")
+function aplicarTemporadaActiva() {
+  const tmp = Number(D.cfg.tmp) || new Date().getFullYear();
+  D.year = tmp;
+  const t = document.getElementById('ventas-title'); if (t) t.textContent = `VENTAS ${tmp}`;
+  const nv = document.getElementById('btn-nueva-venta'); if (nv) nv.style.display = '';
+  const imp = document.getElementById('btn-importar'); if (imp) imp.style.display = 'none';
+  const rei = document.getElementById('btn-reimportar'); if (rei) rei.style.display = 'none';
+  renderCierreInfo();
+}
+function renderCierreInfo() {
+  const el = document.getElementById('cierre-info'); if (!el) return;
+  const tmp = Number(D.cfg.tmp);
+  el.innerHTML = `Temporada activa: <strong>${tmp}</strong>.<br>`
+    + `Al cerrarla: se guarda una foto del stock en la pestaña <strong>STOCK_CIERRE_${tmp}</strong>, `
+    + `el stock actual pasa a ser el stock inicial de ${tmp+1}, se crea <strong>VENTAS_${tmp+1}</strong> `
+    + `y la app pasa a abrir en ${tmp+1}. Las ventas de ${tmp} no se tocan.`;
+}
+async function sheetTitles() {
+  const t = await getT();
+  const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${D.sid}?fields=sheets.properties.title`, {headers:{Authorization:`Bearer ${t}`}});
+  if (!r.ok) throw new Error('No se pudo leer la lista de pestañas');
+  const dd = await r.json();
+  return (dd.sheets||[]).map(s => s.properties.title);
+}
+// Guarda (o actualiza) una clave de CONFIG buscando su fila, sin depender de una fila fija
+async function setCfgValue(clave, valor) {
+  const d = await sG('CONFIG!A1:B50');
+  const rows = d.values || [];
+  const idx = rows.findIndex(r => (r[0]||'').trim() === clave);
+  const fila = idx >= 0 ? idx + 1 : rows.length + 1;
+  await sUraw(`CONFIG!A${fila}:B${fila}`, [[clave, String(valor)]]);
+}
+// ─────────────────────────────────────────
+// CERRAR TEMPORADA
+// 1) foto del stock en STOCK_CIERRE_{año}  2) verifica la foto
+// 3) StockActual → StockInicial en BOTAS y PRODUCTOS  4) verifica
+// 5) crea VENTAS_{año+1}  6) CONFIG temporada = año+1
+// Si algo falla antes del paso 3, no se modificó nada.
+// ─────────────────────────────────────────
+async function cerrarTemporada() {
+  const tmp = Number(D.cfg.tmp), nuevo = tmp + 1;
+  const snap = `STOCK_CIERRE_${tmp}`;
+  const pad = (r, n) => { const x = [...(r||[])]; while (x.length < n) x.push(''); return x.slice(0, n); };
+  const trim = r => { const x = [...(r||[])].map(v => v==null ? '' : String(v)); while (x.length && x[x.length-1]==='') x.pop(); return x; };
+  const num = v => (v===''||v==null) ? '' : (isNaN(Number(v)) ? v : Number(v));
+  let titles;
+  try { titles = await sheetTitles(); } catch(e) { tst('Error: '+e.message,'err'); return; }
+  if (titles.includes(snap)) { tst(`La temporada ${tmp} ya está cerrada (existe la pestaña ${snap}).`,'err'); return; }
+  if (!confirm(`¿Cerrar la temporada ${tmp}?\n\n• Se guarda una foto del stock en ${snap}\n• El stock actual pasa a ser el stock inicial de ${nuevo}\n• Se crea VENTAS_${nuevo} y la app pasa a abrir en ${nuevo}\n• Las ventas de ${tmp} NO se tocan\n\nAntes de seguir, cerrá el Google Sheet si lo tenés abierto.`)) return;
+  const conf = prompt(`Para confirmar, escribí:  CERRAR ${tmp}`);
+  if ((conf||'').trim().toUpperCase() !== `CERRAR ${tmp}`) { tst('Cierre cancelado','err'); return; }
+  spin(true);
+  const btn = document.getElementById('btn-cerrar-temp'); if (btn) btn.disabled = true;
+  try {
+    // 1) Leer BOTAS y PRODUCTOS frescos del Sheet (no de la memoria de la app)
+    tst('1/6 Leyendo stock del Sheet...');
+    const bot = ((await sG('BOTAS!A1:P1000')).values || []).map(trim);
+    const pro = ((await sG('PRODUCTOS!A1:T1000')).values || []).map(trim);
+    if (bot.length < 2 || pro.length < 2) throw new Error('No se pudo leer BOTAS o PRODUCTOS. No se modificó nada.');
+    // 2) Foto del stock
+    tst(`2/6 Guardando foto en ${snap}...`);
+    await mkSh(snap);
+    if (!(await sheetTitles()).includes(snap)) throw new Error(`No se pudo crear ${snap}. No se modificó nada.`);
+    const foto = [
+      [`Foto del stock al cierre de la temporada ${tmp}`, new Date().toISOString()],
+      [''],
+      ['BOTAS'], ...bot.map(r => pad(r, 16)),
+      [''],
+      ['PRODUCTOS'], ...pro.map(r => pad(r, 20))
+    ].map(r => pad(r, 20));
+    await sUraw(`${snap}!A1:T${foto.length}`, foto);
+    // Verificar la foto fila por fila antes de tocar nada
+    const leida = ((await sG(`${snap}!A1:T${foto.length}`)).values || []).map(trim);
+    const esperada = foto.map(trim);
+    for (let i = 2; i < esperada.length; i++) {
+      if (JSON.stringify(leida[i]||[]) !== JSON.stringify(esperada[i])) {
+        throw new Error(`La foto del stock no coincide en la fila ${i+1}. No se modificó el stock; revisá la pestaña ${snap}.`);
+      }
+    }
+    // 3) StockActual → StockInicial
+    tst('3/6 Pasando stock actual a stock inicial...');
+    const tieneNombreB = r => (r[0]||'') !== '' || (r[1]||'') !== '';
+    const iniB = bot.slice(1).map(r => [ tieneNombreB(r) ? (parseInt(r[4])||0) : num(r[3]) ]);
+    const iniP = pro.slice(1).map(r => [ (r[0]||'') !== '' ? (parseInt(r[5])||0) : num(r[4]) ]);
+    await sUraw(`BOTAS!D2:D${bot.length}`, iniB);
+    await sUraw(`PRODUCTOS!E2:E${pro.length}`, iniP);
+    // 4) Verificar
+    tst('4/6 Verificando stock...');
+    const bot2 = ((await sG('BOTAS!A1:P1000')).values || []).map(trim);
+    const pro2 = ((await sG('PRODUCTOS!A1:T1000')).values || []).map(trim);
+    const malB = bot2.slice(1).filter(r => tieneNombreB(r) && (parseInt(r[3])||0) !== (parseInt(r[4])||0));
+    const malP = pro2.slice(1).filter(r => (r[0]||'') !== '' && (parseInt(r[4])||0) !== (parseInt(r[5])||0));
+    if (malB.length || malP.length || bot2.length !== bot.length || pro2.length !== pro.length) {
+      throw new Error(`El stock no quedó igual en ${malB.length} botas y ${malP.length} productos. La foto está en ${snap}. No sigas cargando ventas y avisá.`);
+    }
+    // 5) VENTAS del año nuevo
+    tst(`5/6 Creando VENTAS_${nuevo}...`);
+    if (!(await sheetTitles()).includes(`VENTAS_${nuevo}`)) {
+      await mkSh(`VENTAS_${nuevo}`);
+      await sU(`VENTAS_${nuevo}!A1:N1`, [['Fecha','Cliente','TipoCliente','Items','Observación','PesosItems','USDItems','PesosExtra','USDExtra','TotalUSD','MedioPago','DolarDia','Facturado','ItemsDetalle']]);
+    }
+    if (!(D.years||[]).includes(nuevo)) { D.years = [...(D.years||[]), nuevo].sort((a,b)=>b-a); }
+    await setCfgValue('years', JSON.stringify(D.years));
+    // 6) Temporada activa
+    tst('6/6 Cambiando temporada activa...');
+    await setCfgValue('temporada', nuevo);
+    D.cfg.tmp = nuevo;
+    aplicarTemporadaActiva();
+    renderYearBtns();
+    await Promise.all([lV(), lProd(), lBotas()]);
+    tst(`Temporada ${tmp} cerrada ✓ — la app ahora abre en ${nuevo}`, 'ok');
+    alert(`Temporada ${tmp} cerrada.\n\nFoto del stock: pestaña ${snap}\nVentas nuevas: VENTAS_${nuevo}\nLas ventas de ${tmp} siguen en VENTAS_${tmp}.`);
+  } catch(e) {
+    console.error(e);
+    tst('Error en el cierre: ' + e.message, 'err');
+    alert('El cierre se detuvo:\n\n' + e.message);
+  }
+  if (btn) btn.disabled = false;
+  spin(false);
+}
+
 async function setYear(yr, btn) {
   if(!D.years)D.years=[2026,2025,2024,2023];
   D.year = yr;
   document.querySelectorAll('.yr-btn').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
   document.getElementById('ventas-title').textContent = `VENTAS ${yr}`;
-  const currentYear = new Date().getFullYear();
-  const isCurrent = yr === currentYear;
+  // "Nueva venta" solo en la temporada activa (CONFIG → temporada), no según el año del calendario
+  const isCurrent = Number(yr) === Number(D.cfg.tmp);
   document.getElementById('btn-nueva-venta').style.display = isCurrent ? '' : 'none';
   document.getElementById('btn-importar').style.display = !isCurrent ? '' : 'none';
   document.getElementById('btn-reimportar').style.display = !isCurrent ? '' : 'none';
