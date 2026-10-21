@@ -2724,7 +2724,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: bulk-price-increase-marca ✓');
+  console.log('OBR build: 2026-10-21 paso 1 — editar venta conserva datos ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -4645,9 +4645,26 @@ async function saveVenta() {
     return '';
   })();
 
+  // Venta original (solo al editar): de acá se conservan Facturado (col M) y el detalle de ítems (col N)
+  const prevV = D.editVenta ? D.ventas.find(x => x._r === D.editVenta) : null;
+
   // Build items detail JSON for column N (proportional pricing)
   let itemsJson = '';
-  if (D.sel.length) {
+  if (!D.sel.length && prevV && prevV.itemsDetail && prevV.itemsDetail.length) {
+    // Edición sin elegir ítems nuevos: se conserva el detalle que ya tenía la venta.
+    // Si cambió el total, los montos de cada ítem se reparten en la misma proporción.
+    const det = prevV.itemsDetail;
+    const sumReal  = det.reduce((a,it) => a + (parseFloat(it.real)||0), 0);
+    const sumLista = det.reduce((a,it) => a + (parseFloat(it.lista)||0), 0);
+    itemsJson = JSON.stringify(det.map(it => {
+      let real;
+      if (esRegalo) real = 0;
+      else if (sumReal > 0) real = +((parseFloat(it.real)||0) * tusd / sumReal).toFixed(2);
+      else if (sumLista > 0) real = +((parseFloat(it.lista)||0) * tusd / sumLista).toFixed(2);
+      else real = parseFloat(it.real)||0;
+      return Object.assign({}, it, { real });
+    }));
+  } else if (D.sel.length) {
     const listaTotal = D.sel.reduce((a,i) => a + i.price * i.q, 0);
     const factor = (!esRegalo && listaTotal > 0) ? tusd / listaTotal : 0;
     const itemsDetail = D.sel.map(i => ({
@@ -4663,8 +4680,10 @@ async function saveVenta() {
     itemsJson = JSON.stringify(itemsDetail);
   }
 
+  // Al editar se conservan las marcas de Facturado (AFIP) que ya tenía la venta
+  const factPrev = prevV ? (prevV.fact || '') : '';
   const row = [fecha, cli, D.ptMode, iStr||'(sin items)', obs+monedaNote,
-    Math.round(pp)||'', up||'', '', '', tusd.toFixed(2), mp, dol, '', itemsJson];
+    Math.round(pp)||'', up||'', '', '', tusd.toFixed(2), mp, dol, factPrev, itemsJson];
 
   try {
     if (D.editVenta) {
@@ -4705,7 +4724,13 @@ function nameMatchesBota(itemName, marca, mod, talle) {
   return new RegExp('(?:^|[\\s,])'+t+'(?:$|[\\s,])','i').test(itemName);
 }
 async function recalcStockFromVentas() {
-  const soldByName = {};      // fallback: nombre en minúscula -> cantidad (ventas viejas sin itemsDetail, o items sin código)
+  // Seguridad: el stock solo se recalcula con las ventas de la temporada activa (CONFIG → temporada).
+  // Si se edita o borra una venta de otro año, el stock no se toca.
+  if (Number(D.year) !== Number(D.cfg.tmp)) {
+    console.log(`Stock no recalculado: año ${D.year} no es la temporada activa (${D.cfg.tmp})`);
+    return;
+  }
+  const soldByName = {};     // fallback: nombre en minúscula -> cantidad (ventas viejas sin itemsDetail, o items sin código)
   const soldByCodTalle = {};  // preferido: "código|talle" -> cantidad (el código solo NO alcanza, se repite entre talles del mismo modelo)
   D.ventas.forEach(v => {
     if (v.itemsDetail && v.itemsDetail.length) {
@@ -4770,20 +4795,25 @@ function editVenta(rowNum) {
   siEmpty.style.display = 'block';
   document.getElementById('si-list').innerHTML = '';
   document.getElementById('tot-prev').style.display = 'none';
-  const savedMpParsed = parseMpCuotas(v.mp||'');
-  if(v.obs&&v.obs.includes('Mixto:')){
+  // Limpiar montos de una edición anterior para que no se cuelen en esta venta
+  ['v-monto-pesos','v-monto-usd','v-mixto-monto1','v-mixto-monto2'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  quitarOpcionesTemporalesMp();
+  const mixtoParts = parseMixtoNota(v.obs);
+  if (mixtoParts && mixtoParts.length) {
+    // Venta mixta: cargar las dos partes tal cual estaban (monto, moneda y medio de pago)
     D_moneda='mixto'; setMoneda('mixto',document.getElementById('mb-mixto'));
+    [1,2].forEach(n => {
+      const p = mixtoParts[n-1];
+      if (!p) { setMixtoMoneda(n, n===1?'ars':'usd'); return; }
+      setMixtoMoneda(n, p.mon);
+      document.getElementById('v-mixto-monto'+n).value = p.monto;
+      seleccionarMp('v-mixto-mp'+n, p.mp);
+    });
   } else {
     D_moneda='pesos'; setMoneda('pesos',document.getElementById('mb-pesos'));
-    const mpEl=document.getElementById('v-mp');
-    if(mpEl) for(let i=0;i<mpEl.options.length;i++){if(mpEl.options[i].value===savedMpParsed.mp){mpEl.selectedIndex=i;break;}}
-    if (savedMpParsed.mp==='Clover') {
-      onMpSelChange('v-mp');
-      const cEl = document.getElementById('v-mp-cuotas');
-      if (cEl) cEl.value = String(savedMpParsed.cuotas);
-    } else {
-      onMpSelChange('v-mp');
-    }
+    // Si el medio de pago guardado no está en la lista (ej. "Macro Coco usd"), se agrega
+    // solo para esta edición: así guardar no lo cambia sin querer.
+    seleccionarMp('v-mp', v.mp||'Efectivo');
   }
   if (v.pp) document.getElementById('v-monto-pesos').value = v.pp;
   if (v.up) document.getElementById('v-monto-usd').value   = v.up;
@@ -5314,6 +5344,49 @@ function parseMpCuotas(raw) {
   if (m) return {mp:'Clover', cuotas: m[1]?parseInt(m[1]):1};
   return {mp:raw, cuotas:1};
 }
+// Selecciona un medio de pago guardado en un <select>. Si no existe en la lista,
+// lo agrega como opción temporal (marcada data-tmp) para no cambiarlo al guardar.
+function seleccionarMp(selId, raw) {
+  const el = document.getElementById(selId);
+  if (!el) return;
+  const pm = parseMpCuotas(raw||'');
+  let val = pm.mp || 'Efectivo';
+  let found = [...el.options].some(o => o.value === val);
+  if (!found) {
+    const o = document.createElement('option');
+    o.value = raw; o.textContent = raw; o.dataset.tmp = '1';
+    el.appendChild(o); val = raw;
+  }
+  el.value = val;
+  onMpSelChange(selId);
+  if (val === 'Clover') {
+    const cEl = document.getElementById(selId+'-cuotas');
+    if (cEl) cEl.value = String(pm.cuotas||1);
+  }
+}
+function quitarOpcionesTemporalesMp() {
+  ['v-mp','v-mp-usd','v-mixto-mp1','v-mixto-mp2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) [...el.querySelectorAll('option[data-tmp]')].forEach(o => o.remove());
+  });
+}
+// Lee la última nota [Mixto: ...] de la observación y devuelve las partes
+// [{monto, mon:'ars'|'usd', mp}] para volver a cargarlas en el formulario al editar.
+function parseMixtoNota(obs) {
+  if (!obs) return null;
+  const all = [...obs.matchAll(/\[Mixto: (.+?)\]/g)];
+  if (!all.length) return null;
+  return all[all.length-1][1].split(' + ').map(part => {
+    const mpM = part.match(/\/\s*(.+)$/);
+    const mp = mpM ? mpM[1].trim() : 'Efectivo';
+    if (part.includes('u$s')) {
+      const n = part.match(/u\$s\s*([\d.,]+)/);
+      return { mon:'usd', monto: n ? parseFloat(n[1].replace(',','.')) : 0, mp };
+    }
+    const n = part.match(/([\d.,]+)\s*ARS/);
+    return { mon:'ars', monto: n ? parseFloat(n[1].replace(/\./g,'').replace(',','.')) : 0, mp };
+  });
+}
 function getMpValue() {
   if (D_moneda==='pesos')  return mpConCuotas('v-mp');
   if (D_moneda==='usd')    return mpConCuotas('v-mp-usd');
@@ -5471,6 +5544,7 @@ function openVenta() {
   document.getElementById('v-fecha').value = new Date().toISOString().split('T')[0];
   document.getElementById('v-dol').value = D.cfg.dol;
   D.sel = []; D.iq = ''; D.ic = '';
+  quitarOpcionesTemporalesMp();
   D_moneda = 'pesos';
   setMoneda('pesos', document.getElementById('mb-pesos'));
   document.getElementById('v-monto-pesos').value = '';
