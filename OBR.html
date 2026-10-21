@@ -210,6 +210,23 @@ tbody tr:hover td{background:var(--s2)}
 .bal-card-ok .bal-val{color:var(--ok)}
 .bal-card-red .bal-val{color:var(--red)}
 .bal-card-blue .bal-val{color:var(--info)}
+/* RESUMEN (estilo documento) */
+.rdoc{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);box-shadow:var(--sh);max-width:880px;margin:0 auto;padding:36px 44px;color:#1f1e1c;font-size:15px;line-height:1.55}
+.rdoc h1{font-size:28px;font-weight:600;margin:0 0 6px;letter-spacing:-.2px}
+.rdoc .rd-date{color:#77756f;font-size:13px;margin-bottom:18px}
+.rdoc h2{font-size:21px;font-weight:600;margin:30px 0 10px}
+.rdoc h3{font-size:16px;font-weight:600;margin:22px 0 8px}
+.rdoc p{margin:0 0 12px}
+.rdoc .rd-muted{color:#77756f;font-size:13px}
+.rdoc table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:14px}
+.rdoc th{text-align:left;font-weight:600;padding:8px 10px;border-bottom:1px solid #d9d7d0;background:#f6f5f2;text-transform:none;letter-spacing:0;font-size:14px;color:#1f1e1c;font-family:inherit}
+.rdoc td{font-family:inherit;color:#1f1e1c}
+.rdoc td{padding:7px 10px;border-bottom:1px solid #ecebe6}
+.rdoc td.n,.rdoc th.n{text-align:left;font-variant-numeric:tabular-nums}
+.rdoc tr.tot td{font-weight:700}
+.rdoc .rd-chart{border:1px solid #ecebe6;border-radius:10px;padding:12px 14px 4px;margin:10px 0 6px}
+.rdoc .rd-cap{color:#77756f;font-size:12px;margin:0 0 14px}
+@media (max-width:700px){.rdoc{padding:20px 16px}}
 /* PROVEEDORES */
 .pvc{background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:14px 16px;margin-bottom:10px;box-shadow:var(--sh)}
 .pvh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
@@ -286,6 +303,7 @@ body.ready #app{display:block}
   <button class="nb nb-private" onclick="sv('provs',this)">Proveedores</button>
   <button class="nb nb-private" onclick="sv('morosos',this)">Morosos <span id="nb-morosos-cnt" style="display:none;background:var(--red);color:#fff;border-radius:10px;padding:0 6px;font-size:10px;font-weight:700;margin-left:4px;"></span></button>
   <button class="nb nb-private" onclick="sv('balance',this)">Balance</button>
+  <button class="nb nb-private" onclick="sv('resumen',this)">Resumen</button>
   <button class="nb nb-mostrador" id="btn-mostrador" onclick="toggleMostrador()" title="Modo mostrador — oculta precios y pestañas internas">🔓 Mostrador</button>
 </nav>
 
@@ -1613,6 +1631,16 @@ x2 gramaje 60</div>
 </div>
 
 <!-- BALANCE -->
+<!-- RESUMEN DE VENTAS (mismo formato que el documento "Resumen de ventas") -->
+<div id="view-resumen" class="view">
+  <div class="sh"><div class="st">RESUMEN DE VENTAS</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt2);">Temporada
+      <select id="res-anio" class="fin2" style="padding:6px 10px;" onchange="rResumen()"></select>
+    </div>
+  </div>
+  <div class="rdoc" id="res-doc"><p class="rd-muted">Cargando...</p></div>
+</div>
+
 <!-- MOROSOS -->
 <div id="view-morosos" class="view">
   <div class="sh"><div class="st">MOROSOS</div><div id="mor-total" style="font-family:var(--fm);font-size:14px;color:var(--red);font-weight:600;"></div></div>
@@ -1727,13 +1755,6 @@ x2 gramaje 60</div>
         <tbody id="bal-top"><tr><td colspan="3" style="text-align:center;color:var(--txt3);padding:20px;">Sin datos</td></tr></tbody>
       </table></div></div>
     </div>
-  </div>
-
-  <!-- RESUMEN DE LA TEMPORADA -->
-  <div style="margin-top:24px;">
-    <div class="st" style="font-size:16px;margin-bottom:4px;">RESUMEN DE VENTAS</div>
-    <p style="font-size:12px;color:var(--txt2);margin-bottom:14px;" id="res-sub">Según las fechas Desde / Hasta de arriba. Las unidades incluyen regalos; los USD no.</p>
-    <div id="res-body"><div style="color:var(--txt3);font-size:13px;">Cargando...</div></div>
   </div>
 
   <div style="margin-top:20px;">
@@ -2778,7 +2799,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: 2026-10-21 paso 5 — resumen de ventas en Balance ✓');
+  console.log('OBR build: 2026-10-21 paso 5b — pestaña Resumen ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -4407,14 +4428,13 @@ async function rbal() {
 
   // AFIP section
   rAfip(allVentas);
-  try { rResumenVentas(allVentas, de, ha); } catch(e) { console.error('resumen', e); }
 }
 
 // ─────────────────────────────────────────
 // RESUMEN DE VENTAS (solo lectura, no escribe nada en el Sheet)
 // ─────────────────────────────────────────
 function rResumenVentas(allVentas, de, ha) {
-  const cont = document.getElementById('res-body'); if (!cont) return;
+  const cont = document.getElementById('res-doc'); if (!cont) return;
   const sinT = x => String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
   const BOOT = /^(.*?)\s*(\d\d(?:\.5)?)\s*\((Angosta|Media|Ancha)\)$/i;
   const servN = new Map((D.servicios||[]).map(x => [sinT(x.n), x]));
@@ -4467,58 +4487,97 @@ function rResumenVentas(allVentas, de, ha) {
   });
   const filas = [...agg.values()];
   const f0 = n => Math.round(n).toLocaleString('es-AR');
-  if (!filas.length) { cont.innerHTML = '<div style="color:var(--txt3);font-size:13px;">Sin ventas en el período.</div>'; return; }
-  const tabla = (head, rows) => `<div class="tw" style="margin-bottom:16px;"><div class="ts"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div></div>`;
-  const sub = t => `<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--txt2);margin:18px 0 8px;">${t}</div>`;
-  // 1) Totales por categoría
-  const cats = ['Botas','Plantillas','Servicios','Lifters','Medias','Boosters','Otros'];
-  const porCat = cats.map(c => { const r = filas.filter(x => x.cat === c); return { c, u: r.reduce((a,x)=>a+x.u,0), usd: r.reduce((a,x)=>a+x.usd,0) }; }).filter(x => x.u);
-  let html = sub('Totales por categoría') + tabla(['Categoría','Unidades','USD','% de USD'],
-    porCat.map(x => `<tr><td>${x.c}</td><td style="font-family:var(--fm);">${x.u}</td><td style="font-family:var(--fm);">${f0(x.usd)}</td><td style="font-family:var(--fm);">${totalUsd ? Math.round(x.usd/totalUsd*100) : 0}%</td></tr>`)
-    .concat(sinItems.n ? [`<tr><td style="color:var(--txt3);">Ventas sin ítems</td><td style="font-family:var(--fm);">${sinItems.n} ventas</td><td style="font-family:var(--fm);">${f0(sinItems.usd)}</td><td style="font-family:var(--fm);">${totalUsd ? Math.round(sinItems.usd/totalUsd*100) : 0}%</td></tr>`] : [])
-    .concat([`<tr class="tr-tot"><td>TOTAL</td><td></td><td>${f0(totalUsd)}</td><td></td></tr>`]));
-  // 2) Botas por talle (barras) y por modelo + talle
+  if (!filas.length) { cont.innerHTML = '<p class="rd-muted">Sin ventas en la temporada elegida.</p>'; return; }
+  const anio = (de||'').slice(0,4);
+  const nVentas = ventas.filter(v => v.mp !== 'Regalo').length;
+  const nReg = ventas.filter(v => v.mp === 'Regalo').length;
+  const tab = (head, rows) => `<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  const td = (x, n) => `<td${n?' class="n"':''}>${x}</td>`;
+  // Totales por categoría
+  const cats = ['Botas','Plantillas','Servicios','Lifters','Medias','Otros','Boosters'];
+  const nomCat = { Lifters:'Lifters / plaquitas' };
+  const porCat = cats.map(c => { const r = filas.filter(x => x.cat === c); return { c, u: r.reduce((a,x)=>a+x.u,0), usd: r.reduce((a,x)=>a+x.usd,0) }; }).filter(x => x.u).sort((a,b) => b.usd - a.usd);
+  const pct = x => { const p = totalUsd ? x/totalUsd*100 : 0; return p < 1 ? p.toFixed(1).replace('.',',')+'%' : Math.round(p)+'%'; };
+  const topUsd = porCat[0], topU = [...porCat].sort((a,b)=>b.u-a.u)[0];
+  const hoyStr = new Date().toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'});
+  let h = `<h1>Resumen de ventas ${anio} — OBR</h1><div class="rd-date">${hoyStr}</div>`;
+  h += `<p>La temporada ${anio} lleva <strong>${nVentas} ventas por USD ${f0(totalUsd)}</strong>${nReg?`, más ${nReg} regalo${nReg>1?'s':''}`:''}. `
+     + `${topUsd ? `${topUsd.c === 'Botas' ? 'Las botas son' : `${nomCat[topUsd.c]||topUsd.c} es`} el ${pct(topUsd.usd)} de la facturación` : ''}`
+     + `${topU && topU.c !== topUsd?.c ? ` y ${topU.c === 'Servicios' ? 'los servicios son' : (nomCat[topU.c]||topU.c)+' es'} lo que más unidades mueve` : ''}.</p>`;
+  h += `<h2>Totales por categoría</h2>` + tab(['Categoría','Unidades','USD','% de USD'],
+    porCat.map(x => `<tr>${td(nomCat[x.c]||x.c)}${td(x.u,1)}${td(f0(x.usd),1)}${td(pct(x.usd),1)}</tr>`)
+      .concat(sinItems.n ? [`<tr>${td('Ventas sin ítems')}${td(sinItems.n+' ventas',1)}${td(f0(sinItems.usd),1)}${td(pct(sinItems.usd),1)}</tr>`] : []));
+  h += `<p>Las unidades son exactas e incluyen los regalos. En las ventas viejas con varios ítems y un solo total, repartí los dólares entre los ítems según el precio de lista: esos montos por producto son aproximados.</p>`;
+  // Botas
   const botas = filas.filter(x => x.cat === 'Botas');
   if (botas.length) {
-    const tl = {}; botas.forEach(b => { const t = b.talle || '?'; tl[t] = tl[t] || { u:0, lange:0, atomic:0, otras:0 }; tl[t].u += b.u; const mk = sinT(b.modelo||b.nombre).split(' ')[0]; if (mk==='lange') tl[t].lange += b.u; else if (mk==='atomic') tl[t].atomic += b.u; else tl[t].otras += b.u; });
-    const tKeys = Object.keys(tl).sort((a,b) => parseFloat(a)-parseFloat(b));
-    const maxU = Math.max(...tKeys.map(k => tl[k].u));
     const totB = botas.reduce((a,x)=>a+x.u,0);
-    html += sub(`Botas por talle — ${totB} pares`) + `<div class="tw" style="padding:14px 16px;margin-bottom:16px;">` + tKeys.map(k => `
-      <div style="display:flex;align-items:center;gap:10px;margin:4px 0;" title="Lange ${tl[k].lange} · Atomic ${tl[k].atomic}${tl[k].otras?' · otras '+tl[k].otras:''}">
-        <div style="width:42px;font-family:var(--fm);font-size:12px;color:var(--txt2);">${e(k)}</div>
-        <div style="flex:1;background:var(--s2);border-radius:4px;height:18px;"><div style="width:${(tl[k].u/maxU*100).toFixed(1)}%;height:18px;border-radius:4px;background:${tl[k].u===maxU?'var(--red)':'#c9c6bd'};"></div></div>
-        <div style="width:150px;font-family:var(--fm);font-size:12px;">${tl[k].u} <span style="color:var(--txt3);font-size:11px;">(L ${tl[k].lange} · A ${tl[k].atomic}${tl[k].otras?' · otras '+tl[k].otras:''})</span></div>
-      </div>`).join('') + `</div>`;
+    const marca = b => sinT(b.modelo||b.nombre).split(' ')[0];
+    const nL = botas.filter(b=>marca(b)==='lange').reduce((a,x)=>a+x.u,0), nA = botas.filter(b=>marca(b)==='atomic').reduce((a,x)=>a+x.u,0), nO = totB-nL-nA;
     const bs = [...botas].sort((a,b) => b.u - a.u || b.usd - a.usd);
-    html += sub('Botas por modelo y talle') + tabla(['Modelo','Talle','Pares','USD'],
-      bs.map(b => `<tr><td>${e(b.modelo||b.nombre)}</td><td style="font-family:var(--fm);">${e(b.talle||'')}</td><td style="font-family:var(--fm);font-weight:600;">${b.u}</td><td style="font-family:var(--fm);">${f0(b.usd)}</td></tr>`));
+    const porModelo = {}; botas.forEach(b => { const k = b.modelo||b.nombre; porModelo[k] = (porModelo[k]||0) + b.u; });
+    const topMod = Object.entries(porModelo).sort((a,b)=>b[1]-a[1])[0];
+    h += `<h2>Botas por modelo y talle</h2><p>Se vendieron ${totB} botas: ${nL} Lange y ${nA} Atomic${nO?` (y ${nO} de reboleo u otras marcas)`:''}. La combinación más vendida fue la ${e(bs[0].modelo||bs[0].nombre)} en ${e(bs[0].talle)}, con ${bs[0].u} pares.${topMod && topMod[0] !== (bs[0].modelo||bs[0].nombre) ? ` Como modelo, la que más salió fue la ${e(topMod[0])}: ${topMod[1]} pares entre todos sus talles.` : ''}</p>`;
+    // Gráfico de barras por talle (mismo estilo que el documento)
+    const tl = {}; botas.forEach(b => { const t = b.talle || '?'; tl[t] = (tl[t]||0) + b.u; });
+    const ks = Object.keys(tl).sort((a,b) => parseFloat(a)-parseFloat(b));
+    const peak = Math.max(...ks.map(k=>tl[k])); const best = ks.find(k => tl[k] === peak);
+    const W = 760, left = 40, y0 = 90, base = 330, band = 680 / ks.length, bw = band * 0.6, y = v => base - v / peak * (base - y0);
+    h += `<div class="rd-chart"><svg viewBox="0 0 ${W} 370" style="width:100%;height:auto;display:block" font-family="inherit" font-size="13">
+      <text x="40" y="30" font-size="17" fill="#1f1e1c">El ${e(best)} fue el talle que más se vendió</text>
+      <text x="40" y="54" fill="#77756f">${peak} de ${totB} botas · pares vendidos por talle, temporada ${anio}</text>
+      <line x1="40" x2="720" y1="${base}" y2="${base}" stroke="#c9c6bd"/>
+      ${ks.map((k,i) => `<rect x="${left+i*band+(band-bw)/2}" y="${y(tl[k])}" width="${bw}" height="${base-y(tl[k])}" fill="${k===best?'#2A78D6':'#C4C2B7'}"><title>Talle ${e(k)}: ${tl[k]} botas</title></rect>
+        <text x="${left+i*band+band/2}" y="${y(tl[k])-8}" text-anchor="middle" fill="#1f1e1c">${tl[k]}</text>
+        <text x="${left+i*band+band/2}" y="${base+20}" text-anchor="middle" fill="#77756f">${e(k)}</text>`).join('')}
+    </svg></div><p class="rd-cap">VENTAS_${anio} del Sheet OBR · al ${hoyStr}</p>`;
+    h += tab(['Modelo','Talle','Pares','USD aprox.'], bs.map(b => `<tr>${td(e(b.modelo||b.nombre))}${td(e(b.talle||''),1)}${td(b.u,1)}${td(f0(b.usd),1)}</tr>`));
   }
-  // 3) Plantillas por talle: Custom / Race / Podetti
+  // Productos y servicios
+  const serv = filas.filter(x => x.cat === 'Servicios').sort((a,b) => b.u - a.u || b.usd - a.usd);
   const pl = filas.filter(x => x.cat === 'Plantillas');
-  if (pl.length) {
-    const T = ['XS','S','M','L','XL','XXL']; const g = {}; T.forEach(t => g[t] = { custom:0, race:0, podetti:0, otra:0, usd:0 });
-    pl.forEach(x => {
-      const m = sinT(x.nombre).match(/^(podetti(?: custom)?|custom|race)\s+(xxl|xl|xs|s|m|l)$/);
-      const t = m ? m[2].toUpperCase() : null; if (!t) { g.otra = (g.otra||0) + x.u; return; }
-      const fam = m[1].startsWith('podetti') ? 'podetti' : m[1];
-      g[t][fam] += x.u; g[t].usd += x.usd;
-    });
-    const rows = T.filter(t => g[t].custom+g[t].race+g[t].podetti).map(t => { const r = g[t]; const tot = r.custom+r.race+r.podetti;
-      return `<tr><td style="font-weight:600;">${t}</td><td style="font-family:var(--fm);font-weight:600;">${tot}</td><td style="font-family:var(--fm);">${r.custom}</td><td style="font-family:var(--fm);">${r.race}</td><td style="font-family:var(--fm);">${r.podetti}</td><td style="font-family:var(--fm);">${f0(r.usd)}</td></tr>`; });
-    const sum = k => T.reduce((a,t) => a + g[t][k], 0);
-    rows.push(`<tr class="tr-tot"><td>TOTAL</td><td>${sum('custom')+sum('race')+sum('podetti')}</td><td>${sum('custom')}</td><td>${sum('race')}</td><td>${sum('podetti')}</td><td>${f0(sum('usd'))}</td></tr>`);
-    html += sub('Plantillas por talle') + tabla(['Talle','Total','Custom','Race','Podetti','USD'], rows);
+  const T = ['XS','S','M','L','XL','XXL']; const g = {}; T.forEach(t => g[t] = { custom:0, race:0, podetti:0, usd:0 });
+  pl.forEach(x => { const m = sinT(x.nombre).match(/^(podetti(?: custom)?|custom|race)\s+(xxl|xl|xs|s|m|l)$/); if (!m) return;
+    const t = m[2].toUpperCase(), fam = m[1].startsWith('podetti') ? 'podetti' : m[1]; g[t][fam] += x.u; g[t].usd += x.usd; });
+  const totT = t => g[t].custom + g[t].race + g[t].podetti;
+  const topT = T.filter(t => totT(t)).sort((a,b) => totT(b)-totT(a)).slice(0,2);
+  const expTot = serv.filter(x => /^expansi/i.test(x.nombre)).reduce((a,x)=>a+x.u,0);
+  const sumF = k => T.reduce((a,t) => a + g[t][k], 0);
+  const totPl = sumF('custom') + sumF('race') + sumF('podetti');
+  h += `<h2>Productos y servicios, de más a menos vendido</h2><p>`
+     + (serv.length ? (expTot ? `Los servicios más vendidos son las expansiones, con ${expTot} entre 1 y 2 puntos.` : `El servicio más vendido es ${e(serv[0].nombre)}, con ${serv[0].u}.`) + (serv.find(x=>/^frezada$/i.test(x.nombre)) ? ` Le siguen las frezadas, con ${serv.find(x=>/^frezada$/i.test(x.nombre)).u}.` : '') : '')
+     + (topT.length ? ` En plantillas, los talles que más se vendieron fueron ${topT.map(t=>`${t} (${totT(t)})`).join(' y ')}${totPl && sumF('custom')/totPl >= .45 ? ', y la mitad fueron Custom' : ''}. Las unidades incluyen los regalos.` : '') + `</p>`;
+  if (totPl) {
+    h += `<h3>Plantillas</h3>` + tab(['Talle','Total','Custom','Race','Podetti','USD aprox.'],
+      T.filter(t => totT(t)).map(t => `<tr>${td(t)}${td(totT(t),1)}${td(g[t].custom,1)}${td(g[t].race,1)}${td(g[t].podetti,1)}${td(f0(g[t].usd),1)}</tr>`)
+       .concat([`<tr class="tot">${td('Total')}${td(totPl,1)}${td(sumF('custom'),1)}${td(sumF('race'),1)}${td(sumF('podetti'),1)}${td(f0(sumF('usd')),1)}</tr>`]));
   }
-  // 4) Resto, de más a menos vendido
-  ['Servicios','Lifters','Medias','Boosters','Otros'].forEach(c => {
-    const r = filas.filter(x => x.cat === c).sort((a,b) => b.u - a.u || b.usd - a.usd);
-    if (!r.length) return;
-    html += sub(c) + tabla(['Producto / servicio','Unidades','USD'],
-      r.map(x => `<tr><td>${e(x.nombre)}</td><td style="font-family:var(--fm);font-weight:600;">${x.u}</td><td style="font-family:var(--fm);">${f0(x.usd)}</td></tr>`));
-  });
-  html += `<div style="font-size:11px;color:var(--txt3);margin-top:-6px;">En ventas viejas con varios ítems y un solo total, los USD se reparten según el precio de lista (son aproximados).</div>`;
-  cont.innerHTML = html;
+  const bloque = (titulo, col, rows) => rows.length ? `<h3>${titulo}</h3>` + tab([col,'Unidades','USD aprox.'], rows.map(x => `<tr>${td(e(x.nombre))}${td(x.u,1)}${td(f0(x.usd),1)}</tr>`)) : '';
+  const ord = c => filas.filter(x => x.cat === c).sort((a,b) => b.u - a.u || b.usd - a.usd);
+  h += bloque('Servicios','Servicio', serv);
+  h += bloque('Medias','Media', ord('Medias'));
+  h += bloque('Lifters y plaquitas','Lifter', ord('Lifters'));
+  h += bloque('Boosters y otros','Producto', [...ord('Boosters'), ...ord('Otros')]);
+  const ceros = filas.filter(x => x.cat !== 'Botas' && x.u && x.usd < 0.5).map(x => x.nombre);
+  if (ceros.length) h += `<p class="rd-muted">Las líneas en USD 0 (${ceros.map(e).join(', ')}) se cargaron sin precio o como regalo.</p>`;
+  cont.innerHTML = h;
+}
+
+function prepararSelectorResumen() {
+  const sel = document.getElementById('res-anio'); if (!sel) return;
+  const yrs = [...new Set([...(D.years||[]), Number(D.cfg.tmp)])].sort((a,b)=>b-a);
+  const actual = sel.value || String(D.cfg.tmp);
+  sel.innerHTML = yrs.map(y => `<option value="${y}">${y}</option>`).join('');
+  sel.value = yrs.map(String).includes(actual) ? actual : String(D.cfg.tmp);
+}
+async function rResumen() {
+  const cont = document.getElementById('res-doc'); if (!cont) return;
+  cont.innerHTML = '<p class="rd-muted">Cargando...</p>';
+  const yr = document.getElementById('res-anio')?.value || String(D.cfg.tmp);
+  try {
+    const all = await loadAllVentas();
+    rResumenVentas(all, `${yr}-01-01`, `${yr}-12-31`);
+  } catch(e) { cont.innerHTML = '<p class="rd-muted">No se pudo cargar: '+e.message+'</p>'; }
 }
 
 function balResetFiltros() {
@@ -5794,6 +5853,7 @@ function sv(name, btn) {
     renderPagos();
   }
   if (name==='morosos') { rMorosos(); }
+  if (name==='resumen') { prepararSelectorResumen(); rResumen(); }
   if (name==='balance') {
     const de = document.getElementById('bal-de');
     const ha = document.getElementById('bal-ha');
