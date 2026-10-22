@@ -1801,6 +1801,18 @@ x2 gramaje 60</div>
       <button class="btn btn-d btn-sm" id="btn-cerrar-temp" onclick="cerrarTemporada()">Cerrar temporada</button>
     </div>
   </div>
+
+  <div style="margin-top:16px;">
+    <div class="st" style="font-size:16px;margin-bottom:12px;">MANTENIMIENTO</div>
+    <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;box-shadow:var(--sh);max-width:560px;">
+      <div style="font-size:12px;color:var(--txt2);margin-bottom:12px;line-height:1.5;">
+        <strong>Reparar talles de BOTAS:</strong> en el Sheet, muchos talles quedaron guardados como fecha (26.5 = 26 de mayo).
+        Este botón los vuelve a escribir como texto, con el mismo número que ves en la app. No cambia stock, costos ni ventas.
+        Se usa una sola vez; si ya están bien, avisa y no hace nada.
+      </div>
+      <button class="btn btn-s btn-sm" id="btn-rep-talles" onclick="repararTalles()">Reparar talles de BOTAS</button>
+    </div>
+  </div>
 </div>
 </div><!-- /app -->
 
@@ -2799,7 +2811,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: 2026-10-21 paso 5c — arreglo botón Pagó ✓');
+  console.log('OBR build: 2026-10-22 paso 7 — reparar talles ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -6595,6 +6607,70 @@ async function setCfgValue(clave, valor) {
   const fila = idx >= 0 ? idx + 1 : rows.length + 1;
   await sUraw(`CONFIG!A${fila}:B${fila}`, [[clave, String(valor)]]);
 }
+// ─────────────────────────────────────────
+// REPARAR TALLES DE BOTAS (fechas → texto)
+// Lee la columna C tal como se ve (ej. "26.5") y sin formato (una fecha es un número de serie).
+// Solo reescribe las celdas que son fecha, con el mismo texto que ya se ve. Después verifica.
+// ─────────────────────────────────────────
+async function sGsinFormato(rng) {
+  const t = await getT();
+  const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${D.sid}/values/${encodeURIComponent(rng)}?valueRenderOption=UNFORMATTED_VALUE`, {headers:{Authorization:`Bearer ${t}`}});
+  if (!r.ok) throw new Error(`GET ${rng}: ${r.status}`);
+  return r.json();
+}
+async function repararTalles() {
+  const btn = document.getElementById('btn-rep-talles');
+  try {
+    if (btn) btn.disabled = true;
+    tst('Revisando talles...');
+    const vis = (await sG('BOTAS!A1:C1000')).values || [];
+    const raw = (await sGsinFormato('BOTAS!A1:C1000')).values || [];
+    const cambios = []; const raros = [];
+    for (let i = 1; i < vis.length; i++) {
+      const tv = String((vis[i]||[])[2] ?? '').trim();
+      const tr = (raw[i]||[])[2];
+      if (tv === '' ) continue;
+      if (typeof tr === 'number') {            // es fecha (número de serie) o número
+        if (/^\d{2}(\.5)?$/.test(tv)) cambios.push({ fila: i+1, talle: tv, marca: vis[i][0]||'', mod: vis[i][1]||'' });
+        else raros.push(`fila ${i+1}: "${tv}"`);
+      }
+    }
+    if (!cambios.length) { tst('Los talles ya están bien guardados ✓','ok'); if (btn) btn.disabled = false; return; }
+    if (raros.length) { alert('Hay talles con un formato que no reconozco, no toco nada:\n' + raros.join('\n')); if (btn) btn.disabled = false; return; }
+    if (!confirm(`Se van a reescribir ${cambios.length} talles como texto (mismo número que se ve hoy).\nNo cambia stock, costos ni ventas.\n\nAntes de seguir, cerrá el Google Sheet si lo tenés abierto. ¿Seguimos?`)) { if (btn) btn.disabled = false; return; }
+    // Escribir celda por celda solo las que son fecha
+    const t = await getT();
+    const data = cambios.map(c => ({ range: `BOTAS!C${c.fila}`, values: [[c.talle]] }));
+    const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${D.sid}/values:batchUpdate`, {
+      method:'POST', headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},
+      body: JSON.stringify({ valueInputOption:'RAW', data })
+    });
+    if (!r.ok) throw new Error('No se pudo escribir: ' + r.status);
+    // Formato de texto para la columna, así lo que se escriba a mano tampoco se convierte en fecha
+    try {
+      const sid = await getSheetId('BOTAS');
+      if (sheetIdCache['BOTAS'] === undefined) throw new Error('sin id de BOTAS');
+      await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${D.sid}:batchUpdate`, {
+        method:'POST', headers:{Authorization:`Bearer ${t}`,'Content-Type':'application/json'},
+        body: JSON.stringify({ requests:[{ repeatCell:{ range:{ sheetId:sid, startRowIndex:1, endRowIndex:1000, startColumnIndex:2, endColumnIndex:3 }, cell:{ userEnteredFormat:{ numberFormat:{ type:'TEXT' } } }, fields:'userEnteredFormat.numberFormat' } }] })
+      });
+    } catch(e) { console.warn('formato texto', e); }
+    // Verificar: mismo texto que antes en todas las filas, y ninguna fecha
+    const vis2 = (await sG('BOTAS!A1:C1000')).values || [];
+    const raw2 = (await sGsinFormato('BOTAS!A1:C1000')).values || [];
+    const malos = [];
+    for (let i = 1; i < Math.max(vis.length, vis2.length); i++) {
+      const a = (vis[i]||[]).map(x => String(x??'')).join('|'), b = (vis2[i]||[]).map(x => String(x??'')).join('|');
+      if (a !== b) malos.push(`fila ${i+1}: "${a}" → "${b}"`);
+      if (typeof ((raw2[i]||[])[2]) === 'number') malos.push(`fila ${i+1}: sigue siendo fecha`);
+    }
+    if (malos.length) { alert('Ojo, algo no quedó igual (hay backup del 22/10 en Drive):\n' + malos.slice(0,20).join('\n')); tst('Revisar talles','err'); }
+    else { tst(`Talles reparados ✓ (${cambios.length})`,'ok'); alert(`Listo: ${cambios.length} talles quedaron guardados como texto. Todo lo demás quedó igual.`); }
+    await lBotas();
+  } catch(e) { tst('Error: ' + e.message,'err'); }
+  if (btn) btn.disabled = false;
+}
+
 // ─────────────────────────────────────────
 // CERRAR TEMPORADA
 // 1) foto del stock en STOCK_CIERRE_{año}  2) verifica la foto
