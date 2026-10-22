@@ -1517,6 +1517,11 @@ body.ready #app{display:block}
 
 <!-- PROVEEDORES -->
 <div id="view-provs" class="view">
+  <div class="sh"><div class="st">COMPRAS DE BOTAS</div>
+    <div style="display:flex;gap:8px;" id="cmp-btns"><button class="btn btn-s" onclick="abrirCompra('Pedido')">+ Pedido de botas</button><button class="btn btn-p" onclick="abrirCompra('Pago')">+ Pago</button></div>
+  </div>
+  <p style="font-size:12px;color:var(--txt2);margin:-4px 0 12px;">Pedidos a Podetti, Rossini, Head… y lo que se va pagando. Los pagos no restan a la ganancia (el costo de cada bota ya se resta cuando se vende).</p>
+  <div id="cmp-list" style="margin-bottom:28px;"><div style="color:var(--txt3);font-size:13px;">Cargando...</div></div>
   <div class="sh"><div class="st">PROVEEDORES</div><button class="btn btn-p" onclick="openProv()">+ Pedido</button></div>
   <div id="pv-list">
     <div class="pv-group">
@@ -1736,6 +1741,7 @@ x2 gramaje 60</div>
     <div class="bal-card"><div class="bal-lbl">Ventas</div><div class="bal-val" id="bal-cnt">0</div><div class="bal-sub" id="bal-cnt-sub">total operaciones</div></div>
     <div class="bal-card"><div class="bal-lbl">Regalos</div><div class="bal-val" id="bal-reg" style="color: var(--ok);">0</div><div class="bal-sub" id="bal-reg-sub">0 regalos</div></div>
     <div class="bal-card" style="border-left:3px solid var(--warn);"><div class="bal-lbl" style="color:var(--warn);">Total inversión <button class="eye-btn" onclick="toggleEye('bal-inv-wrap',this)">👁</button></div><div id="bal-inv-wrap" class="hidden"><div class="bal-val" id="bal-inv" style="color:var(--warn);">u$s 0</div><div class="bal-sub">Stock USA/Europa · Obra · Infraestructura</div></div></div>
+    <div class="bal-card" style="border-left:3px solid var(--warn);"><div class="bal-lbl" style="color:var(--warn);">Pagos de botas <button class="eye-btn" onclick="toggleEye('bal-cmp-wrap',this)">👁</button></div><div id="bal-cmp-wrap" class="hidden"><div class="bal-val" id="bal-cmp" style="color:var(--warn);">u$s 0</div><div class="bal-sub" id="bal-cmp-sub">Pagado a proveedores en el período · no resta a la ganancia</div></div></div>
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px;">
@@ -1802,19 +1808,26 @@ x2 gramaje 60</div>
     </div>
   </div>
 
-  <div style="margin-top:16px;">
-    <div class="st" style="font-size:16px;margin-bottom:12px;">MANTENIMIENTO</div>
-    <div style="background:#fff;border:1px solid var(--bd);border-radius:var(--rl);padding:16px;box-shadow:var(--sh);max-width:560px;">
-      <div style="font-size:12px;color:var(--txt2);margin-bottom:12px;line-height:1.5;">
-        <strong>Reparar talles de BOTAS:</strong> en el Sheet, muchos talles quedaron guardados como fecha (26.5 = 26 de mayo).
-        Este botón los vuelve a escribir como texto, con el mismo número que ves en la app. No cambia stock, costos ni ventas.
-        Se usa una sola vez; si ya están bien, avisa y no hace nada.
-      </div>
-      <button class="btn btn-s btn-sm" id="btn-rep-talles" onclick="repararTalles()">Reparar talles de BOTAS</button>
-    </div>
-  </div>
 </div>
 </div><!-- /app -->
+
+<!-- COMPRA (pedido o pago a proveedor de botas) -->
+<div class="mo" id="m-compra"><div class="md" style="max-width:460px;">
+  <div class="mh"><div class="mt" id="cmp-titulo">PEDIDO DE BOTAS</div><button class="mc" onclick="closeM('m-compra')">✕</button></div>
+  <div class="fg">
+    <div class="fi" id="cmp-pedido-wrap" style="grid-column:1/-1;display:none;"><label>Pedido</label><select id="cmp-pedido" onchange="onCompraPedido()"></select></div>
+    <div class="fi cmp-solo-pedido"><label>Proveedor</label><input type="text" id="cmp-prov" placeholder="Podetti, Rossini, Head..."></div>
+    <div class="fi cmp-solo-pedido"><label>Temporada</label><input type="number" id="cmp-temp" placeholder="2027"></div>
+    <div class="fi"><label>Fecha</label><input type="date" id="cmp-fecha"></div>
+    <div class="fi cmp-solo-pedido"><label>Pares</label><input type="number" id="cmp-pares" placeholder="ej: 50"></div>
+    <div class="fi"><label>Monto</label><input type="number" id="cmp-monto" placeholder="ej: 4900"></div>
+    <div class="fi"><label>Moneda</label><select id="cmp-moneda"><option>USD</option><option>EUR</option><option>ARS</option></select></div>
+    <div class="fi cmp-solo-pago"><label>Medio de pago</label><select id="cmp-medio"><option>Efectivo USD</option><option>Transferencia</option><option>Efectivo</option><option>Zelle</option><option>Macro Coco usd</option><option>Otro</option></select></div>
+    <div class="fi" style="grid-column:1/-1;"><label>Detalle</label><input type="text" id="cmp-det" placeholder="ej: Lange 2027 · 3ra cuota"></div>
+    <div class="fi" style="grid-column:1/-1;"><label>Notas</label><input type="text" id="cmp-notas" placeholder="opcional"></div>
+  </div>
+  <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:14px;" onclick="guardarCompra()">Guardar</button>
+</div></div>
 
 <!-- PAGO DE DEUDA -->
 <div class="mo" id="m-pago-deuda"><div class="md" style="max-width:380px;">
@@ -2811,7 +2824,7 @@ async function loadCfg() {
   } catch(e) { console.warn(e); }
 }
 async function loadAll() {
-  console.log('OBR build: 2026-10-22 paso 7 — reparar talles ✓');
+  console.log('OBR build: 2026-10-22 paso 6 — compras de botas ✓');
   spin(true);
   try {
     await Promise.all([lV(), lProd(), lBotas(), lServ(), lG(), lPv(), loadGPTaller()]);
@@ -4021,6 +4034,151 @@ function itemsDeVentaParaCosto(v) {
 }
 
 // ─────────────────────────────────────────
+// COMPRAS DE BOTAS A PROVEEDORES — pestaña COMPRAS del Sheet
+// Columnas: A Fecha · B Proveedor · C Temporada · D Tipo (Pedido/Pago) · E Detalle · F Pares · G Monto · H Moneda · I Medio · J Notas
+// Un pago se asocia a su pedido por Proveedor + Temporada.
+// ─────────────────────────────────────────
+const COMPRAS_HDR = ['Fecha','Proveedor','Temporada','Tipo','Detalle','Pares','Monto','Moneda','Medio','Notas'];
+// Historial que se carga UNA sola vez, al crear la pestaña COMPRAS (datos confirmados por Jua el 22/10/2026)
+const COMPRAS_INICIALES = [
+  ['2026-02-09','Rossini','2026','Pedido','Atomic 2026 (importador Rossini)',63,28183,'USD','','Costo por par incluye transporte e importación'],
+  ['','Rossini','2026','Pago','Pagos anteriores (sin detalle de cuotas)','',23283,'USD','',''],
+  ['2026-10-14','Rossini','2026','Pago','Último pago — cuenta saldada','',4900,'USD','',''],
+  ['2026-05-01','Podetti','2026','Pedido','Lange 2026: 46 pares + extras XT90 23.5 y RS 110 23.5',48,15200,'USD','','Pagado al costo'],
+  ['','Podetti','2026','Pago','Saldado a mitad de temporada (incluye las 2 extras)','',15200,'USD','',''],
+  ['','Podetti','2027','Pedido','Lange 2027: 51 pares pedidos + 15 entregados en oct. 2026 (Shadow, Concept, RS 120 LV, RS 130 MV, LX 100, XT 100 W) + 2 RX Heritage entregadas en oct.',66,20780,'USD','','Según Podetti 20.330 (su planilla tiene error). Forma de pago a definir. Las entregadas en oct. se cargan en BOTAS junto con el resto de 2027'],
+  ['2026-09-28','Head','2027','Pedido','Head 2027: Raptor, Kaliber, Edge',50,20716,'EUR','','Excel dice "Precio lista EUR", sin IVA — moneda y forma de pago a confirmar']
+];
+let _compras = [];
+async function leerCompras() {
+  try {
+    const d = await sG('COMPRAS!A1:J2000');
+    const rows = d.values || [];
+    _compras = rows.slice(1).map((r,i) => ({
+      _r: i+2, fecha: r[0]||'', prov: (r[1]||'').trim(), temp: String(r[2]||'').trim(), tipo: (r[3]||'').trim(),
+      det: r[4]||'', pares: parseInt(r[5])||0, monto: parseFloat(String(r[6]||'').replace(/\./g,'').replace(',','.'))||parseFloat(r[6])||0,
+      moneda: (r[7]||'USD').trim() || 'USD', medio: r[8]||'', notas: r[9]||''
+    })).filter(c => c.prov && c.tipo);
+    _compras._existe = true;
+  } catch(e) { _compras = []; _compras._existe = false; }
+  return _compras;
+}
+async function rCompras() {
+  const el = document.getElementById('cmp-list'); if (!el) return;
+  el.innerHTML = '<div style="color:var(--txt3);font-size:13px;">Cargando...</div>';
+  const all = await leerCompras();
+  const btns = document.getElementById('cmp-btns');
+  if (!all._existe) {
+    if (btns) btns.style.display = 'none';
+    el.innerHTML = `<div class="pvc" style="font-size:13px;line-height:1.6;">
+      Todavía no existe el registro de compras en el Sheet. Al empezarlo se crea la pestaña <strong>COMPRAS</strong> con lo que ya sabemos:
+      Rossini 2026 (USD 28.183, saldado), Podetti 2026 (USD 15.200, saldado), Podetti 2027 (USD 20.780, pago a definir) y Head 2027 (20.716, moneda a confirmar).
+      No toca ninguna otra pestaña.<br><button class="btn btn-p btn-sm" style="margin-top:10px;" onclick="crearCompras()">Empezar registro de compras</button></div>`;
+    return;
+  }
+  if (btns) btns.style.display = 'flex';
+  const pedidos = all.filter(c => c.tipo === 'Pedido').sort((a,b) => (b.temp.localeCompare(a.temp)) || a.prov.localeCompare(b.prov));
+  if (!pedidos.length) { el.innerHTML = '<div style="color:var(--txt3);font-size:13px;">Sin pedidos cargados.</div>'; return; }
+  const f0 = n => Math.round(n).toLocaleString('es-AR');
+  el.innerHTML = pedidos.map(p => {
+    const pagos = all.filter(c => c.tipo === 'Pago' && c.prov.toLowerCase() === p.prov.toLowerCase() && c.temp === p.temp);
+    const pagado = pagos.reduce((a,c) => a + (c.moneda === p.moneda ? c.monto : 0), 0);
+    const otras = pagos.filter(c => c.moneda !== p.moneda);
+    const saldo = p.monto - pagado;
+    const estado = saldo <= 0.5 ? `<span class="bx bx-g">Saldado</span>` : `<span class="bx bx-r">Falta ${p.moneda} ${f0(saldo)}</span>`;
+    return `<div class="pvc">
+      <div class="pvh" style="align-items:flex-start;">
+        <div><div class="pvn" style="font-size:15px;">${e(p.prov)} · temporada ${e(p.temp)}</div>
+          <div style="font-size:12px;color:var(--txt2);margin-top:2px;">${e(p.det)}${p.pares?` · ${p.pares} pares`:''}${p.fecha?` · ${fd(p.fecha)}`:''}</div>
+          ${p.notas?`<div style="font-size:11px;color:var(--txt3);margin-top:2px;">${e(p.notas)}</div>`:''}</div>
+        <div style="text-align:right;white-space:nowrap;">${estado}<div style="font-family:var(--fm);font-size:13px;margin-top:4px;">Pedido ${p.moneda} ${f0(p.monto)}</div><div style="font-family:var(--fm);font-size:12px;color:var(--txt2);">Pagado ${p.moneda} ${f0(pagado)}</div></div>
+      </div>
+      ${pagos.length ? `<table style="width:100%;margin-top:10px;font-size:12px;"><tbody>${pagos.sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).map(c => `<tr>
+          <td style="color:var(--txt2);white-space:nowrap;padding:4px 6px;">${c.fecha?fd(c.fecha):'sin fecha'}</td>
+          <td style="padding:4px 6px;">${e(c.det)}${c.notas?` <span style="color:var(--txt3);">· ${e(c.notas)}</span>`:''}</td>
+          <td style="font-family:var(--fm);white-space:nowrap;padding:4px 6px;">${c.moneda} ${f0(c.monto)}</td>
+          <td style="padding:4px 6px;color:var(--txt2);">${e(c.medio)}</td>
+          <td style="padding:4px 6px;width:30px;"><button class="btn btn-s btn-sm btn-ic" title="Borrar pago" onclick="borrarCompra(${c._r})">✕</button></td></tr>`).join('')}</tbody></table>`
+        : `<div style="font-size:12px;color:var(--txt3);margin-top:8px;">Sin pagos todavía.</div>`}
+      ${otras.length ? `<div style="font-size:11px;color:var(--warn);margin-top:4px;">Hay pagos en otra moneda que no se restan del saldo.</div>` : ''}
+      <div style="margin-top:8px;"><button class="btn btn-p btn-sm" onclick="abrirCompra('Pago','${e(p.prov).replace(/'/g,"\\'")}','${e(p.temp)}')">+ Pago</button></div>
+    </div>`;
+  }).join('');
+}
+async function crearCompras() {
+  try {
+    const titles = await sheetTitles();
+    if (titles.includes('COMPRAS')) { tst('La pestaña COMPRAS ya existe','err'); await rCompras(); return; }
+    await mkSh('COMPRAS');
+    if (!(await sheetTitles()).includes('COMPRAS')) throw new Error('No se pudo crear la pestaña COMPRAS');
+    await sUraw(`COMPRAS!A1:J${COMPRAS_INICIALES.length+1}`, [COMPRAS_HDR, ...COMPRAS_INICIALES]);
+    tst('Registro de compras creado ✓','ok');
+    await rCompras();
+  } catch(e) { tst('Error: '+e.message,'err'); }
+}
+let _compraTipo = 'Pedido';
+function abrirCompra(tipo, prov, temp) {
+  _compraTipo = tipo;
+  document.getElementById('cmp-titulo').textContent = tipo === 'Pago' ? 'PAGO A PROVEEDOR' : 'PEDIDO DE BOTAS';
+  ['cmp-prov','cmp-temp','cmp-pares','cmp-monto','cmp-det','cmp-notas'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cmp-fecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('cmp-moneda').value = 'USD';
+  document.querySelectorAll('.cmp-solo-pedido').forEach(x => x.style.display = tipo === 'Pago' ? 'none' : '');
+  document.querySelectorAll('.cmp-solo-pago').forEach(x => x.style.display = tipo === 'Pago' ? '' : 'none');
+  const wrap = document.getElementById('cmp-pedido-wrap');
+  if (tipo === 'Pago') {
+    const peds = _compras.filter(c => c.tipo === 'Pedido');
+    if (!peds.length) { tst('Primero cargá un pedido','err'); return; }
+    const sel = document.getElementById('cmp-pedido');
+    sel.innerHTML = peds.map((p,i) => `<option value="${i}">${e(p.prov)} · ${e(p.temp)} — ${e(p.det).slice(0,50)}</option>`).join('');
+    const idx = prov ? peds.findIndex(p => p.prov === prov && p.temp === temp) : 0;
+    sel.value = String(Math.max(0, idx));
+    wrap.style.display = '';
+    onCompraPedido();
+  } else wrap.style.display = 'none';
+  openM('m-compra');
+}
+function onCompraPedido() {
+  const peds = _compras.filter(c => c.tipo === 'Pedido');
+  const p = peds[parseInt(document.getElementById('cmp-pedido').value)||0];
+  if (p) document.getElementById('cmp-moneda').value = p.moneda || 'USD';
+}
+async function guardarCompra() {
+  let prov, temp, pares = '';
+  if (_compraTipo === 'Pago') {
+    const peds = _compras.filter(c => c.tipo === 'Pedido');
+    const p = peds[parseInt(document.getElementById('cmp-pedido').value)||0];
+    if (!p) return tst('Elegí el pedido','err');
+    prov = p.prov; temp = p.temp;
+  } else {
+    prov = document.getElementById('cmp-prov').value.trim();
+    temp = document.getElementById('cmp-temp').value.trim();
+    pares = parseInt(document.getElementById('cmp-pares').value) || '';
+    if (!prov || !temp) return tst('Poné proveedor y temporada','err');
+  }
+  const monto = parseFloat(document.getElementById('cmp-monto').value) || 0;
+  if (!monto) return tst('Poné el monto','err');
+  const fila = [document.getElementById('cmp-fecha').value || '', prov, temp, _compraTipo,
+    document.getElementById('cmp-det').value.trim(), pares, monto, document.getElementById('cmp-moneda').value,
+    _compraTipo === 'Pago' ? document.getElementById('cmp-medio').value : '', document.getElementById('cmp-notas').value.trim()];
+  try {
+    await sAraw('COMPRAS', [fila]);
+    closeM('m-compra'); tst('Guardado ✓','ok');
+    await rCompras();
+  } catch(e) { tst('Error: '+e.message,'err'); }
+}
+async function borrarCompra(r) {
+  const c = _compras.find(x => x._r === r); if (!c) return;
+  if (!confirm(`¿Borrar este pago?\n${c.prov} ${c.temp} · ${c.moneda} ${c.monto} · ${c.fecha||'sin fecha'}`)) return;
+  try {
+    const chk = await sG(`COMPRAS!A${r}:G${r}`); const f = (chk.values && chk.values[0]) || [];
+    if ((f[1]||'').trim() !== c.prov || (f[3]||'').trim() !== c.tipo) { tst('La fila cambió, tocá ⟳ y probá de nuevo','err'); return; }
+    await sC(`COMPRAS!A${r}:J${r}`);
+    tst('Pago borrado','ok'); await rCompras();
+  } catch(e) { tst('Error: '+e.message,'err'); }
+}
+
+// ─────────────────────────────────────────
 // DEBE / MOROSOS
 // Columnas nuevas al final de VENTAS_{año}: O = DebeUSD · P = FechaPagoDeuda · Q = MedioPagoDeuda
 // ─────────────────────────────────────────
@@ -4348,6 +4506,14 @@ async function rbal() {
   document.getElementById('bal-reg-sub').textContent = `${regCount} regalo${regCount!==1?'s':''}`;
   const invEl = document.getElementById('bal-inv');
   if (invEl) invEl.textContent = 'u$s ' + gasInvUsd.toFixed(0);
+  // Pagos a proveedores de botas en el período (solo lectura de COMPRAS)
+  try {
+    const cmp = await leerCompras();
+    const pagos = cmp.filter(c => c.tipo === 'Pago' && c.fecha && (!de || c.fecha >= de) && (!ha || c.fecha <= ha));
+    const porMon = {}; pagos.forEach(c => { porMon[c.moneda] = (porMon[c.moneda]||0) + c.monto; });
+    const el = document.getElementById('bal-cmp');
+    if (el) el.textContent = 'u$s ' + Math.round(porMon.USD||0).toLocaleString('es-AR') + Object.entries(porMon).filter(([m]) => m !== 'USD').map(([m,v]) => ` + ${m} ${Math.round(v).toLocaleString('es-AR')}`).join('');
+  } catch(e) { console.warn('compras balance', e); }
   // Por mes — use proportional amounts when category filter active
   const meses = {};
   base.forEach(v => {
@@ -5866,6 +6032,7 @@ function sv(name, btn) {
     renderPagos();
   }
   if (name==='morosos') { rMorosos(); }
+  if (name==='provs') { rCompras(); }
   if (name==='resumen') { prepararSelectorResumen(); rResumen(); }
   if (name==='balance') {
     const de = document.getElementById('bal-de');
